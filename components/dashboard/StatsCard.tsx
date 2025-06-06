@@ -10,10 +10,7 @@ interface StatsCardProps {
 }
 
 export default function StatsCard({ stat, className }: StatsCardProps) {
-  const IconComponent = () => {
-    const Icon = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
-    return <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />;
-  };
+  const Icon = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
 
   return (
     <Card className={cn("overflow-hidden transition-all duration-200 hover:shadow-md", className)}>
@@ -45,7 +42,7 @@ export default function StatsCard({ stat, className }: StatsCardProps) {
             </div>
           </div>
           <div className="rounded-full bg-muted p-2 sm:p-3">
-            <IconComponent />
+            <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
           </div>
         </div>
       </CardContent>
