@@ -1,9 +1,8 @@
-import React from "react";
+// 1. Import ElementType from React for more flexible component typing.
+import React, { ElementType } from "react";
 import { Stat } from "@/types";
 import { cn } from "@/lib/utils";
 import * as Icons from "lucide-react";
-// 1. Import the LucideIcon type for type safety
-import { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface StatsCardProps {
@@ -12,9 +11,10 @@ interface StatsCardProps {
 }
 
 export default function StatsCard({ stat, className }: StatsCardProps) {
-  // 2. Explicitly type 'Icon' with the imported LucideIcon type.
-  // This assures TypeScript that 'Icon' is a valid React component.
-  const Icon: LucideIcon = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
+  // 2. Use the general 'ElementType' type for the dynamic icon.
+  // This resolves the type conflict as it's less strict than 'LucideIcon'
+  // but still ensures the 'Icon' variable is a renderable React component.
+  const Icon: ElementType = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
 
   return (
     <Card className={cn("overflow-hidden transition-all duration-200 hover:shadow-md", className)}>
