@@ -69,9 +69,12 @@ export default function Sidebar({ className }: SidebarProps) {
     item => !item.requiresAdmin || isAdmin
   );
 
+  // Fixed IconComponent with proper type assertion
   const IconComponent = ({ name }: { name: string }) => {
     const Icon = Icons[name as keyof typeof Icons] || Icons.Circle;
-    return <Icon className="w-4 h-4 sm:w-5 sm:h-5" />;
+    // Added type assertion to fix the JSX element type error
+    const Component = Icon as React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    return <Component className="w-4 h-4 sm:w-5 sm:h-5" />;
   };
 
   return (
