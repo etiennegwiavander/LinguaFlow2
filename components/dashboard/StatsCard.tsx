@@ -11,14 +11,8 @@ interface StatsCardProps {
 
 export default function StatsCard({ stat, className }: StatsCardProps) {
   // 1. Get the potential icon component from the Icons object.
-  // We let TypeScript infer the type here to avoid assignment errors.
-  // A fallback to a default icon (Activity) is used if the specified icon doesn't exist.
-  const Icon = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
-
-  // 2. We check if the retrieved 'Icon' is a valid function (i.e., a renderable component).
-  // This is the most robust way to handle dynamic component imports from a library
-  // that might also export non-component members.
-  const isIconComponent = typeof Icon === 'function' && 'render' in Icon;
+  // We use a more descriptive name to clarify that it's a component type.
+  const IconComponent = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
 
   return (
     <Card className={cn("overflow-hidden transition-all duration-200 hover:shadow-md", className)}>
@@ -50,9 +44,12 @@ export default function StatsCard({ stat, className }: StatsCardProps) {
             </div>
           </div>
           <div className="rounded-full bg-muted p-2 sm:p-3">
-            {/* 3. Conditionally render the Icon only if it's a valid component. */}
-            {/* This satisfies TypeScript and prevents runtime errors. */}
-            {isIconComponent && <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />}
+            {/* 2. Directly check if the IconComponent is a function before rendering. */}
+            {/* This is a robust way to ensure we only try to render valid components, */}
+            {/* and this inline pattern works well with TypeScript's type narrowing. */}
+            {typeof IconComponent === 'function' ? (
+              <IconComponent className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+            ) : null}
           </div>
         </div>
       </CardContent>
