@@ -1,5 +1,4 @@
-// 1. Import ElementType from React for more flexible component typing.
-import React, { ElementType } from "react";
+import React from "react";
 import { Stat } from "@/types";
 import { cn } from "@/lib/utils";
 import * as Icons from "lucide-react";
@@ -11,10 +10,15 @@ interface StatsCardProps {
 }
 
 export default function StatsCard({ stat, className }: StatsCardProps) {
-  // 2. Use the general 'ElementType' type for the dynamic icon.
-  // This resolves the type conflict as it's less strict than 'LucideIcon'
-  // but still ensures the 'Icon' variable is a renderable React component.
-  const Icon: ElementType = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
+  // 1. Get the potential icon component from the Icons object.
+  // We let TypeScript infer the type here to avoid assignment errors.
+  // A fallback to a default icon (Activity) is used if the specified icon doesn't exist.
+  const Icon = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
+
+  // 2. We check if the retrieved 'Icon' is a valid function (i.e., a renderable component).
+  // This is the most robust way to handle dynamic component imports from a library
+  // that might also export non-component members.
+  const isIconComponent = typeof Icon === 'function' && 'render' in Icon;
 
   return (
     <Card className={cn("overflow-hidden transition-all duration-200 hover:shadow-md", className)}>
@@ -46,7 +50,9 @@ export default function StatsCard({ stat, className }: StatsCardProps) {
             </div>
           </div>
           <div className="rounded-full bg-muted p-2 sm:p-3">
-            <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+            {/* 3. Conditionally render the Icon only if it's a valid component. */}
+            {/* This satisfies TypeScript and prevents runtime errors. */}
+            {isIconComponent && <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />}
           </div>
         </div>
       </CardContent>
