@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import MainLayout from "@/components/main-layout";
-import { Bell, Shield, User, Upload } from "lucide-react";
+import { Bell, Shield, User, Upload, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,13 +15,18 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import AccountDeletionDialog from "@/components/settings/AccountDeletionDialog";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isDeletionDialogOpen, setIsDeletionDialogOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -107,6 +112,58 @@ export default function SettingsPage() {
       toast.error(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAccountDeletion = async (reason?: string) => {
+    if (!user) return;
+
+    setIsDeletingAccount(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      // Get user's IP and user agent for logging
+      const userAgent = navigator.userAgent;
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/schedule-account-deletion`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason,
+          user_agent: userAgent
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to schedule account deletion');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Sign out the user
+        await supabase.auth.signOut();
+        
+        // Redirect to a confirmation page
+        router.push('/auth/deletion-scheduled');
+        
+        toast.success('Account scheduled for deletion. Check your email for recovery options.');
+      } else {
+        throw new Error(result.error || 'Failed to schedule account deletion');
+      }
+    } catch (error: any) {
+      console.error('Account deletion error:', error);
+      toast.error(error.message || 'Failed to schedule account deletion. Please try again.');
+    } finally {
+      setIsDeletingAccount(false);
+      setIsDeletionDialogOpen(false);
     }
   };
 
@@ -341,11 +398,16 @@ export default function SettingsPage() {
               </CardContent>
               <CardFooter className="flex flex-col items-start space-y-4">
                 <div className="w-full">
-                  <Button variant="destructive" className="w-full sm:w-auto">
+                  <Button 
+                    variant="destructive" 
+                    className="w-full sm:w-auto"
+                    onClick={() => setIsDeletionDialogOpen(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
                     Delete Account
                   </Button>
                   <p className="text-xs text-muted-foreground mt-2">
-                    This action cannot be undone. All your data will be permanently deleted.
+                    This action will schedule your account for deletion. You'll have 30 days to recover it.
                   </p>
                 </div>
                 <div className="flex justify-end space-x-2 w-full">
@@ -356,6 +418,13 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <AccountDeletionDialog
+          open={isDeletionDialogOpen}
+          onOpenChange={setIsDeletionDialogOpen}
+          onConfirmDeletion={handleAccountDeletion}
+          isLoading={isDeletingAccount}
+        />
       </div>
     </MainLayout>
   );
