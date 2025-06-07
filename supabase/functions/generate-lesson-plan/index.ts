@@ -79,16 +79,21 @@ Make each lesson unique and progressively build on the student's current abiliti
 }
 
 serve(async (req) => {
+  console.log('🚀 Edge function called:', req.method, req.url);
+
   if (req.method === 'OPTIONS') {
+    console.log('✅ Handling CORS preflight');
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    console.log('🔧 Creating Supabase client...');
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    console.log('🔐 Checking authorization...');
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       throw new Error('No authorization header')
@@ -98,15 +103,20 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     
     if (authError || !user) {
+      console.error('❌ Auth error:', authError)
       throw new Error('Invalid token')
     }
 
+    console.log('✅ User authenticated:', user.id);
+
+    console.log('📦 Parsing request body...');
     const { student_id }: GenerateLessonRequest = await req.json()
 
     if (!student_id) {
       throw new Error('Student ID is required')
     }
 
+    console.log('🔍 Fetching student details for ID:', student_id);
     // Fetch student details
     const { data: student, error: studentError } = await supabaseClient
       .from('students')
@@ -116,11 +126,15 @@ serve(async (req) => {
       .single()
 
     if (studentError || !student) {
+      console.error('❌ Student fetch error:', studentError);
       throw new Error('Student not found or access denied')
     }
 
+    console.log('✅ Student found:', student.name);
+
     // Construct the prompt
     const prompt = constructPrompt(student as Student)
+    console.log('📝 Prompt constructed, length:', prompt.length);
 
     // Get Gemini API key
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
@@ -128,6 +142,7 @@ serve(async (req) => {
       throw new Error('Gemini API key not configured')
     }
 
+    console.log('🤖 Calling Gemini API...');
     // Call Gemini API using the OpenAI-compatible endpoint
     const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`, {
       method: 'POST',
@@ -152,31 +167,44 @@ serve(async (req) => {
       }),
     })
 
+    console.log('📡 Gemini API response status:', geminiResponse.status);
+
     if (!geminiResponse.ok) {
       const errorData = await geminiResponse.text()
+      console.error('❌ Gemini API error:', errorData);
       throw new Error(`Gemini API error: ${errorData}`)
     }
 
     const geminiData = await geminiResponse.json()
+    console.log('✅ Gemini API response received');
+    
     const generatedContent = geminiData.choices[0]?.message?.content
 
     if (!generatedContent) {
       throw new Error('No content generated from Gemini')
     }
 
+    console.log('📄 Generated content length:', generatedContent.length);
+
     // Parse the JSON response
     let parsedLessons
     try {
       parsedLessons = JSON.parse(generatedContent)
     } catch (parseError) {
+      console.error('❌ JSON parse error:', parseError);
+      console.error('❌ Raw content:', generatedContent);
       throw new Error('Failed to parse Gemini response as JSON')
     }
 
     if (!parsedLessons.lessons || !Array.isArray(parsedLessons.lessons)) {
+      console.error('❌ Invalid lesson format:', parsedLessons);
       throw new Error('Invalid lesson format from Gemini')
     }
 
+    console.log('✅ Lessons parsed successfully, count:', parsedLessons.lessons.length);
+
     // Create a new lesson entry with the generated content
+    console.log('💾 Saving lesson to database...');
     const { data: lessonData, error: lessonError } = await supabaseClient
       .from('lessons')
       .insert({
@@ -192,8 +220,11 @@ serve(async (req) => {
       .single()
 
     if (lessonError) {
+      console.error('❌ Database save error:', lessonError);
       throw new Error(`Failed to save lesson: ${lessonError.message}`)
     }
+
+    console.log('✅ Lesson saved successfully with ID:', lessonData.id);
 
     return new Response(
       JSON.stringify({ 
@@ -209,7 +240,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Lesson generation error:', error)
+    console.error('❌ Edge function error:', error)
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Internal server error' 

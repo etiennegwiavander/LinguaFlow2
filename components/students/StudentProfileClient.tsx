@@ -69,38 +69,69 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     setIsGenerating(true);
     
     try {
+      console.log('🚀 Starting lesson generation for student:', student.id);
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-lesson-plan`, {
+      console.log('✅ Session found, making request to edge function...');
+
+      const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-lesson-plan`;
+      console.log('📡 Function URL:', functionUrl);
+
+      const requestBody = {
+        student_id: student.id
+      };
+      console.log('📦 Request body:', requestBody);
+
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          student_id: student.id
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('📨 Response status:', response.status);
+      console.log('📨 Response ok:', response.ok);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate lesson plans');
+        const errorText = await response.text();
+        console.error('❌ Response error text:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
+        throw new Error(errorData.error || `HTTP ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
+      console.log('✅ Response data:', result);
       
       if (result.success && result.lessons) {
         setGeneratedLessons(result.lessons);
         toast.success('AI lesson plans generated successfully!');
       } else {
-        throw new Error('Invalid response format');
+        throw new Error(result.error || 'Invalid response format');
       }
     } catch (error: any) {
-      console.error('Error generating lessons:', error);
-      toast.error(error.message || 'Failed to generate lesson plans. Please try again.');
+      console.error('❌ Error generating lessons:', error);
+      
+      // Provide more specific error messages
+      if (error.message.includes('Failed to fetch')) {
+        toast.error('Network error: Unable to connect to the lesson generation service. Please check your internet connection and try again.');
+      } else if (error.message.includes('Not authenticated')) {
+        toast.error('Authentication error: Please log out and log back in.');
+      } else {
+        toast.error(error.message || 'Failed to generate lesson plans. Please try again.');
+      }
     } finally {
       setIsGenerating(false);
     }
