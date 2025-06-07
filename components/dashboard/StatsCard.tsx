@@ -2,6 +2,8 @@ import React from "react";
 import { Stat } from "@/types";
 import { cn } from "@/lib/utils";
 import * as Icons from "lucide-react";
+// 1. Import the LucideIcon type for type safety
+import { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface StatsCardProps {
@@ -10,7 +12,9 @@ interface StatsCardProps {
 }
 
 export default function StatsCard({ stat, className }: StatsCardProps) {
-  const Icon = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
+  // 2. Explicitly type 'Icon' with the imported LucideIcon type.
+  // This assures TypeScript that 'Icon' is a valid React component.
+  const Icon: LucideIcon = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
 
   return (
     <Card className={cn("overflow-hidden transition-all duration-200 hover:shadow-md", className)}>
@@ -25,11 +29,11 @@ export default function StatsCard({ stat, className }: StatsCardProps) {
                 {stat.label.includes("Rate") ? `${stat.value}%` : stat.value}
               </h3>
             </div>
-            <div 
+            <div
               className={cn(
                 "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-                stat.change > 0 
-                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400" 
+                stat.change > 0
+                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400"
                   : "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400"
               )}
             >
