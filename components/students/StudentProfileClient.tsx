@@ -33,6 +33,16 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import StudentForm from "@/components/students/StudentForm";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+
+interface LessonPlan {
+  title: string;
+  objectives: string[];
+  activities: string[];
+  materials: string[];
+  assessment: string[];
+}
 
 interface StudentProfileClientProps {
   student: Student;
@@ -41,7 +51,7 @@ interface StudentProfileClientProps {
 export default function StudentProfileClient({ student }: StudentProfileClientProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedLessons, setGeneratedLessons] = useState<any[]>([]);
+  const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
 
   const getInitials = (name: string) => {
     return name
@@ -57,83 +67,43 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
   const handleGenerateLessons = async () => {
     setIsGenerating(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setGeneratedLessons([
-      {
-        id: 1,
-        title: "Cultural Exchange Through Language",
-        objectives: [
-          "Practice situational vocabulary",
-          "Improve cultural understanding",
-          "Enhance speaking fluency"
-        ],
-        activities: [
-          "Role-play cultural scenarios",
-          "Discussion of cultural differences",
-          "Vocabulary building exercises"
-        ],
-        materials: [
-          "Cultural scenario cards",
-          "Vocabulary flashcards",
-          "Audio recordings of native speakers"
-        ],
-        assessment: [
-          "Fluency in cultural discussions",
-          "Appropriate use of new vocabulary",
-          "Cultural awareness demonstration"
-        ]
-      },
-      {
-        id: 2,
-        title: "Business Communication Skills",
-        objectives: [
-          "Master professional vocabulary",
-          "Practice email writing",
-          "Improve presentation skills"
-        ],
-        activities: [
-          "Email writing workshop",
-          "Business presentation practice",
-          "Professional vocabulary exercises"
-        ],
-        materials: [
-          "Email templates",
-          "Business case studies",
-          "Presentation rubrics"
-        ],
-        assessment: [
-          "Email writing accuracy",
-          "Presentation delivery",
-          "Professional vocabulary usage"
-        ]
-      },
-      {
-        id: 3,
-        title: "Daily Life Conversations",
-        objectives: [
-          "Enhance casual conversation skills",
-          "Practice daily life vocabulary",
-          "Improve listening comprehension"
-        ],
-        activities: [
-          "Real-life situation role-play",
-          "Listening to authentic conversations",
-          "Interactive dialogue practice"
-        ],
-        materials: [
-          "Conversation prompt cards",
-          "Audio recordings",
-          "Vocabulary worksheets"
-        ],
-        assessment: [
-          "Natural conversation flow",
-          "Appropriate response timing",
-          "Vocabulary application"
-        ]
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
       }
-    ]);
-    setIsGenerating(false);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-lesson-plan`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          student_id: student.id
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate lesson plans');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.lessons) {
+        setGeneratedLessons(result.lessons);
+        toast.success('AI lesson plans generated successfully!');
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error: any) {
+      console.error('Error generating lessons:', error);
+      toast.error(error.message || 'Failed to generate lesson plans. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const languageInfo = getLanguageInfo(student.target_language);
@@ -318,8 +288,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
             {generatedLessons.length > 0 && (
               <Accordion type="single" collapsible className="w-full">
-                {generatedLessons.map((lesson) => (
-                  <AccordionItem key={lesson.id} value={`lesson-${lesson.id}`}>
+                {generatedLessons.map((lesson, index) => (
+                  <AccordionItem key={index} value={`lesson-${index}`}>
                     <AccordionTrigger className="text-left">
                       {lesson.title}
                     </AccordionTrigger>
@@ -327,8 +297,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
                       <div>
                         <h4 className="font-medium mb-2">Lesson Objectives</h4>
                         <ul className="list-disc list-inside text-sm space-y-1">
-                          {lesson.objectives.map((objective: string, index: number) => (
-                            <li key={index}>{objective}</li>
+                          {lesson.objectives.map((objective: string, objIndex: number) => (
+                            <li key={objIndex}>{objective}</li>
                           ))}
                         </ul>
                       </div>
@@ -336,8 +306,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
                       <div>
                         <h4 className="font-medium mb-2">Activities</h4>
                         <ul className="list-disc list-inside text-sm space-y-1">
-                          {lesson.activities.map((activity: string, index: number) => (
-                            <li key={index}>{activity}</li>
+                          {lesson.activities.map((activity: string, actIndex: number) => (
+                            <li key={actIndex}>{activity}</li>
                           ))}
                         </ul>
                       </div>
@@ -345,8 +315,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
                       <div>
                         <h4 className="font-medium mb-2">Materials Needed</h4>
                         <ul className="list-disc list-inside text-sm space-y-1">
-                          {lesson.materials.map((material: string, index: number) => (
-                            <li key={index}>{material}</li>
+                          {lesson.materials.map((material: string, matIndex: number) => (
+                            <li key={matIndex}>{material}</li>
                           ))}
                         </ul>
                       </div>
@@ -354,8 +324,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
                       <div>
                         <h4 className="font-medium mb-2">Assessment Ideas</h4>
                         <ul className="list-disc list-inside text-sm space-y-1">
-                          {lesson.assessment.map((item: string, index: number) => (
-                            <li key={index}>{item}</li>
+                          {lesson.assessment.map((item: string, assIndex: number) => (
+                            <li key={assIndex}>{item}</li>
                           ))}
                         </ul>
                       </div>
