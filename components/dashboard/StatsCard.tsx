@@ -10,9 +10,10 @@ interface StatsCardProps {
 }
 
 export default function StatsCard({ stat, className }: StatsCardProps) {
-  // 1. Get the potential icon component from the Icons object.
-  // We use a more descriptive name to clarify that it's a component type.
-  const IconComponent = Icons[stat.icon as keyof typeof Icons] || Icons.Activity;
+  // Cast to ComponentType to fix TypeScript error
+  const IconComponent = (
+    Icons[stat.icon as keyof typeof Icons] || Icons.Activity
+  ) as React.ComponentType<React.SVGProps<SVGSVGElement>>;
 
   return (
     <Card className={cn("overflow-hidden transition-all duration-200 hover:shadow-md", className)}>
@@ -44,12 +45,8 @@ export default function StatsCard({ stat, className }: StatsCardProps) {
             </div>
           </div>
           <div className="rounded-full bg-muted p-2 sm:p-3">
-            {/* 2. Directly check if the IconComponent is a function before rendering. */}
-            {/* This is a robust way to ensure we only try to render valid components, */}
-            {/* and this inline pattern works well with TypeScript's type narrowing. */}
-            {typeof IconComponent === 'function' ? (
-              <IconComponent className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-            ) : null}
+            {/* Safe to render directly after type assertion */}
+            <IconComponent className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
           </div>
         </div>
       </CardContent>
