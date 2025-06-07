@@ -122,6 +122,79 @@ export type Database = {
           generated_lessons?: string[] | null;
         };
       };
+      google_tokens: {
+        Row: {
+          id: string;
+          tutor_id: string;
+          access_token: string;
+          refresh_token: string;
+          expires_at: string;
+          scope: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tutor_id: string;
+          access_token: string;
+          refresh_token: string;
+          expires_at: string;
+          scope?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          tutor_id?: string;
+          access_token?: string;
+          refresh_token?: string;
+          expires_at?: string;
+          scope?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      calendar_events: {
+        Row: {
+          id: string;
+          tutor_id: string;
+          google_event_id: string;
+          summary: string;
+          description: string | null;
+          start_time: string;
+          end_time: string;
+          location: string | null;
+          attendees: any | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tutor_id: string;
+          google_event_id: string;
+          summary: string;
+          description?: string | null;
+          start_time: string;
+          end_time: string;
+          location?: string | null;
+          attendees?: any | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          tutor_id?: string;
+          google_event_id?: string;
+          summary?: string;
+          description?: string | null;
+          start_time?: string;
+          end_time?: string;
+          location?: string | null;
+          attendees?: any | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 };

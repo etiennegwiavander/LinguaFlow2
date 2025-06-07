@@ -1,79 +1,118 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "@/components/main-layout";
-import { Calendar, RefreshCcw } from "lucide-react";
+import { Calendar, RefreshCcw, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { googleCalendarService, CalendarEvent } from "@/lib/google-calendar";
+import { toast } from "sonner";
+import { format } from "date-fns";
 
 export default function CalendarPage() {
-  const [email, setEmail] = useState("");
   const [isConnected, setIsConnected] = useState(false);
-  const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<{
+    connected: boolean;
+    last_sync?: string;
+    expires_at?: string;
+  }>({ connected: false });
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    checkConnectionStatus();
+    if (isConnected) {
+      loadCalendarEvents();
+    }
+  }, [isConnected]);
+
+  const checkConnectionStatus = async () => {
+    try {
+      const status = await googleCalendarService.getConnectionStatus();
+      setConnectionStatus(status);
+      setIsConnected(status.connected);
+    } catch (error) {
+      console.error('Failed to check connection status:', error);
+    }
+  };
+
+  const loadCalendarEvents = async () => {
+    try {
+      const calendarEvents = await googleCalendarService.getCalendarEvents();
+      setEvents(calendarEvents);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load calendar events');
+    }
+  };
 
   const handleConnect = async () => {
     setIsLoading(true);
     try {
-      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-      if (!clientId) {
-        throw new Error("Google Client ID is not configured");
-      }
-
-      // Define the OAuth parameters
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: `${window.location.origin}/auth/google-callback`,
-        response_type: 'code',
-        scope: 'https://www.googleapis.com/auth/calendar.readonly',
-        access_type: 'offline',
-        prompt: 'consent'
-      });
-
-      // Construct the authorization URL
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+      await googleCalendarService.initiateOAuth();
+      await checkConnectionStatus();
+      toast.success('Google Calendar connected successfully!');
       
-      // Open the authorization URL in a popup window
-      const width = 600;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      
-      window.open(
-        authUrl,
-        'Google Calendar Authorization',
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
-
-      // Listen for the OAuth callback
-      window.addEventListener('message', (event) => {
-        if (event.origin !== window.location.origin) return;
-        
-        if (event.data.type === 'GOOGLE_OAUTH_CALLBACK') {
-          setIsConnected(true);
-          setIsLoading(false);
-        }
-      });
-
-    } catch (error) {
-      console.error("Failed to connect calendar:", error);
+      // Auto-sync after connection
+      handleSync();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to connect Google Calendar');
+    } finally {
       setIsLoading(false);
     }
   };
 
   const handleSync = async () => {
-    setIsLoading(true);
+    setIsSyncing(true);
     try {
-      // TODO: Implement calendar sync using the stored access token
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setLastSynced(new Date());
-    } catch (error) {
-      console.error("Failed to sync calendar:", error);
+      const result = await googleCalendarService.syncCalendar();
+      await checkConnectionStatus();
+      await loadCalendarEvents();
+      toast.success(`Successfully synced ${result.events_count} calendar events`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to sync calendar');
     } finally {
-      setIsLoading(false);
+      setIsSyncing(false);
     }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect Google Calendar? This will remove all synced events.')) {
+      return;
+    }
+
+    try {
+      await googleCalendarService.disconnect();
+      setIsConnected(false);
+      setConnectionStatus({ connected: false });
+      setEvents([]);
+      toast.success('Google Calendar disconnected successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to disconnect Google Calendar');
+    }
+  };
+
+  const getStatusIcon = () => {
+    if (isConnected) {
+      return <CheckCircle className="h-5 w-5 text-green-500" />;
+    }
+    return <XCircle className="h-5 w-5 text-red-500" />;
+  };
+
+  const getStatusText = () => {
+    if (isConnected) {
+      return "Connected";
+    }
+    return "Not Connected";
+  };
+
+  const getStatusColor = () => {
+    if (isConnected) {
+      return "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+    }
+    return "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300";
   };
 
   return (
@@ -84,76 +123,155 @@ export default function CalendarPage() {
           <h1 className="text-3xl font-bold tracking-tight">Calendar Sync</h1>
         </div>
 
-        {/* Calendar section */}
-        <section aria-labelledby="calendar-heading">
-          <div className="mb-6 flex items-center">
-            <h2 className="text-xl font-semibold flex items-center" id="calendar-heading">
+        {/* Connection Status Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
               <Calendar className="mr-2 h-5 w-5 text-primary" />
               Google Calendar Integration
-            </h2>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Connect Your Calendar</CardTitle>
-              <CardDescription>
-                Sync your lessons with Google Calendar to manage your schedule efficiently.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="email">Google Calendar Email</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your Google Calendar email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isConnected || isLoading}
-                  />
+            </CardTitle>
+            <CardDescription>
+              Sync your lessons with Google Calendar to manage your schedule efficiently.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Connection Status */}
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                {getStatusIcon()}
+                <div>
+                  <p className="font-medium">Connection Status</p>
+                  <Badge className={getStatusColor()}>
+                    {getStatusText()}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="flex space-x-2">
+                {!isConnected ? (
                   <Button
                     onClick={handleConnect}
-                    disabled={!email || isConnected || isLoading}
+                    disabled={isLoading}
                   >
                     {isLoading ? "Connecting..." : "Connect Calendar"}
                   </Button>
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-4 border-t">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">Calendar Status</p>
-                    <p className="text-sm text-muted-foreground">
-                      {isConnected ? "Connected" : "Not Connected"}
-                    </p>
-                  </div>
-                  {isConnected && (
+                ) : (
+                  <>
                     <Button
                       variant="outline"
                       onClick={handleSync}
-                      disabled={isLoading}
+                      disabled={isSyncing}
                       className="flex items-center"
                     >
-                      <RefreshCcw className="mr-2 h-4 w-4" />
-                      Sync Now
+                      <RefreshCcw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                      {isSyncing ? "Syncing..." : "Sync Now"}
                     </Button>
-                  )}
-                </div>
-
-                {lastSynced && (
-                  <div>
-                    <p className="font-medium">Last Synced</p>
-                    <p className="text-sm text-muted-foreground">
-                      {lastSynced.toLocaleString()}
-                    </p>
-                  </div>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDisconnect}
+                    >
+                      Disconnect
+                    </Button>
+                  </>
                 )}
               </div>
+            </div>
+
+            {/* Connection Details */}
+            {isConnected && (
+              <div className="space-y-4 pt-4 border-t">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {connectionStatus.last_sync && (
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Last Synced</p>
+                        <p className="text-muted-foreground">
+                          {format(new Date(connectionStatus.last_sync), "PPp")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {connectionStatus.expires_at && (
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Token Expires</p>
+                        <p className="text-muted-foreground">
+                          {format(new Date(connectionStatus.expires_at), "PPp")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Calendar Events */}
+        {isConnected && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Synced Calendar Events</CardTitle>
+              <CardDescription>
+                Recent events from your Google Calendar ({events.length} events)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {events.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No calendar events found</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleSync}
+                    disabled={isSyncing}
+                    className="mt-4"
+                  >
+                    <RefreshCcw className="mr-2 h-4 w-4" />
+                    Sync Calendar
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {events.slice(0, 10).map((event) => (
+                    <div key={event.id} className="flex items-start space-x-4 p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-medium">{event.summary}</h3>
+                        {event.description && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {event.description}
+                          </p>
+                        )}
+                        <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
+                          <span>
+                            {format(new Date(event.start_time), "PPp")}
+                          </span>
+                          {event.location && (
+                            <>
+                              <Separator orientation="vertical" className="h-4" />
+                              <span>{event.location}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {events.length > 10 && (
+                    <div className="text-center pt-4">
+                      <p className="text-sm text-muted-foreground">
+                        Showing 10 of {events.length} events
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
-        </section>
+        )}
       </div>
     </MainLayout>
   );
