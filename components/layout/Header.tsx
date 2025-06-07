@@ -85,7 +85,7 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
         {/* Search (placeholder) */}
         <div className="hidden md:flex items-center">
           <h1 className="text-lg sm:text-xl font-semibold">
-            Welcome back, {user?.name?.split('@')[5] || 'Guest'}
+            Welcome back, {user?.email?.split('@')[0] || 'Guest'}
           </h1>
         </div>
 
