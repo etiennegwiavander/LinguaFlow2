@@ -122,21 +122,21 @@ serve(async (req) => {
     // Construct the prompt
     const prompt = constructPrompt(student as Student)
 
-    // Get OpenAI API key
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured')
+    // Get Gemini API key
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
+    if (!geminiApiKey) {
+      throw new Error('Gemini API key not configured')
     }
 
-    // Call OpenAI API
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Gemini API using the OpenAI-compatible endpoint
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${geminiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gemini-2.0-flash-exp',
         messages: [
           {
             role: 'system',
@@ -152,16 +152,16 @@ serve(async (req) => {
       }),
     })
 
-    if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.text()
-      throw new Error(`OpenAI API error: ${errorData}`)
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.text()
+      throw new Error(`Gemini API error: ${errorData}`)
     }
 
-    const openaiData = await openaiResponse.json()
-    const generatedContent = openaiData.choices[0]?.message?.content
+    const geminiData = await geminiResponse.json()
+    const generatedContent = geminiData.choices[0]?.message?.content
 
     if (!generatedContent) {
-      throw new Error('No content generated from OpenAI')
+      throw new Error('No content generated from Gemini')
     }
 
     // Parse the JSON response
@@ -169,11 +169,11 @@ serve(async (req) => {
     try {
       parsedLessons = JSON.parse(generatedContent)
     } catch (parseError) {
-      throw new Error('Failed to parse OpenAI response as JSON')
+      throw new Error('Failed to parse Gemini response as JSON')
     }
 
     if (!parsedLessons.lessons || !Array.isArray(parsedLessons.lessons)) {
-      throw new Error('Invalid lesson format from OpenAI')
+      throw new Error('Invalid lesson format from Gemini')
     }
 
     // Create a new lesson entry with the generated content
