@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import MainLayout from "@/components/main-layout";
 import { Calendar, RefreshCcw, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -12,10 +14,12 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 export default function CalendarPage() {
+  const [email, setEmail] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<{
     connected: boolean;
+    email?: string;
     last_sync?: string;
     expires_at?: string;
   }>({ connected: false });
@@ -34,6 +38,9 @@ export default function CalendarPage() {
       const status = await googleCalendarService.getConnectionStatus();
       setConnectionStatus(status);
       setIsConnected(status.connected);
+      if (status.email) {
+        setEmail(status.email);
+      }
     } catch (error) {
       console.error('Failed to check connection status:', error);
     }
@@ -49,9 +56,21 @@ export default function CalendarPage() {
   };
 
   const handleConnect = async () => {
+    if (!email.trim()) {
+      toast.error('Please enter your Google Calendar email address');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await googleCalendarService.initiateOAuth();
+      await googleCalendarService.initiateOAuth(email);
       await checkConnectionStatus();
       toast.success('Google Calendar connected successfully!');
       
@@ -88,6 +107,7 @@ export default function CalendarPage() {
       setIsConnected(false);
       setConnectionStatus({ connected: false });
       setEvents([]);
+      setEmail("");
       toast.success('Google Calendar disconnected successfully');
     } catch (error: any) {
       toast.error(error.message || 'Failed to disconnect Google Calendar');
@@ -123,7 +143,7 @@ export default function CalendarPage() {
           <h1 className="text-3xl font-bold tracking-tight">Calendar Sync</h1>
         </div>
 
-        {/* Connection Status Card */}
+        {/* Connection Setup Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -135,46 +155,73 @@ export default function CalendarPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Email Input Section */}
+            {!isConnected && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="calendar-email">Google Calendar Email</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      id="calendar-email"
+                      type="email"
+                      placeholder="Enter your Google Calendar email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isLoading}
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleConnect}
+                      disabled={!email.trim() || isLoading}
+                    >
+                      {isLoading ? "Connecting..." : "Connect Calendar"}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Enter the email address associated with the Google Calendar you want to sync.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Connection Status */}
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center space-x-3">
                 {getStatusIcon()}
                 <div>
                   <p className="font-medium">Connection Status</p>
-                  <Badge className={getStatusColor()}>
-                    {getStatusText()}
-                  </Badge>
+                  <div className="flex items-center space-x-2">
+                    <Badge className={getStatusColor()}>
+                      {getStatusText()}
+                    </Badge>
+                    {isConnected && connectionStatus.email && (
+                      <span className="text-sm text-muted-foreground">
+                        ({connectionStatus.email})
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               
-              <div className="flex space-x-2">
-                {!isConnected ? (
+              {isConnected && (
+                <div className="flex space-x-2">
                   <Button
-                    onClick={handleConnect}
-                    disabled={isLoading}
+                    variant="outline"
+                    onClick={handleSync}
+                    disabled={isSyncing}
+                    className="flex items-center"
                   >
-                    {isLoading ? "Connecting..." : "Connect Calendar"}
+                    <RefreshCcw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                    {isSyncing ? "Syncing..." : "Sync Now"}
                   </Button>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={handleSync}
-                      disabled={isSyncing}
-                      className="flex items-center"
-                    >
-                      <RefreshCcw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                      {isSyncing ? "Syncing..." : "Sync Now"}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleDisconnect}
-                    >
-                      Disconnect
-                    </Button>
-                  </>
-                )}
-              </div>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDisconnect}
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Connection Details */}

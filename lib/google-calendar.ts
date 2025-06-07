@@ -21,6 +21,7 @@ export interface GoogleTokens {
   refresh_token: string;
   expires_at: string;
   scope: string;
+  email?: string;
   created_at: string;
   updated_at: string;
 }
@@ -38,7 +39,7 @@ export class GoogleCalendarService {
   /**
    * Initiate Google OAuth flow
    */
-  public initiateOAuth(): Promise<void> {
+  public initiateOAuth(email?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
       if (!clientId) {
@@ -59,6 +60,11 @@ export class GoogleCalendarService {
         prompt: 'consent',
         state,
       });
+
+      // Add login hint if email is provided
+      if (email) {
+        params.append('login_hint', email);
+      }
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
@@ -83,7 +89,7 @@ export class GoogleCalendarService {
           
           if (event.data.success && event.data.code) {
             try {
-              await this.exchangeCodeForTokens(event.data.code);
+              await this.exchangeCodeForTokens(event.data.code, email);
               resolve();
             } catch (error) {
               reject(error);
@@ -110,7 +116,7 @@ export class GoogleCalendarService {
   /**
    * Exchange authorization code for tokens
    */
-  private async exchangeCodeForTokens(code: string): Promise<void> {
+  private async exchangeCodeForTokens(code: string, email?: string): Promise<void> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       throw new Error('Not authenticated');
@@ -122,7 +128,7 @@ export class GoogleCalendarService {
         'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, email }),
     });
 
     if (!response.ok) {
@@ -226,6 +232,7 @@ export class GoogleCalendarService {
    */
   public async getConnectionStatus(): Promise<{
     connected: boolean;
+    email?: string;
     last_sync?: string;
     expires_at?: string;
   }> {
@@ -234,7 +241,7 @@ export class GoogleCalendarService {
 
     const { data: tokenData } = await supabase
       .from('google_tokens')
-      .select('expires_at, updated_at')
+      .select('expires_at, updated_at, email')
       .eq('tutor_id', user.id)
       .single();
 
@@ -244,6 +251,7 @@ export class GoogleCalendarService {
 
     return {
       connected: true,
+      email: tokenData.email,
       last_sync: tokenData.updated_at,
       expires_at: tokenData.expires_at,
     };

@@ -9,6 +9,7 @@ const corsHeaders = {
 
 interface OAuthRequest {
   code: string;
+  email?: string;
   state?: string;
 }
 
@@ -35,7 +36,7 @@ serve(async (req) => {
       throw new Error('Invalid token')
     }
 
-    const { code }: OAuthRequest = await req.json()
+    const { code, email }: OAuthRequest = await req.json()
 
     if (!code) {
       throw new Error('Authorization code is required')
@@ -80,6 +81,7 @@ serve(async (req) => {
         refresh_token,
         expires_at: expiresAt.toISOString(),
         scope: scope || 'https://www.googleapis.com/auth/calendar.readonly',
+        email: email || null,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'tutor_id'
@@ -93,7 +95,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Google Calendar connected successfully',
-        expires_at: expiresAt.toISOString()
+        expires_at: expiresAt.toISOString(),
+        email: email
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
