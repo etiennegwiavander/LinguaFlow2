@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -18,7 +18,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Verify this is an authorized request (you might want to add API key validation)
+    // Verify authorization
     const authHeader = req.headers.get('Authorization')
     const expectedToken = Deno.env.get('CLEANUP_API_KEY')
     
@@ -28,7 +28,7 @@ serve(async (req) => {
 
     console.log('Starting cleanup of expired accounts...')
 
-    // Call the database function to cleanup expired accounts
+    // Call the cleanup function
     const { data: deletedCount, error: functionError } = await supabaseClient
       .rpc('cleanup_expired_accounts')
 
@@ -38,7 +38,7 @@ serve(async (req) => {
 
     console.log(`Cleanup completed. Deleted ${deletedCount} expired accounts.`)
 
-    // Send notification email to admin if accounts were deleted
+    // Send notification if accounts were deleted
     if (deletedCount > 0) {
       try {
         const adminEmail = Deno.env.get('ADMIN_EMAIL')
@@ -94,6 +94,5 @@ serve(async (req) => {
   }
 })
 
-// This function can be called by a cron job or scheduled task
 // Example cron job (daily at 2 AM):
 // 0 2 * * * curl -X POST -H "Authorization: Bearer YOUR_CLEANUP_API_KEY" https://your-project.supabase.co/functions/v1/cleanup-expired-accounts
