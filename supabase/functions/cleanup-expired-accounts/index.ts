@@ -1,6 +1,7 @@
 // No explicit import for 'serve' needed; using Deno.serve directly.
 // Import the 'createClient' function from the Supabase JavaScript library to interact with Supabase services.
-import { createClient } from 'npm:@supabase/supabase-js@2'
+// Changed import to use esm.sh CDN for better compatibility in Deno environments.
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // Define CORS headers to allow cross-origin requests, which is necessary for web functions.
 const corsHeaders = {
