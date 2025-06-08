@@ -41,7 +41,7 @@ const languageMap: Record<string, string> = {
 function constructPrompt(student: Student): string {
   const languageName = languageMap[student.target_language] || student.target_language;
   
-  return `You are an expert language tutor creating personalized lesson plans. Generate 3 unique, engaging lesson ideas for the following student:
+  return `You are an expert language tutor creating personalized lesson plans. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
 
 Student Profile:
 - Name: ${student.name}
@@ -55,18 +55,26 @@ Student Profile:
 - Learning Styles: ${student.learning_styles?.join(', ') || 'Not specified'}
 - Additional Notes: ${student.notes || 'None'}
 
-Requirements:
-1. Each lesson should be tailored to the student's specific level, goals, and challenges
-2. Address the identified weaknesses and gaps
-3. Incorporate the student's preferred learning styles
-4. Be practical and actionable for a 45-60 minute lesson
-5. Include a mix of skills (speaking, listening, reading, writing)
+CRITICAL: Respond with ONLY the JSON object below. Do not include any other text, explanations, or formatting:
 
-Please respond with exactly 3 lesson ideas in the following JSON format:
 {
   "lessons": [
     {
-      "title": "Lesson Title",
+      "title": "Lesson Title Here",
+      "objectives": ["Objective 1", "Objective 2", "Objective 3"],
+      "activities": ["Activity 1", "Activity 2", "Activity 3"],
+      "materials": ["Material 1", "Material 2", "Material 3"],
+      "assessment": ["Assessment method 1", "Assessment method 2"]
+    },
+    {
+      "title": "Second Lesson Title",
+      "objectives": ["Objective 1", "Objective 2", "Objective 3"],
+      "activities": ["Activity 1", "Activity 2", "Activity 3"],
+      "materials": ["Material 1", "Material 2", "Material 3"],
+      "assessment": ["Assessment method 1", "Assessment method 2"]
+    },
+    {
+      "title": "Third Lesson Title",
       "objectives": ["Objective 1", "Objective 2", "Objective 3"],
       "activities": ["Activity 1", "Activity 2", "Activity 3"],
       "materials": ["Material 1", "Material 2", "Material 3"],
@@ -75,7 +83,32 @@ Please respond with exactly 3 lesson ideas in the following JSON format:
   ]
 }
 
-Make each lesson unique and progressively build on the student's current abilities while addressing their specific challenges.`;
+Requirements for each lesson:
+1. Tailor to ${student.level.toUpperCase()} level ${languageName}
+2. Address specific weaknesses and gaps mentioned
+3. Incorporate preferred learning styles
+4. Be practical for 45-60 minute sessions
+5. Include mix of speaking, listening, reading, writing
+
+RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT.`;
+}
+
+function cleanJsonResponse(content: string): string {
+  // Remove any markdown code block formatting
+  let cleaned = content.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+  
+  // Remove any leading/trailing whitespace
+  cleaned = cleaned.trim();
+  
+  // Find the first { and last } to extract just the JSON
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+  
+  return cleaned;
 }
 
 serve(async (req) => {
@@ -155,14 +188,14 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert language tutor. Always respond with valid JSON in the exact format requested.'
+            content: 'You are an expert language tutor. You must respond ONLY with valid JSON in the exact format requested. Do not include any explanations, markdown formatting, or additional text outside the JSON object.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.7,
+        temperature: 0.3, // Lower temperature for more consistent JSON output
         max_tokens: 2000,
       }),
     })
@@ -177,6 +210,7 @@ serve(async (req) => {
 
     const geminiData = await geminiResponse.json()
     console.log('✅ Gemini API response received');
+    console.log('🔍 Full Gemini response:', JSON.stringify(geminiData, null, 2));
     
     const generatedContent = geminiData.choices[0]?.message?.content
 
@@ -184,24 +218,61 @@ serve(async (req) => {
       throw new Error('No content generated from Gemini')
     }
 
-    console.log('📄 Generated content length:', generatedContent.length);
+    console.log('📄 Raw generated content:');
+    console.log('---START RAW CONTENT---');
+    console.log(generatedContent);
+    console.log('---END RAW CONTENT---');
+    console.log('📏 Generated content length:', generatedContent.length);
+
+    // Clean the JSON response
+    const cleanedContent = cleanJsonResponse(generatedContent);
+    console.log('🧹 Cleaned content:');
+    console.log('---START CLEANED CONTENT---');
+    console.log(cleanedContent);
+    console.log('---END CLEANED CONTENT---');
 
     // Parse the JSON response
     let parsedLessons
     try {
-      parsedLessons = JSON.parse(generatedContent)
+      parsedLessons = JSON.parse(cleanedContent)
     } catch (parseError) {
       console.error('❌ JSON parse error:', parseError);
-      console.error('❌ Raw content:', generatedContent);
-      throw new Error('Failed to parse Gemini response as JSON')
+      console.error('❌ Failed to parse content:', cleanedContent);
+      console.error('❌ Content type:', typeof cleanedContent);
+      console.error('❌ Content starts with:', cleanedContent.substring(0, 100));
+      console.error('❌ Content ends with:', cleanedContent.substring(cleanedContent.length - 100));
+      
+      // Try to extract JSON from the content more aggressively
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        console.log('🔧 Attempting to parse extracted JSON...');
+        try {
+          parsedLessons = JSON.parse(jsonMatch[0]);
+          console.log('✅ Successfully parsed extracted JSON');
+        } catch (secondParseError) {
+          console.error('❌ Second parse attempt failed:', secondParseError);
+          throw new Error(`Failed to parse Gemini response as JSON. Raw content: ${cleanedContent.substring(0, 500)}...`)
+        }
+      } else {
+        throw new Error(`No valid JSON found in Gemini response. Raw content: ${cleanedContent.substring(0, 500)}...`)
+      }
     }
 
     if (!parsedLessons.lessons || !Array.isArray(parsedLessons.lessons)) {
       console.error('❌ Invalid lesson format:', parsedLessons);
-      throw new Error('Invalid lesson format from Gemini')
+      throw new Error('Invalid lesson format from Gemini - missing lessons array')
     }
 
     console.log('✅ Lessons parsed successfully, count:', parsedLessons.lessons.length);
+
+    // Validate lesson structure
+    for (let i = 0; i < parsedLessons.lessons.length; i++) {
+      const lesson = parsedLessons.lessons[i];
+      if (!lesson.title || !lesson.objectives || !lesson.activities || !lesson.materials || !lesson.assessment) {
+        console.error(`❌ Invalid lesson structure at index ${i}:`, lesson);
+        throw new Error(`Lesson ${i + 1} is missing required fields`);
+      }
+    }
 
     // Create a new lesson entry with the generated content
     console.log('💾 Saving lesson to database...');
