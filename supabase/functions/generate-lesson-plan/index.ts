@@ -113,8 +113,6 @@ function cleanJsonResponse(content: string): string {
   
   // Additional cleanup for common JSON formatting issues
   cleaned = cleaned
-    // Fix unescaped quotes in strings
-    .replace(/([^\\])"/g, '$1\\"')
     // Fix the above fix if it was too aggressive
     .replace(/\\\\"/g, '\\"')
     // Remove any remaining non-JSON text
