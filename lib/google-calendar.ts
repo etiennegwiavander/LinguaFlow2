@@ -80,13 +80,42 @@ export class GoogleCalendarService {
         `width=${width},height=${height},left=${left},top=${top}`
       );
 
+      // Set a timeout for the OAuth process
+      const OAUTH_TIMEOUT_MS = 60000; // 60 seconds
+      const timeoutId = setTimeout(() => {
+        window.removeEventListener('message', messageHandler);
+        // If the popup is still open, try to close it (though it might be blocked by COOP)
+        if (popup && !popup.closed) {
+          try {
+            popup.close();
+          } catch (e) {
+            // Log error if closing fails due to COOP or other reasons
+            console.error('Failed to close OAuth popup:', e);
+          }
+        }
+        reject(new Error('Google OAuth authorization timed out.'));
+      }, OAUTH_TIMEOUT_MS);
+
+
       // Listen for the OAuth callback
       const messageHandler = async (event: MessageEvent) => {
+        // Ensure the message comes from the same origin to prevent XSS
         if (event.origin !== window.location.origin) return;
 
         if (event.data.type === 'GOOGLE_OAUTH_CALLBACK') {
+          // Clear the timeout as we received a response
+          clearTimeout(timeoutId);
           window.removeEventListener('message', messageHandler);
           
+          // Close the popup after receiving the message
+          if (popup) {
+            try {
+              popup.close();
+            } catch (e) {
+              console.error('Failed to close OAuth popup after message:', e);
+            }
+          }
+
           if (event.data.success && event.data.code) {
             try {
               await this.exchangeCodeForTokens(event.data.code, email);
@@ -102,14 +131,8 @@ export class GoogleCalendarService {
 
       window.addEventListener('message', messageHandler);
 
-      // Handle popup closed manually
-      const checkClosed = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(checkClosed);
-          window.removeEventListener('message', messageHandler);
-          reject(new Error('Authorization cancelled'));
-        }
-      }, 1000);
+      // Note: We remove the setInterval for checking popup.closed due to COOP restrictions.
+      // The timeout mechanism now handles cases where the user doesn't complete the flow.
     });
   }
 
