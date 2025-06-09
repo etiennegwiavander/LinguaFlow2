@@ -249,7 +249,7 @@ export class GoogleCalendarService {
       supabase.from('calendar_events').delete().eq('tutor_id', user.id),
     ]);
   }
-
+ 
   /**
    * Get connection status and last sync info
    */
