@@ -138,9 +138,8 @@ function validateAndFixJson(jsonString: string): any {
       .replace(/,(\s*[}\]])/g, '$1')
       // Fix missing commas between array elements
       .replace(/}(\s*){/g, '},$1{')
-      .replace(/](\s*)\[/g, '],$1[')
-      // Fix missing commas between object properties
-      .replace(/"(\s*)"([^:])/g, '",$1"$2');
+      .replace(/](\s*)\[/g, '],$1[');
+      // Removed the problematic regex that was causing parsing errors
     
     try {
       return JSON.parse(fixed);
