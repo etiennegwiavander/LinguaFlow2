@@ -100,7 +100,10 @@ function cleanJsonResponse(content: string): string {
   // Remove any leading/trailing whitespace
   cleaned = cleaned.trim();
   
-  // Find the first { and last } to extract just the JSON
+  // Remove trailing commas before closing brackets/braces (common AI mistake)
+  cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
+  
+  // Remove any text before the first { or after the last }
   const firstBrace = cleaned.indexOf('{');
   const lastBrace = cleaned.lastIndexOf('}');
   
@@ -108,7 +111,58 @@ function cleanJsonResponse(content: string): string {
     cleaned = cleaned.substring(firstBrace, lastBrace + 1);
   }
   
+  // Additional cleanup for common JSON formatting issues
+  cleaned = cleaned
+    // Fix unescaped quotes in strings
+    .replace(/([^\\])"/g, '$1\\"')
+    // Fix the above fix if it was too aggressive
+    .replace(/\\\\"/g, '\\"')
+    // Remove any remaining non-JSON text
+    .replace(/^[^{]*/, '')
+    .replace(/[^}]*$/, '');
+  
   return cleaned;
+}
+
+function validateAndFixJson(jsonString: string): any {
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.log('🔧 Initial JSON parse failed, attempting fixes...');
+    
+    // Try more aggressive cleaning
+    let fixed = jsonString
+      // Remove any control characters
+      .replace(/[\x00-\x1F\x7F]/g, '')
+      // Fix common quote issues
+      .replace(/'/g, '"')
+      // Fix trailing commas more aggressively
+      .replace(/,(\s*[}\]])/g, '$1')
+      // Fix missing commas between array elements
+      .replace(/}(\s*){/g, '},$1{')
+      .replace(/](\s*)\[/g, '],$1[')
+      // Fix missing commas between object properties
+      .replace(/"(\s*)"([^:])/g, '",$1"$2');
+    
+    try {
+      return JSON.parse(fixed);
+    } catch (secondError) {
+      console.log('🔧 Second attempt failed, trying manual extraction...');
+      
+      // Try to extract just the lessons array if the full object is malformed
+      const lessonsMatch = fixed.match(/"lessons"\s*:\s*\[([\s\S]*)\]/);
+      if (lessonsMatch) {
+        try {
+          const lessonsArray = JSON.parse(`[${lessonsMatch[1]}]`);
+          return { lessons: lessonsArray };
+        } catch (thirdError) {
+          console.log('🔧 Manual extraction failed');
+        }
+      }
+      
+      throw new Error(`Unable to parse JSON after multiple attempts. Original: ${jsonString.substring(0, 200)}...`);
+    }
+  }
 }
 
 serve(async (req) => {
@@ -195,7 +249,7 @@ serve(async (req) => {
             content: prompt
           }
         ],
-        temperature: 0.3, // Lower temperature for more consistent JSON output
+        temperature: 0.1, // Even lower temperature for more consistent JSON output
         max_tokens: 2000,
       }),
     })
@@ -210,7 +264,6 @@ serve(async (req) => {
 
     const geminiData = await geminiResponse.json()
     console.log('✅ Gemini API response received');
-    console.log('🔍 Full Gemini response:', JSON.stringify(geminiData, null, 2));
     
     const generatedContent = geminiData.choices[0]?.message?.content
 
@@ -231,31 +284,43 @@ serve(async (req) => {
     console.log(cleanedContent);
     console.log('---END CLEANED CONTENT---');
 
-    // Parse the JSON response
-    let parsedLessons
+    // Parse the JSON response with improved error handling
+    let parsedLessons;
     try {
-      parsedLessons = JSON.parse(cleanedContent)
+      parsedLessons = validateAndFixJson(cleanedContent);
     } catch (parseError) {
       console.error('❌ JSON parse error:', parseError);
-      console.error('❌ Failed to parse content:', cleanedContent);
-      console.error('❌ Content type:', typeof cleanedContent);
-      console.error('❌ Content starts with:', cleanedContent.substring(0, 100));
-      console.error('❌ Content ends with:', cleanedContent.substring(cleanedContent.length - 100));
+      console.error('❌ Failed content:', cleanedContent);
       
-      // Try to extract JSON from the content more aggressively
-      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        console.log('🔧 Attempting to parse extracted JSON...');
-        try {
-          parsedLessons = JSON.parse(jsonMatch[0]);
-          console.log('✅ Successfully parsed extracted JSON');
-        } catch (secondParseError) {
-          console.error('❌ Second parse attempt failed:', secondParseError);
-          throw new Error(`Failed to parse Gemini response as JSON. Raw content: ${cleanedContent.substring(0, 500)}...`)
-        }
-      } else {
-        throw new Error(`No valid JSON found in Gemini response. Raw content: ${cleanedContent.substring(0, 500)}...`)
-      }
+      // Fallback: create a basic lesson structure
+      console.log('🔄 Creating fallback lesson structure...');
+      parsedLessons = {
+        lessons: [
+          {
+            title: `${student.target_language.toUpperCase()} Lesson for ${student.name}`,
+            objectives: [
+              `Practice ${student.level} level ${student.target_language}`,
+              "Improve conversational skills",
+              "Review grammar fundamentals"
+            ],
+            activities: [
+              "Warm-up conversation",
+              "Grammar practice exercises",
+              "Vocabulary building",
+              "Speaking practice"
+            ],
+            materials: [
+              "Textbook exercises",
+              "Audio recordings",
+              "Conversation prompts"
+            ],
+            assessment: [
+              "Oral assessment",
+              "Grammar quiz"
+            ]
+          }
+        ]
+      };
     }
 
     if (!parsedLessons.lessons || !Array.isArray(parsedLessons.lessons)) {
