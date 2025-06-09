@@ -23,7 +23,7 @@ interface Student {
   conversational_fluency_barriers: string | null;
   learning_styles: string[] | null;
   notes: string | null;
-}
+} 
 
 const languageMap: Record<string, string> = {
   'en': 'English',
