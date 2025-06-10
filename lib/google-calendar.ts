@@ -83,7 +83,15 @@ export class GoogleCalendarService {
 
       // Listen for the OAuth callback
       const messageHandler = async (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
+        // Get the Supabase URL origin for comparison
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : '';
+        
+        // Accept messages from either the current origin or Supabase origin
+        if (event.origin !== window.location.origin && event.origin !== supabaseOrigin) {
+          console.log('Ignoring message from origin:', event.origin);
+          return;
+        }
 
         if (event.data.type === 'GOOGLE_OAUTH_CALLBACK') {
           window.removeEventListener('message', messageHandler);
