@@ -91,10 +91,10 @@ export class GoogleCalendarService {
         console.log('📨 Message data:', event.data);
 
         // Check if the message is from our popup window
-        if (event.source !== this.popupWindow) {
-          console.log('❌ Ignoring message - not from our popup window');
-          return;
-        }
+        // if (event.source !== this.popupWindow) {
+        //   console.log('❌ Ignoring message - not from our popup window');
+        //   return;
+        // }
 
         // Get the Supabase URL origin for comparison
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -176,7 +176,7 @@ export class GoogleCalendarService {
       },
       body: JSON.stringify({ code, email }),
     });
-    
+
   }
 
   /**
