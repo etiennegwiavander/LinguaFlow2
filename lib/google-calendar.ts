@@ -149,28 +149,34 @@ export class GoogleCalendarService {
    */
   private async exchangeCodeForTokens(code: string, email?: string): Promise<void> {
     const { data: { session } } = await supabase.auth.getSession();
+    console.log('DEBUG: Session object retrieved:', session);
+    
     if (!session) {
-      throw new Error('Not authenticated');
+      console.error('DEBUG: Session is null. Cannot proceed with token exchange.');
+      throw new Error('Not authenticated. Please log in again.');
     }
+
+    const accessToken = session.access_token;
+    console.log('DEBUG: Access Token:', accessToken ? 'Present' : 'Missing', 'Length:', accessToken?.length);
+    console.log('DEBUG: Type of Access Token:', typeof accessToken);
+
+    if (!accessToken) {
+      console.error('DEBUG: Access token is undefined or null. Cannot make authorized request.');
+      throw new Error('Authentication token missing. Please log in again.');
+    }
+
+    const authHeaderValue = `Bearer ${accessToken}`;
+    console.log('DEBUG: Constructed Authorization Header:', authHeaderValue.substring(0, 50) + '...'); // Log partial to avoid exposing full token
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': authHeaderValue,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ code, email }),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to exchange authorization code');
-    }
-
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error(result.error || 'Token exchange failed');
-    }
+    
   }
 
   /**
