@@ -6,12 +6,13 @@ serve(async (req) => {
   const error = url.searchParams.get('error')
   const state = url.searchParams.get('state')
 
-  // Minimal HTML response with no styling and simplified CSP
+  // Minimal HTML response with security fixes
   const html = `
     <!DOCTYPE html>
     <html>
       <head>
         <title>Google Calendar Authorization</title>
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none';">
       </head>
       <body>
         ${error ? 
@@ -20,9 +21,6 @@ serve(async (req) => {
         }
         <script>
           console.log('OAuth callback script starting...');
-          console.log('Window opener:', window.opener);
-          console.log('Code:', '${code || ''}');
-          console.log('Error:', '${error || ''}');
           
           // Send message to parent window
           if (window.opener) {
@@ -41,7 +39,7 @@ serve(async (req) => {
               setTimeout(() => {
                 console.log('Closing window...');
                 window.close();
-              }, 1000);
+              }, 500);
             } catch (e) {
               console.error('Error sending message:', e);
             }
@@ -56,7 +54,8 @@ serve(async (req) => {
   return new Response(html, {
     headers: { 
       'Content-Type': 'text/html',
-      'Content-Security-Policy': "script-src 'unsafe-inline'; object-src 'none'; base-uri 'none';"
+      'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none';",
+      'X-Frame-Options': 'DENY'
     },
   })
 })
