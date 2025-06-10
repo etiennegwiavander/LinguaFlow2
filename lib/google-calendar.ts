@@ -47,7 +47,7 @@ export class GoogleCalendarService {
         return;
       }
 
-      const redirectUri = `${window.location.origin}/supabase/functions/v1/google-oauth-callback`;
+      
       const redirectUri = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth-callback`
       const scope = 'https://www.googleapis.com/auth/calendar.readonly';
       const state = Math.random().toString(36).substring(2, 15);
