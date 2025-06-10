@@ -6,53 +6,47 @@ serve(async (req) => {
   const error = url.searchParams.get('error')
   const state = url.searchParams.get('state')
 
-  // Create HTML response that will communicate with the parent window
+  // Minimal HTML response with no styling and simplified CSP
   const html = `
     <!DOCTYPE html>
     <html>
       <head>
         <title>Google Calendar Authorization</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f5f5f5;
-          }
-          .container {
-            text-align: center;
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-          }
-          .success { color: #16a34a; }
-          .error { color: #dc2626; }
-        </style>
       </head>
       <body>
-        <div class="container">
-          ${error ? 
-            `<h2 class="error">Authorization Failed</h2>
-             <p>Error: ${error}</p>` :
-            `<h2 class="success">Authorization Successful</h2>
-             <p>You can close this window now.</p>`
-          }
-        </div>
+        ${error ? 
+          `<h2>Authorization Failed</h2><p>Error: ${error}</p>` :
+          `<h2>Authorization Successful</h2><p>You can close this window now.</p>`
+        }
         <script>
+          console.log('OAuth callback script starting...');
+          console.log('Window opener:', window.opener);
+          console.log('Code:', '${code || ''}');
+          console.log('Error:', '${error || ''}');
+          
           // Send message to parent window
           if (window.opener) {
-            window.opener.postMessage({
-              type: 'GOOGLE_OAUTH_CALLBACK',
-              success: ${!error},
-              code: '${code || ''}',
-              error: '${error || ''}',
-              state: '${state || ''}'
-            }, '*');
-            window.close();
+            console.log('Sending message to parent window...');
+            try {
+              window.opener.postMessage({
+                type: 'GOOGLE_OAUTH_CALLBACK',
+                success: ${!error},
+                code: '${code || ''}',
+                error: '${error || ''}',
+                state: '${state || ''}'
+              }, '*');
+              console.log('Message sent successfully');
+              
+              // Close window after a short delay
+              setTimeout(() => {
+                console.log('Closing window...');
+                window.close();
+              }, 1000);
+            } catch (e) {
+              console.error('Error sending message:', e);
+            }
+          } else {
+            console.error('No window.opener found');
           }
         </script>
       </body>
@@ -62,7 +56,7 @@ serve(async (req) => {
   return new Response(html, {
     headers: { 
       'Content-Type': 'text/html',
-      'Content-Security-Policy': "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"
+      'Content-Security-Policy': "script-src 'unsafe-inline'; object-src 'none'; base-uri 'none';"
     },
   })
 })
