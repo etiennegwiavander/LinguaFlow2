@@ -28,6 +28,7 @@ export interface GoogleTokens {
 
 export class GoogleCalendarService {
   private static instance: GoogleCalendarService;
+  private popupWindow: Window | null = null;
 
   public static getInstance(): GoogleCalendarService {
     if (!GoogleCalendarService.instance) {
@@ -75,47 +76,68 @@ export class GoogleCalendarService {
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2;
 
-      const popup = window.open(
+      this.popupWindow = window.open(
         authUrl,
         'Google Calendar Authorization',
         `width=${width},height=${height},left=${left},top=${top}`
       );
 
+      console.log('🔗 Popup window opened:', this.popupWindow);
+
       // Listen for the OAuth callback
       const messageHandler = async (event: MessageEvent) => {
+        console.log('📨 Message received from:', event.origin, 'Source:', event.source);
+        console.log('📨 Current popup window:', this.popupWindow);
+        console.log('📨 Message data:', event.data);
+
+        // Check if the message is from our popup window
+        if (event.source !== this.popupWindow) {
+          console.log('❌ Ignoring message - not from our popup window');
+          return;
+        }
+
         // Get the Supabase URL origin for comparison
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : '';
         
         // Accept messages from either the current origin or Supabase origin
         if (event.origin !== window.location.origin && event.origin !== supabaseOrigin) {
-          console.log('Ignoring message from origin:', event.origin);
+          console.log('❌ Ignoring message from unauthorized origin:', event.origin);
           return;
         }
 
         if (event.data.type === 'GOOGLE_OAUTH_CALLBACK') {
+          console.log('✅ Valid OAuth callback message received');
           window.removeEventListener('message', messageHandler);
+          this.popupWindow = null; // Clear the reference
           
           if (event.data.success && event.data.code) {
             try {
+              console.log('🔄 Exchanging code for tokens...');
               await this.exchangeCodeForTokens(event.data.code, email);
+              console.log('✅ Token exchange successful');
               resolve();
             } catch (error) {
+              console.error('❌ Token exchange failed:', error);
               reject(error);
             }
           } else {
+            console.error('❌ OAuth callback failed:', event.data.error);
             reject(new Error(event.data.error || 'Authorization failed'));
           }
         }
       };
 
       window.addEventListener('message', messageHandler);
+      console.log('👂 Message listener added');
 
       // Handle popup closed manually
       const checkClosed = setInterval(() => {
-        if (popup?.closed) {
+        if (this.popupWindow?.closed) {
+          console.log('🚪 Popup window was closed manually');
           clearInterval(checkClosed);
           window.removeEventListener('message', messageHandler);
+          this.popupWindow = null;
           reject(new Error('Authorization cancelled'));
         }
       }, 1000);
