@@ -16,7 +16,7 @@ export const languages = [
 export const navItems: NavItem[] = [
   {
     title: 'Dashboard',
-    href: '/',
+    href: '/dashboard',
     icon: 'GaugeCircle'
   },
   {

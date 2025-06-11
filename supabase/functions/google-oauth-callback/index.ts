@@ -9,12 +9,12 @@ serve(async (req) => {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')
-  const state = url.searchParams.get('state')
+  const state = url.searchParams.get('state') // This should contain the user ID
 
   console.log('📋 OAuth parameters:');
   console.log('  - Code:', code ? `${code.substring(0, 20)}...` : 'MISSING');
   console.log('  - Error:', error || 'NONE');
-  console.log('  - State:', state || 'NONE');
+  console.log('  - State (User ID):', state || 'NONE');
 
   // Get the site URL for redirects
   const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:3000';
@@ -37,6 +37,17 @@ serve(async (req) => {
       status: 302,
       headers: {
         'Location': `${siteUrl}/calendar?google_auth_status=error&message=${encodeURIComponent('No authorization code provided')}`
+      }
+    });
+  }
+
+  // If no state (user ID) is provided
+  if (!state) {
+    console.error('❌ No user ID in state parameter');
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': `${siteUrl}/calendar?google_auth_status=error&message=${encodeURIComponent('Invalid authentication state')}`
       }
     });
   }
@@ -102,28 +113,40 @@ serve(async (req) => {
     const expiresAt = new Date(Date.now() + (expires_in * 1000));
     console.log('📅 Token expires at:', expiresAt.toISOString());
 
-    // Now store the tokens in the database using Supabase service role
-    console.log('💾 Storing tokens in database...');
+    // Store the tokens in the database using Supabase service role
+    console.log('💾 Storing tokens in database for user:', state);
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // We need to get the user ID from the state parameter or session
-    // For now, we'll extract it from the state parameter which should contain the user ID
-    // In a production app, you might want to store the user session differently
-    
-    // Since we don't have the user ID in the state, we'll need to handle this differently
-    // Let's redirect back with the tokens as query parameters for the client to handle
+    // Store tokens using the user ID from the state parameter
+    const { error: insertError } = await supabaseClient
+      .from('google_tokens')
+      .upsert({
+        tutor_id: state, // Use the user ID from state
+        access_token,
+        refresh_token,
+        expires_at: expiresAt.toISOString(),
+        scope: scope || 'https://www.googleapis.com/auth/calendar.readonly',
+        email: userEmail || null,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'tutor_id'
+      });
+
+    if (insertError) {
+      console.error('❌ Failed to store tokens:', insertError);
+      throw new Error(`Failed to store tokens: ${insertError.message}`);
+    }
+
+    console.log('✅ Tokens stored successfully in database');
     console.log('🔄 Redirecting back to calendar page with success status...');
 
+    // Redirect back to calendar with success status only
     const redirectUrl = new URL(`${siteUrl}/calendar`);
     redirectUrl.searchParams.set('google_auth_status', 'success');
-    redirectUrl.searchParams.set('access_token', access_token);
-    redirectUrl.searchParams.set('refresh_token', refresh_token);
-    redirectUrl.searchParams.set('expires_at', expiresAt.toISOString());
-    redirectUrl.searchParams.set('scope', scope || 'https://www.googleapis.com/auth/calendar.readonly');
     if (userEmail) {
       redirectUrl.searchParams.set('email', userEmail);
     }

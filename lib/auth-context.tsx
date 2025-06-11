@@ -24,7 +24,8 @@ const AuthContext = createContext<AuthContextType>({
 const UNPROTECTED_ROUTES = [
   '/auth/login',
   '/auth/signup',
-  '/auth/forgot-password'
+  '/auth/forgot-password',
+  '/calendar' // Added to prevent premature redirects during OAuth
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -47,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         // User is not logged in
-        if (!UNPROTECTED_ROUTES.includes(path)) {
+        if (!UNPROTECTED_ROUTES.includes(path) && path !== '/') {
           router.replace('/auth/login');
         }
       }
@@ -66,7 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           router.replace('/dashboard');
         }
       } else {
-        if (!UNPROTECTED_ROUTES.includes(window.location.pathname)) {
+        const currentPath = window.location.pathname;
+        if (!UNPROTECTED_ROUTES.includes(currentPath) && currentPath !== '/') {
           router.replace('/auth/login');
         }
       }

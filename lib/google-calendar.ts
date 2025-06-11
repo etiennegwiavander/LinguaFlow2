@@ -40,7 +40,7 @@ export class GoogleCalendarService {
   /**
    * Initiate Google OAuth flow
    */
-  public initiateOAuth(email?: string): Promise<void> {
+  public async initiateOAuth(email?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
       if (!clientId) {
@@ -48,111 +48,60 @@ export class GoogleCalendarService {
         return;
       }
 
-      // Use Supabase URL for the redirect URI
-      const redirectUri = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth-callback`;
-      const scope = 'https://www.googleapis.com/auth/calendar.readonly';
-      const state = Math.random().toString(36).substring(2, 15);
-
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: 'code',
-        scope,
-        access_type: 'offline',
-        prompt: 'consent',
-        state,
-      });
-
-      // Add login hint if email is provided
-      if (email) {
-        params.append('login_hint', email);
-      }
-
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-
-      console.log('🔗 Opening Google OAuth URL:', authUrl);
-
-      // Open popup window
-      const width = 600;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-
-      this.popupWindow = window.open(
-        authUrl,
-        'Google Calendar Authorization',
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
-
-      if (!this.popupWindow) {
-        reject(new Error('Failed to open popup window. Please allow popups for this site.'));
-        return;
-      }
-
-      console.log('🔗 Popup window opened successfully');
-
-      // Handle popup closed manually (fallback)
-      const checkClosed = setInterval(() => {
-        try {
-          if (this.popupWindow && this.popupWindow.closed) {
-            console.log('🚪 Popup window was closed - OAuth flow completed');
-            clearInterval(checkClosed);
-            this.popupWindow = null;
-            resolve(); // Simply resolve when popup closes
-          }
-        } catch (error) {
-          // Handle Cross-Origin-Opener-Policy errors gracefully
-          console.log('⚠️ Cannot check popup window status due to COOP policy');
+      // Get current user ID for state parameter
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) {
+          reject(new Error('User not authenticated'));
+          return;
         }
-      }, 1000);
 
-      // Cleanup after 5 minutes (timeout)
-      setTimeout(() => {
-        if (this.popupWindow) {
-          console.log('⏰ OAuth timeout - cleaning up');
-          clearInterval(checkClosed);
-          if (!this.popupWindow.closed) {
-            this.popupWindow.close();
-          }
-          this.popupWindow = null;
-          reject(new Error('Authorization timeout'));
+        // Use Supabase URL for the redirect URI
+        const redirectUri = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth-callback`;
+        const scope = 'https://www.googleapis.com/auth/calendar.readonly';
+        const state = user.id; // Use user ID as state
+
+        const params = new URLSearchParams({
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          response_type: 'code',
+          scope,
+          access_type: 'offline',
+          prompt: 'consent',
+          state,
+        });
+
+        // Add login hint if email is provided
+        if (email) {
+          params.append('login_hint', email);
         }
-      }, 5 * 60 * 1000); // 5 minutes
+
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+
+        console.log('🔗 Opening Google OAuth URL');
+
+        // Open popup window
+        const width = 600;
+        const height = 600;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+
+        this.popupWindow = window.open(
+          authUrl,
+          'Google Calendar Authorization',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+
+        if (!this.popupWindow) {
+          reject(new Error('Failed to open popup window. Please allow popups for this site.'));
+          return;
+        }
+
+        console.log('🔗 Popup window opened successfully');
+
+        // Simply resolve when popup opens - the callback will handle the rest
+        resolve();
+      }).catch(reject);
     });
-  }
-
-  /**
-   * Store Google tokens after successful OAuth
-   */
-  public async storeTokens(tokenData: {
-    access_token: string;
-    refresh_token: string;
-    expires_at: string;
-    scope: string;
-    email?: string;
-  }): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
-    const { error } = await supabase
-      .from('google_tokens')
-      .upsert({
-        tutor_id: user.id,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        expires_at: tokenData.expires_at,
-        scope: tokenData.scope,
-        email: tokenData.email || null,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'tutor_id'
-      });
-
-    if (error) {
-      throw new Error(`Failed to store tokens: ${error.message}`);
-    }
-
-    console.log('✅ Tokens stored successfully');
   }
 
   /**
