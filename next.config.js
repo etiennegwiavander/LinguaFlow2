@@ -4,6 +4,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true },
+  optimizeFonts: false,
   webpack: (config, { isServer }) => {
     // Ignore optional dependencies that are not needed for client-side builds
     if (!isServer) {
