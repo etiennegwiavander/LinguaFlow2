@@ -28,7 +28,6 @@ export interface GoogleTokens {
 
 export class GoogleCalendarService {
   private static instance: GoogleCalendarService;
-  private popupWindow: Window | null = null;
 
   public static getInstance(): GoogleCalendarService {
     if (!GoogleCalendarService.instance) {
@@ -48,7 +47,7 @@ export class GoogleCalendarService {
         return;
       }
 
-      // Use Supabase URL for the redirect URI instead of window.location.origin
+      // Use Supabase URL for the redirect URI
       const redirectUri = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth-callback`;
       const scope = 'https://www.googleapis.com/auth/calendar.readonly';
       const state = Math.random().toString(36).substring(2, 15);
@@ -70,144 +69,86 @@ export class GoogleCalendarService {
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
+      console.log('🔗 Opening Google OAuth URL:', authUrl);
+
       // Open popup window
       const width = 600;
       const height = 600;
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2;
 
-      this.popupWindow = window.open(
+      const popup = window.open(
         authUrl,
         'Google Calendar Authorization',
         `width=${width},height=${height},left=${left},top=${top}`
       );
 
-      console.log('🔗 Popup window opened:', this.popupWindow);
+      if (!popup) {
+        reject(new Error('Failed to open popup window. Please allow popups for this site.'));
+        return;
+      }
 
-      // Listen for the OAuth callback
-      const messageHandler = async (event: MessageEvent) => {
-        console.log('📨 Message received from:', event.origin, 'Source:', event.source);
-        console.log('📨 Current popup window:', this.popupWindow);
-        console.log('📨 Message data:', event.data);
-        console.log('📨 Message type:', event.data?.type);
+      console.log('🔗 Popup window opened successfully');
 
-        // CRITICAL: Only process messages with the correct type
-        if (!event.data || event.data.type !== 'GOOGLE_OAUTH_CALLBACK') {
-          console.log('📨 Ignoring non-OAuth message type:', event.data?.type);
-          return;
-        }
-
-        console.log('✅ Valid OAuth callback message received');
-
-        // Check if the message is from our popup window
-        // if (event.source !== this.popupWindow) {
-        //   console.log('❌ Ignoring message - not from our popup window');
-        //   return;
-        // }
-
-        // Get the Supabase URL origin for comparison
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : '';
-        
-        // Accept messages from either the current origin or Supabase origin
-        if (event.origin !== window.location.origin && event.origin !== supabaseOrigin) {
-          console.log('❌ Ignoring message from unauthorized origin:', event.origin);
-          return;
-        }
-
-        // Clean up the message listener and popup reference
-        window.removeEventListener('message', messageHandler);
-        this.popupWindow = null;
-        
-        if (event.data.success && event.data.code) {
-          try {
-            console.log('🔄 Exchanging code for tokens...');
-            await this.exchangeCodeForTokens(event.data.code, email);
-            console.log('✅ Token exchange successful');
-            resolve();
-          } catch (error) {
-            console.error('❌ Token exchange failed:', error);
-            reject(error);
-          }
-        } else {
-          console.error('❌ OAuth callback failed:', event.data.error);
-          reject(new Error(event.data.error || 'Authorization failed'));
-        }
-      };
-
-      window.addEventListener('message', messageHandler);
-      console.log('👂 Message listener added');
-
-      // Handle popup closed manually
+      // Check if popup is closed manually
       const checkClosed = setInterval(() => {
         try {
-          if (this.popupWindow?.closed) {
+          if (popup.closed) {
             console.log('🚪 Popup window was closed manually');
             clearInterval(checkClosed);
-            window.removeEventListener('message', messageHandler);
-            this.popupWindow = null;
             reject(new Error('Authorization cancelled'));
           }
         } catch (error) {
           // Handle Cross-Origin-Opener-Policy errors gracefully
           console.log('⚠️ Cannot check popup window status due to COOP policy');
-          // Continue checking - the message handler will handle success/failure
+          // Continue checking - the redirect will handle success/failure
         }
+      }, 1000);
+
+      // The popup will redirect to the callback function, which will then redirect back to /calendar
+      // with query parameters indicating success or failure. We'll resolve this promise
+      // when the calendar page detects the successful OAuth flow.
+      
+      // For now, we'll resolve immediately and let the calendar page handle the rest
+      setTimeout(() => {
+        clearInterval(checkClosed);
+        resolve();
       }, 1000);
     });
   }
 
   /**
-   * Exchange authorization code for tokens
+   * Store Google tokens after successful OAuth
    */
-  private async exchangeCodeForTokens(code: string, email?: string): Promise<void> {
-    console.log('🔄 Starting token exchange process...');
-    
-    const { data: { session } } = await supabase.auth.getSession();
-    console.log('DEBUG: Session object retrieved:', session);
-    
-    if (!session) {
-      console.error('DEBUG: Session is null. Cannot proceed with token exchange.');
-      throw new Error('Not authenticated. Please log in again.');
+  public async storeTokens(tokenData: {
+    access_token: string;
+    refresh_token: string;
+    expires_at: string;
+    scope: string;
+    email?: string;
+  }): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+      .from('google_tokens')
+      .upsert({
+        tutor_id: user.id,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expires_at: tokenData.expires_at,
+        scope: tokenData.scope,
+        email: tokenData.email || null,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'tutor_id'
+      });
+
+    if (error) {
+      throw new Error(`Failed to store tokens: ${error.message}`);
     }
 
-    const accessToken = session.access_token;
-    console.log('DEBUG: Access Token:', accessToken ? 'Present' : 'Missing', 'Length:', accessToken?.length);
-    console.log('DEBUG: Type of Access Token:', typeof accessToken);
-    console.log('DEBUG: Raw Access Token Value:', accessToken);
-
-    if (!accessToken) {
-      console.error('DEBUG: Access token is undefined or null. Cannot make authorized request.');
-      throw new Error('Authentication token missing. Please log in again.');
-    }
-
-    const authHeaderValue = `Bearer ${accessToken}`;
-    console.log('DEBUG: Constructed Authorization Header:', authHeaderValue.substring(0, 50) + '...');
-    console.log('DEBUG: Full Authorization Header Length:', authHeaderValue.length);
-
-    const requestBody = { code, email };
-    console.log('DEBUG: Request body:', requestBody);
-
-    console.log('🌐 Making request to google-oauth edge function...');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth`, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeaderValue,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    console.log('📡 Response received. Status:', response.status, 'OK:', response.ok);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Token exchange failed with status: ${response.status}. Error: ${errorText}`);
-      throw new Error(`Failed to exchange code for tokens: ${errorText}`);
-    }
-
-    const responseData = await response.json();
-    console.log('✅ Google OAuth Edge Function response:', responseData); 
+    console.log('✅ Tokens stored successfully');
   }
 
   /**
