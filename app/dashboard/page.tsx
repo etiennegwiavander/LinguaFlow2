@@ -10,17 +10,37 @@ import { useAuth } from "@/lib/auth-context";
 import { Lesson, Stat } from "@/types";
 import { toast } from "sonner";
 
+interface TutorProfile {
+  name: string | null;
+  email: string;
+  avatar_url: string | null;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [upcomingLessons, setUpcomingLessons] = useState<Lesson[]>([]);
   const [stats, setStats] = useState<Stat[]>([]);
+  const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
     const fetchDashboardData = async () => {
       try {
+        // Fetch tutor profile
+        const { data: tutorData, error: tutorError } = await supabase
+          .from('tutors')
+          .select('name, email, avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        if (tutorError) {
+          console.error('Error fetching tutor profile:', tutorError);
+        } else {
+          setTutorProfile(tutorData);
+        }
+
         // Fetch upcoming lessons with student details
         const { data: lessonsData, error: lessonsError } = await supabase
           .from('lessons')
@@ -99,6 +119,20 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [user]);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const getDisplayName = () => {
+    if (tutorProfile?.name) {
+      return tutorProfile.name.split(' ')[0]; // First name only
+    }
+    return tutorProfile?.email?.split('@')[0] || 'there';
+  };
+
   if (loading) {
     return (
       <MainLayout>
@@ -114,7 +148,14 @@ export default function DashboardPage() {
       <div className="space-y-6 sm:space-y-8">
         {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {getGreeting()}, {getDisplayName()}!
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Here's what's happening with your language teaching today
+            </p>
+          </div>
           <div className="flex items-center space-x-2">
             <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             <span className="text-xs sm:text-sm text-muted-foreground">

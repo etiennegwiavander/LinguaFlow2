@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -34,11 +34,44 @@ interface HeaderProps {
   sidebarCollapsed: boolean;
 }
 
+interface TutorProfile {
+  name: string | null;
+  email: string;
+  avatar_url: string | null;
+}
+
 export default function Header({ className, sidebarCollapsed }: HeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
+
+  // Fetch tutor profile information
+  useEffect(() => {
+    const fetchTutorProfile = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('tutors')
+          .select('name, email, avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching tutor profile:', error);
+          return;
+        }
+
+        setTutorProfile(data);
+      } catch (error) {
+        console.error('Error in fetchTutorProfile:', error);
+      }
+    };
+
+    fetchTutorProfile();
+  }, [user]);
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
@@ -63,6 +96,24 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
       .toUpperCase();
   };
 
+  const getDisplayName = () => {
+    if (tutorProfile?.name) {
+      return tutorProfile.name.split(' ')[0]; // First name only
+    }
+    return tutorProfile?.email?.split('@')[0] || 'Guest';
+  };
+
+  const getFullDisplayName = () => {
+    return tutorProfile?.name || tutorProfile?.email?.split('@')[0] || 'Guest';
+  };
+
+  const getAvatarFallback = () => {
+    if (tutorProfile?.name) {
+      return getInitials(tutorProfile.name);
+    }
+    return getInitials(tutorProfile?.email?.split('@')[0] || 'Guest');
+  };
+
   return (
     <header
       className={cn(
@@ -82,10 +133,10 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
           </Link>
         </div>
 
-        {/* Search (placeholder) */}
+        {/* Welcome Message */}
         <div className="hidden md:flex items-center">
           <h1 className="text-lg sm:text-xl font-semibold">
-            Welcome back, {user?.email?.split('@')[0] || 'Guest'}
+            Welcome back, {getDisplayName()}
           </h1>
         </div>
 
@@ -124,18 +175,28 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="p-1 flex items-center space-x-2 h-8 sm:h-9">
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-                  <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.email || ''} />
-                  <AvatarFallback>{user?.email ? getInitials(user.email.split('@')[0]) : '?'}</AvatarFallback>
+                  <AvatarImage 
+                    src={tutorProfile?.avatar_url || undefined} 
+                    alt={getFullDisplayName()} 
+                  />
+                  <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                 </Avatar>
                 <div className="hidden md:flex flex-col items-start">
-                  <span className="text-sm font-medium">{user?.email?.split('@')[0]}</span>
+                  <span className="text-sm font-medium">{getDisplayName()}</span>
                   <span className="text-xs text-muted-foreground">Tutor</span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{getFullDisplayName()}</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {tutorProfile?.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push('/profile')}>
                 <User className="mr-2 h-4 w-4" />
