@@ -89,6 +89,7 @@ export class GoogleCalendarService {
         console.log('📨 Message received from:', event.origin, 'Source:', event.source);
         console.log('📨 Current popup window:', this.popupWindow);
         console.log('📨 Message data:', event.data);
+        console.log('📨 Message type:', event.data?.type); // NEW: Log the message type
 
         // Check if the message is from our popup window
         // if (event.source !== this.popupWindow) {
@@ -125,6 +126,8 @@ export class GoogleCalendarService {
             console.error('❌ OAuth callback failed:', event.data.error);
             reject(new Error(event.data.error || 'Authorization failed'));
           }
+        } else {
+          console.log('📨 Received non-OAuth message type:', event.data?.type); // NEW: Log non-OAuth messages
         }
       };
 
@@ -148,6 +151,8 @@ export class GoogleCalendarService {
    * Exchange authorization code for tokens
    */
   private async exchangeCodeForTokens(code: string, email?: string): Promise<void> {
+    console.log('🔄 Starting token exchange process...');
+    
     const { data: { session } } = await supabase.auth.getSession();
     console.log('DEBUG: Session object retrieved:', session);
     
@@ -159,6 +164,7 @@ export class GoogleCalendarService {
     const accessToken = session.access_token;
     console.log('DEBUG: Access Token:', accessToken ? 'Present' : 'Missing', 'Length:', accessToken?.length);
     console.log('DEBUG: Type of Access Token:', typeof accessToken);
+    console.log('DEBUG: Raw Access Token Value:', accessToken); // NEW: Log the actual token value
 
     if (!accessToken) {
       console.error('DEBUG: Access token is undefined or null. Cannot make authorized request.');
@@ -167,15 +173,22 @@ export class GoogleCalendarService {
 
     const authHeaderValue = `Bearer ${accessToken}`;
     console.log('DEBUG: Constructed Authorization Header:', authHeaderValue.substring(0, 50) + '...'); // Log partial to avoid exposing full token
+    console.log('DEBUG: Full Authorization Header Length:', authHeaderValue.length); // NEW: Log header length
 
+    const requestBody = { code, email };
+    console.log('DEBUG: Request body:', requestBody); // NEW: Log request body
+
+    console.log('🌐 Making request to google-oauth edge function...');
     const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth`, {
       method: 'POST',
       headers: {
         'Authorization': authHeaderValue,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ code, email }),
+      body: JSON.stringify(requestBody),
     });
+
+    console.log('📡 Response received. Status:', response.status, 'OK:', response.ok); // NEW: Log response status
 
     if (!response.ok) {
       const errorText = await response.text();
