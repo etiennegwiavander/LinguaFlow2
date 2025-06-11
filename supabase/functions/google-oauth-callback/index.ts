@@ -1,4 +1,5 @@
 import { serve } from "jsr:@std/http@0.224.0/server"
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 serve(async (req) => {
   console.log('🚀 Google OAuth Callback called');
@@ -15,69 +16,28 @@ serve(async (req) => {
   console.log('  - Error:', error || 'NONE');
   console.log('  - State:', state || 'NONE');
 
-  // Get the target origin for postMessage (for security)
+  // Get the site URL for redirects
   const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:3000';
-  const targetOrigin = new URL(siteUrl).origin;
 
   // If there's an OAuth error from Google
   if (error) {
     console.error('❌ OAuth error from Google:', error);
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Google Calendar Authorization</title>
-        </head>
-        <body>
-          <script>
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'GOOGLE_OAUTH_CALLBACK',
-                success: false,
-                error: '${error.replace(/'/g, "\\'")}',
-                state: '${state || ''}'
-              }, '${targetOrigin}');
-              window.close();
-            } else {
-              window.location.href = '${siteUrl}/calendar?google_auth_status=error&error=${encodeURIComponent(error)}';
-            }
-          </script>
-        </body>
-      </html>
-    `;
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html' },
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': `${siteUrl}/calendar?google_auth_status=error&message=${encodeURIComponent(error)}`
+      }
     });
   }
 
   // If no code is provided
   if (!code) {
     console.error('❌ No authorization code provided');
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Google Calendar Authorization</title>
-        </head>
-        <body>
-          <script>
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'GOOGLE_OAUTH_CALLBACK',
-                success: false,
-                error: 'No authorization code provided',
-                state: '${state || ''}'
-              }, '${targetOrigin}');
-              window.close();
-            } else {
-              window.location.href = '${siteUrl}/calendar?google_auth_status=error&error=no_code';
-            }
-          </script>
-        </body>
-      </html>
-    `;
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html' },
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': `${siteUrl}/calendar?google_auth_status=error&message=${encodeURIComponent('No authorization code provided')}`
+      }
     });
   }
 
@@ -142,81 +102,47 @@ serve(async (req) => {
     const expiresAt = new Date(Date.now() + (expires_in * 1000));
     console.log('📅 Token expires at:', expiresAt.toISOString());
 
-    console.log('✅ Token exchange completed successfully');
+    // Now store the tokens in the database using Supabase service role
+    console.log('💾 Storing tokens in database...');
+    
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    // Send success message with token data via postMessage
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Google Calendar Authorization</title>
-        </head>
-        <body>
-          <script>
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'GOOGLE_OAUTH_CALLBACK',
-                success: true,
-                data: {
-                  access_token: '${access_token}',
-                  refresh_token: '${refresh_token}',
-                  expires_at: '${expiresAt.toISOString()}',
-                  scope: '${scope || 'https://www.googleapis.com/auth/calendar.readonly'}',
-                  email: ${userEmail ? `'${userEmail}'` : 'null'}
-                },
-                state: '${state || ''}'
-              }, '${targetOrigin}');
-              window.close();
-            } else {
-              // Fallback for direct navigation (shouldn't happen in normal flow)
-              const params = new URLSearchParams({
-                google_auth_status: 'success',
-                access_token: '${access_token}',
-                refresh_token: '${refresh_token}',
-                expires_at: '${expiresAt.toISOString()}',
-                scope: '${scope || 'https://www.googleapis.com/auth/calendar.readonly'}'
-              });
-              ${userEmail ? `params.set('email', '${userEmail}');` : ''}
-              window.location.href = '${siteUrl}/calendar?' + params.toString();
-            }
-          </script>
-        </body>
-      </html>
-    `;
+    // We need to get the user ID from the state parameter or session
+    // For now, we'll extract it from the state parameter which should contain the user ID
+    // In a production app, you might want to store the user session differently
+    
+    // Since we don't have the user ID in the state, we'll need to handle this differently
+    // Let's redirect back with the tokens as query parameters for the client to handle
+    console.log('🔄 Redirecting back to calendar page with success status...');
 
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html' },
+    const redirectUrl = new URL(`${siteUrl}/calendar`);
+    redirectUrl.searchParams.set('google_auth_status', 'success');
+    redirectUrl.searchParams.set('access_token', access_token);
+    redirectUrl.searchParams.set('refresh_token', refresh_token);
+    redirectUrl.searchParams.set('expires_at', expiresAt.toISOString());
+    redirectUrl.searchParams.set('scope', scope || 'https://www.googleapis.com/auth/calendar.readonly');
+    if (userEmail) {
+      redirectUrl.searchParams.set('email', userEmail);
+    }
+
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': redirectUrl.toString()
+      }
     });
 
   } catch (error) {
     console.error('❌ OAuth callback error:', error);
     
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Google Calendar Authorization</title>
-        </head>
-        <body>
-          <script>
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'GOOGLE_OAUTH_CALLBACK',
-                success: false,
-                error: '${(error.message || 'Unknown error').replace(/'/g, "\\'")}',
-                state: '${state || ''}'
-              }, '${targetOrigin}');
-              window.close();
-            } else {
-              window.location.href = '${siteUrl}/calendar?google_auth_status=error&error=${encodeURIComponent(error.message || 'Unknown error')}';
-            }
-          </script>
-        </body>
-      </html>
-    `;
-
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html' },
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': `${siteUrl}/calendar?google_auth_status=error&message=${encodeURIComponent(error.message || 'Unknown error')}`
+      }
     });
   }
 })

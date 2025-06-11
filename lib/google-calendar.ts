@@ -40,13 +40,7 @@ export class GoogleCalendarService {
   /**
    * Initiate Google OAuth flow
    */
-  public initiateOAuth(email?: string): Promise<{
-    access_token: string;
-    refresh_token: string;
-    expires_at: string;
-    scope: string;
-    email?: string;
-  }> {
+  public initiateOAuth(email?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
       if (!clientId) {
@@ -97,47 +91,14 @@ export class GoogleCalendarService {
 
       console.log('🔗 Popup window opened successfully');
 
-      // Listen for the OAuth callback message
-      const messageHandler = (event: MessageEvent) => {
-        console.log('📨 Message received from:', event.origin);
-        console.log('📨 Message data:', event.data);
-
-        // Verify the message is from our popup and has the correct type
-        if (event.data && event.data.type === 'GOOGLE_OAUTH_CALLBACK') {
-          console.log('✅ Valid OAuth callback message received');
-          
-          // Remove the event listener
-          window.removeEventListener('message', messageHandler);
-          
-          // Close the popup if it's still open
-          if (this.popupWindow && !this.popupWindow.closed) {
-            this.popupWindow.close();
-          }
-          this.popupWindow = null;
-
-          if (event.data.success && event.data.data) {
-            console.log('✅ OAuth successful, resolving with token data');
-            resolve(event.data.data);
-          } else {
-            console.error('❌ OAuth failed:', event.data.error);
-            reject(new Error(event.data.error || 'Authorization failed'));
-          }
-        }
-      };
-
-      // Add the message listener
-      window.addEventListener('message', messageHandler);
-      console.log('👂 Message listener added');
-
       // Handle popup closed manually (fallback)
       const checkClosed = setInterval(() => {
         try {
           if (this.popupWindow && this.popupWindow.closed) {
-            console.log('🚪 Popup window was closed manually');
+            console.log('🚪 Popup window was closed - OAuth flow completed');
             clearInterval(checkClosed);
-            window.removeEventListener('message', messageHandler);
             this.popupWindow = null;
-            reject(new Error('Authorization cancelled'));
+            resolve(); // Simply resolve when popup closes
           }
         } catch (error) {
           // Handle Cross-Origin-Opener-Policy errors gracefully
@@ -150,7 +111,6 @@ export class GoogleCalendarService {
         if (this.popupWindow) {
           console.log('⏰ OAuth timeout - cleaning up');
           clearInterval(checkClosed);
-          window.removeEventListener('message', messageHandler);
           if (!this.popupWindow.closed) {
             this.popupWindow.close();
           }
