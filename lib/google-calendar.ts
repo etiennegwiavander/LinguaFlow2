@@ -89,7 +89,15 @@ export class GoogleCalendarService {
         console.log('📨 Message received from:', event.origin, 'Source:', event.source);
         console.log('📨 Current popup window:', this.popupWindow);
         console.log('📨 Message data:', event.data);
-        console.log('📨 Message type:', event.data?.type); // NEW: Log the message type
+        console.log('📨 Message type:', event.data?.type);
+
+        // CRITICAL: Only process messages with the correct type
+        if (!event.data || event.data.type !== 'GOOGLE_OAUTH_CALLBACK') {
+          console.log('📨 Ignoring non-OAuth message type:', event.data?.type);
+          return;
+        }
+
+        console.log('✅ Valid OAuth callback message received');
 
         // Check if the message is from our popup window
         // if (event.source !== this.popupWindow) {
@@ -107,27 +115,23 @@ export class GoogleCalendarService {
           return;
         }
 
-        if (event.data.type === 'GOOGLE_OAUTH_CALLBACK') {
-          console.log('✅ Valid OAuth callback message received');
-          window.removeEventListener('message', messageHandler);
-          this.popupWindow = null; // Clear the reference
-          
-          if (event.data.success && event.data.code) {
-            try {
-              console.log('🔄 Exchanging code for tokens...');
-              await this.exchangeCodeForTokens(event.data.code, email);
-              console.log('✅ Token exchange successful');
-              resolve();
-            } catch (error) {
-              console.error('❌ Token exchange failed:', error);
-              reject(error);
-            }
-          } else {
-            console.error('❌ OAuth callback failed:', event.data.error);
-            reject(new Error(event.data.error || 'Authorization failed'));
+        // Clean up the message listener and popup reference
+        window.removeEventListener('message', messageHandler);
+        this.popupWindow = null;
+        
+        if (event.data.success && event.data.code) {
+          try {
+            console.log('🔄 Exchanging code for tokens...');
+            await this.exchangeCodeForTokens(event.data.code, email);
+            console.log('✅ Token exchange successful');
+            resolve();
+          } catch (error) {
+            console.error('❌ Token exchange failed:', error);
+            reject(error);
           }
         } else {
-          console.log('📨 Received non-OAuth message type:', event.data?.type); // NEW: Log non-OAuth messages
+          console.error('❌ OAuth callback failed:', event.data.error);
+          reject(new Error(event.data.error || 'Authorization failed'));
         }
       };
 
@@ -136,12 +140,18 @@ export class GoogleCalendarService {
 
       // Handle popup closed manually
       const checkClosed = setInterval(() => {
-        if (this.popupWindow?.closed) {
-          console.log('🚪 Popup window was closed manually');
-          clearInterval(checkClosed);
-          window.removeEventListener('message', messageHandler);
-          this.popupWindow = null;
-          reject(new Error('Authorization cancelled'));
+        try {
+          if (this.popupWindow?.closed) {
+            console.log('🚪 Popup window was closed manually');
+            clearInterval(checkClosed);
+            window.removeEventListener('message', messageHandler);
+            this.popupWindow = null;
+            reject(new Error('Authorization cancelled'));
+          }
+        } catch (error) {
+          // Handle Cross-Origin-Opener-Policy errors gracefully
+          console.log('⚠️ Cannot check popup window status due to COOP policy');
+          // Continue checking - the message handler will handle success/failure
         }
       }, 1000);
     });
@@ -164,7 +174,7 @@ export class GoogleCalendarService {
     const accessToken = session.access_token;
     console.log('DEBUG: Access Token:', accessToken ? 'Present' : 'Missing', 'Length:', accessToken?.length);
     console.log('DEBUG: Type of Access Token:', typeof accessToken);
-    console.log('DEBUG: Raw Access Token Value:', accessToken); // NEW: Log the actual token value
+    console.log('DEBUG: Raw Access Token Value:', accessToken);
 
     if (!accessToken) {
       console.error('DEBUG: Access token is undefined or null. Cannot make authorized request.');
@@ -172,11 +182,11 @@ export class GoogleCalendarService {
     }
 
     const authHeaderValue = `Bearer ${accessToken}`;
-    console.log('DEBUG: Constructed Authorization Header:', authHeaderValue.substring(0, 50) + '...'); // Log partial to avoid exposing full token
-    console.log('DEBUG: Full Authorization Header Length:', authHeaderValue.length); // NEW: Log header length
+    console.log('DEBUG: Constructed Authorization Header:', authHeaderValue.substring(0, 50) + '...');
+    console.log('DEBUG: Full Authorization Header Length:', authHeaderValue.length);
 
     const requestBody = { code, email };
-    console.log('DEBUG: Request body:', requestBody); // NEW: Log request body
+    console.log('DEBUG: Request body:', requestBody);
 
     console.log('🌐 Making request to google-oauth edge function...');
     const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth`, {
@@ -188,7 +198,7 @@ export class GoogleCalendarService {
       body: JSON.stringify(requestBody),
     });
 
-    console.log('📡 Response received. Status:', response.status, 'OK:', response.ok); // NEW: Log response status
+    console.log('📡 Response received. Status:', response.status, 'OK:', response.ok);
 
     if (!response.ok) {
       const errorText = await response.text();
