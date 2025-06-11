@@ -187,7 +187,7 @@ serve(async (req) => {
     console.log('🔧 Creating Supabase client...');
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SERVICE_ROLE_KEY') ?? ''
     )
 
     console.log('🔐 Checking authorization...');
@@ -200,7 +200,7 @@ serve(async (req) => {
     let user;
     
     // Check if this is a service role token (for automated calls)
-    if (token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+    if (token === Deno.env.get('SERVICE_ROLE_KEY')) {
       console.log('🤖 Service role authentication detected');
       user = { id: 'service-role' }; // We'll get the actual tutor_id from the lesson record
     } else {
