@@ -184,7 +184,7 @@ export class GoogleCalendarService {
     }
 
     const responseData = await response.json();
-    console.log('✅ Google OAuth Edge Function response:', responseData);
+    console.log('✅ Google OAuth Edge Function response:', responseData); 
   }
 
   /**
