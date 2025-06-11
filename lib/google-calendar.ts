@@ -28,6 +28,7 @@ export interface GoogleTokens {
 
 export class GoogleCalendarService {
   private static instance: GoogleCalendarService;
+  private popupWindow: Window | null = null;
 
   public static getInstance(): GoogleCalendarService {
     if (!GoogleCalendarService.instance) {
@@ -39,7 +40,13 @@ export class GoogleCalendarService {
   /**
    * Initiate Google OAuth flow
    */
-  public initiateOAuth(email?: string): Promise<void> {
+  public initiateOAuth(email?: string): Promise<{
+    access_token: string;
+    refresh_token: string;
+    expires_at: string;
+    scope: string;
+    email?: string;
+  }> {
     return new Promise((resolve, reject) => {
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
       if (!clientId) {
@@ -77,43 +84,80 @@ export class GoogleCalendarService {
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2;
 
-      const popup = window.open(
+      this.popupWindow = window.open(
         authUrl,
         'Google Calendar Authorization',
         `width=${width},height=${height},left=${left},top=${top}`
       );
 
-      if (!popup) {
+      if (!this.popupWindow) {
         reject(new Error('Failed to open popup window. Please allow popups for this site.'));
         return;
       }
 
       console.log('🔗 Popup window opened successfully');
 
-      // Check if popup is closed manually
+      // Listen for the OAuth callback message
+      const messageHandler = (event: MessageEvent) => {
+        console.log('📨 Message received from:', event.origin);
+        console.log('📨 Message data:', event.data);
+
+        // Verify the message is from our popup and has the correct type
+        if (event.data && event.data.type === 'GOOGLE_OAUTH_CALLBACK') {
+          console.log('✅ Valid OAuth callback message received');
+          
+          // Remove the event listener
+          window.removeEventListener('message', messageHandler);
+          
+          // Close the popup if it's still open
+          if (this.popupWindow && !this.popupWindow.closed) {
+            this.popupWindow.close();
+          }
+          this.popupWindow = null;
+
+          if (event.data.success && event.data.data) {
+            console.log('✅ OAuth successful, resolving with token data');
+            resolve(event.data.data);
+          } else {
+            console.error('❌ OAuth failed:', event.data.error);
+            reject(new Error(event.data.error || 'Authorization failed'));
+          }
+        }
+      };
+
+      // Add the message listener
+      window.addEventListener('message', messageHandler);
+      console.log('👂 Message listener added');
+
+      // Handle popup closed manually (fallback)
       const checkClosed = setInterval(() => {
         try {
-          if (popup.closed) {
+          if (this.popupWindow && this.popupWindow.closed) {
             console.log('🚪 Popup window was closed manually');
             clearInterval(checkClosed);
+            window.removeEventListener('message', messageHandler);
+            this.popupWindow = null;
             reject(new Error('Authorization cancelled'));
           }
         } catch (error) {
           // Handle Cross-Origin-Opener-Policy errors gracefully
           console.log('⚠️ Cannot check popup window status due to COOP policy');
-          // Continue checking - the redirect will handle success/failure
         }
       }, 1000);
 
-      // The popup will redirect to the callback function, which will then redirect back to /calendar
-      // with query parameters indicating success or failure. We'll resolve this promise
-      // when the calendar page detects the successful OAuth flow.
-      
-      // For now, we'll resolve immediately and let the calendar page handle the rest
+      // Cleanup after 5 minutes (timeout)
       setTimeout(() => {
-        clearInterval(checkClosed);
-        resolve();
-      }, 1000);
+        if (this.popupWindow) {
+          console.log('⏰ OAuth timeout - cleaning up');
+          clearInterval(checkClosed);
+          window.removeEventListener('message', messageHandler);
+          if (!this.popupWindow.closed) {
+            this.popupWindow.close();
+          }
+          this.popupWindow = null;
+          reject(new Error('Authorization timeout'));
+        }
+      }, 5 * 60 * 1000); // 5 minutes
     });
   }
 

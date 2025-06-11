@@ -1,5 +1,4 @@
 import { serve } from "jsr:@std/http@0.224.0/server"
-import { createClient } from 'npm:@supabase/supabase-js@2'
 
 serve(async (req) => {
   console.log('🚀 Google OAuth Callback called');
@@ -16,6 +15,10 @@ serve(async (req) => {
   console.log('  - Error:', error || 'NONE');
   console.log('  - State:', state || 'NONE');
 
+  // Get the target origin for postMessage (for security)
+  const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:3000';
+  const targetOrigin = new URL(siteUrl).origin;
+
   // If there's an OAuth error from Google
   if (error) {
     console.error('❌ OAuth error from Google:', error);
@@ -28,10 +31,15 @@ serve(async (req) => {
         <body>
           <script>
             if (window.opener) {
-              window.opener.location.href = window.opener.location.origin + '/calendar?google_auth_status=error&error=${encodeURIComponent(error)}';
+              window.opener.postMessage({
+                type: 'GOOGLE_OAUTH_CALLBACK',
+                success: false,
+                error: '${error.replace(/'/g, "\\'")}',
+                state: '${state || ''}'
+              }, '${targetOrigin}');
               window.close();
             } else {
-              window.location.href = '/calendar?google_auth_status=error&error=${encodeURIComponent(error)}';
+              window.location.href = '${siteUrl}/calendar?google_auth_status=error&error=${encodeURIComponent(error)}';
             }
           </script>
         </body>
@@ -54,10 +62,15 @@ serve(async (req) => {
         <body>
           <script>
             if (window.opener) {
-              window.opener.location.href = window.opener.location.origin + '/calendar?google_auth_status=error&error=no_code';
+              window.opener.postMessage({
+                type: 'GOOGLE_OAUTH_CALLBACK',
+                success: false,
+                error: 'No authorization code provided',
+                state: '${state || ''}'
+              }, '${targetOrigin}');
               window.close();
             } else {
-              window.location.href = '/calendar?google_auth_status=error&error=no_code';
+              window.location.href = '${siteUrl}/calendar?google_auth_status=error&error=no_code';
             }
           </script>
         </body>
@@ -106,54 +119,32 @@ serve(async (req) => {
 
     // Get user's email from Google using the access token
     console.log('👤 Fetching user info from Google...');
-    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-      },
-    });
-
     let userEmail = null;
-    if (userInfoResponse.ok) {
-      const userInfo = await userInfoResponse.json();
-      userEmail = userInfo.email;
-      console.log('✅ User email retrieved:', userEmail);
-    } else {
-      console.log('⚠️ Could not retrieve user email from Google');
+    try {
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+        },
+      });
+
+      if (userInfoResponse.ok) {
+        const userInfo = await userInfoResponse.json();
+        userEmail = userInfo.email;
+        console.log('✅ User email retrieved:', userEmail);
+      } else {
+        console.log('⚠️ Could not retrieve user email from Google');
+      }
+    } catch (emailError) {
+      console.log('⚠️ Error retrieving user email:', emailError);
     }
 
     // Calculate expiration time
-    const expiresAt = new Date(Date.now() + (expires_in * 1000))
+    const expiresAt = new Date(Date.now() + (expires_in * 1000));
     console.log('📅 Token expires at:', expiresAt.toISOString());
-
-    // Extract tutor_id from state parameter (we'll need to modify the client to include this)
-    // For now, we'll need to get it from the session or find another way
-    // Since we can't get the user session in this context, we'll store the tokens temporarily
-    // and let the client-side code handle the final storage after authentication
-
-    console.log('💾 Creating Supabase client with service role...');
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // We need to get the tutor_id somehow. Let's use the state parameter to pass it
-    // For now, we'll store the tokens in a temporary way and let the client handle it
-    // Actually, let's modify the approach - we'll pass the tokens back to the client
-    // and let the client store them using their authenticated session
 
     console.log('✅ Token exchange completed successfully');
 
-    // Redirect back to the calendar page with success status and token data
-    const successUrl = new URL('/calendar', Deno.env.get('SITE_URL') || 'http://localhost:3000');
-    successUrl.searchParams.set('google_auth_status', 'success');
-    successUrl.searchParams.set('access_token', access_token);
-    successUrl.searchParams.set('refresh_token', refresh_token);
-    successUrl.searchParams.set('expires_at', expiresAt.toISOString());
-    successUrl.searchParams.set('scope', scope || 'https://www.googleapis.com/auth/calendar.readonly');
-    if (userEmail) {
-      successUrl.searchParams.set('email', userEmail);
-    }
-
+    // Send success message with token data via postMessage
     const html = `
       <!DOCTYPE html>
       <html>
@@ -163,10 +154,30 @@ serve(async (req) => {
         <body>
           <script>
             if (window.opener) {
-              window.opener.location.href = '${successUrl.toString()}';
+              window.opener.postMessage({
+                type: 'GOOGLE_OAUTH_CALLBACK',
+                success: true,
+                data: {
+                  access_token: '${access_token}',
+                  refresh_token: '${refresh_token}',
+                  expires_at: '${expiresAt.toISOString()}',
+                  scope: '${scope || 'https://www.googleapis.com/auth/calendar.readonly'}',
+                  email: ${userEmail ? `'${userEmail}'` : 'null'}
+                },
+                state: '${state || ''}'
+              }, '${targetOrigin}');
               window.close();
             } else {
-              window.location.href = '${successUrl.toString()}';
+              // Fallback for direct navigation (shouldn't happen in normal flow)
+              const params = new URLSearchParams({
+                google_auth_status: 'success',
+                access_token: '${access_token}',
+                refresh_token: '${refresh_token}',
+                expires_at: '${expiresAt.toISOString()}',
+                scope: '${scope || 'https://www.googleapis.com/auth/calendar.readonly'}'
+              });
+              ${userEmail ? `params.set('email', '${userEmail}');` : ''}
+              window.location.href = '${siteUrl}/calendar?' + params.toString();
             }
           </script>
         </body>
@@ -180,10 +191,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('❌ OAuth callback error:', error);
     
-    const errorUrl = new URL('/calendar', Deno.env.get('SITE_URL') || 'http://localhost:3000');
-    errorUrl.searchParams.set('google_auth_status', 'error');
-    errorUrl.searchParams.set('error', error.message || 'Unknown error');
-
     const html = `
       <!DOCTYPE html>
       <html>
@@ -193,10 +200,15 @@ serve(async (req) => {
         <body>
           <script>
             if (window.opener) {
-              window.opener.location.href = '${errorUrl.toString()}';
+              window.opener.postMessage({
+                type: 'GOOGLE_OAUTH_CALLBACK',
+                success: false,
+                error: '${(error.message || 'Unknown error').replace(/'/g, "\\'")}',
+                state: '${state || ''}'
+              }, '${targetOrigin}');
               window.close();
             } else {
-              window.location.href = '${errorUrl.toString()}';
+              window.location.href = '${siteUrl}/calendar?google_auth_status=error&error=${encodeURIComponent(error.message || 'Unknown error')}';
             }
           </script>
         </body>
