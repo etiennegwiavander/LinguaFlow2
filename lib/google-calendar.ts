@@ -177,6 +177,14 @@ export class GoogleCalendarService {
       body: JSON.stringify({ code, email }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Token exchange failed with status: ${response.status}. Error: ${errorText}`);
+      throw new Error(`Failed to exchange code for tokens: ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    console.log('✅ Google OAuth Edge Function response:', responseData);
   }
 
   /**
