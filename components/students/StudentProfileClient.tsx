@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "@/components/main-layout";
 import { Student } from "@/types";
 import { languages } from "@/lib/sample-data";
@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Sparkles,
   Target,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +45,13 @@ interface LessonPlan {
   assessment: string[];
 }
 
+interface UpcomingLesson {
+  id: string;
+  date: string;
+  status: string;
+  generated_lessons: string[] | null;
+}
+
 interface StudentProfileClientProps {
   student: Student;
 }
@@ -52,6 +60,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
+  const [upcomingLesson, setUpcomingLesson] = useState<UpcomingLesson | null>(null);
+  const [loadingUpcomingLesson, setLoadingUpcomingLesson] = useState(true);
 
   const getInitials = (name: string) => {
     return name
@@ -64,6 +74,55 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const getLanguageInfo = (code: string) => {
     return languages.find(lang => lang.code === code) || { code, name: code, flag: '🌐' };
   };
+
+  // Load upcoming lesson and any existing generated lessons
+  useEffect(() => {
+    const loadUpcomingLesson = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Find the next upcoming lesson for this student
+        const { data: lessons, error } = await supabase
+          .from('lessons')
+          .select('id, date, status, generated_lessons')
+          .eq('student_id', student.id)
+          .eq('tutor_id', user.id)
+          .eq('status', 'upcoming')
+          .gte('date', new Date().toISOString())
+          .order('date', { ascending: true })
+          .limit(1);
+
+        if (error) {
+          console.error('Error loading upcoming lesson:', error);
+          return;
+        }
+
+        if (lessons && lessons.length > 0) {
+          const lesson = lessons[0];
+          setUpcomingLesson(lesson);
+
+          // If the lesson has generated content, parse and display it
+          if (lesson.generated_lessons && lesson.generated_lessons.length > 0) {
+            try {
+              const parsedLessons = lesson.generated_lessons.map((lessonStr: string) => 
+                JSON.parse(lessonStr)
+              );
+              setGeneratedLessons(parsedLessons);
+            } catch (parseError) {
+              console.error('Error parsing generated lessons:', parseError);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error in loadUpcomingLesson:', error);
+      } finally {
+        setLoadingUpcomingLesson(false);
+      }
+    };
+
+    loadUpcomingLesson();
+  }, [student.id]);
 
   const handleGenerateLessons = async () => {
     setIsGenerating(true);
@@ -81,9 +140,22 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-lesson-plan`;
       console.log('📡 Function URL:', functionUrl);
 
-      const requestBody = {
-        student_id: student.id
-      };
+      let requestBody;
+      
+      if (upcomingLesson) {
+        // Update existing lesson
+        requestBody = {
+          lesson_id: upcomingLesson.id
+        };
+        console.log('🔄 Updating existing lesson:', upcomingLesson.id);
+      } else {
+        // Create new lesson (legacy mode)
+        requestBody = {
+          student_id: student.id
+        };
+        console.log('➕ Creating new lesson for student:', student.id);
+      }
+
       console.log('📦 Request body:', requestBody);
 
       const response = await fetch(functionUrl, {
@@ -117,7 +189,38 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       
       if (result.success && result.lessons) {
         setGeneratedLessons(result.lessons);
-        toast.success('AI lesson plans generated successfully!');
+        
+        // If we updated an existing lesson, refresh the upcoming lesson data
+        if (result.updated && upcomingLesson) {
+          setUpcomingLesson({
+            ...upcomingLesson,
+            generated_lessons: result.lessons.map((lesson: LessonPlan) => JSON.stringify(lesson))
+          });
+        }
+        
+        // If we created a new lesson, we might want to refresh the upcoming lesson
+        if (result.created) {
+          // Reload upcoming lesson data
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: lessons } = await supabase
+              .from('lessons')
+              .select('id, date, status, generated_lessons')
+              .eq('student_id', student.id)
+              .eq('tutor_id', user.id)
+              .eq('status', 'upcoming')
+              .gte('date', new Date().toISOString())
+              .order('date', { ascending: true })
+              .limit(1);
+
+            if (lessons && lessons.length > 0) {
+              setUpcomingLesson(lessons[0]);
+            }
+          }
+        }
+        
+        const actionText = result.updated ? 'regenerated' : 'generated';
+        toast.success(`AI lesson plans ${actionText} successfully!`);
       } else {
         throw new Error(result.error || 'Invalid response format');
       }
@@ -138,6 +241,22 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   };
 
   const languageInfo = getLanguageInfo(student.target_language);
+
+  const getButtonText = () => {
+    if (isGenerating) {
+      return upcomingLesson?.generated_lessons ? 'Regenerating...' : 'Generating...';
+    }
+    return upcomingLesson?.generated_lessons ? 'Regenerate Lesson Ideas' : 'Generate Lesson Ideas';
+  };
+
+  const getButtonIcon = () => {
+    if (isGenerating) {
+      return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+    }
+    return upcomingLesson?.generated_lessons ? 
+      <RefreshCw className="mr-2 h-4 w-4" /> : 
+      <Target className="mr-2 h-4 w-4" />;
+  };
 
   return (
     <MainLayout>
@@ -262,9 +381,34 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium">Next Lesson</h3>
-                    <p className="text-sm text-muted-foreground">
-                      No upcoming lessons scheduled
-                    </p>
+                    {loadingUpcomingLesson ? (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm text-muted-foreground">Loading...</span>
+                      </div>
+                    ) : upcomingLesson ? (
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                        {upcomingLesson.generated_lessons && (
+                          <Badge variant="secondary" className="text-xs">
+                            AI Plans Ready
+                          </Badge>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No upcoming lessons scheduled
+                      </p>
+                    )}
                   </div>
                   <Calendar className="h-5 w-5 text-muted-foreground" />
                 </div>
@@ -296,74 +440,92 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Generate new lesson ideas tailored to {student.name}&apos;s learning style and goals
-              </p>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  {upcomingLesson ? 
+                    `Generate lesson ideas for ${student.name}'s upcoming lesson` :
+                    `Generate new lesson ideas tailored to ${student.name}'s learning style and goals`
+                  }
+                </p>
+                {upcomingLesson && (
+                  <p className="text-xs text-muted-foreground">
+                    Scheduled for {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
+                      weekday: 'long',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                )}
+              </div>
               <Button
                 onClick={handleGenerateLessons}
                 disabled={isGenerating}
               >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Target className="mr-2 h-4 w-4" />
-                    Generate Lesson Ideas
-                  </>
-                )}
+                {getButtonIcon()}
+                {getButtonText()}
               </Button>
             </div>
 
             {generatedLessons.length > 0 && (
-              <Accordion type="single" collapsible className="w-full">
-                {generatedLessons.map((lesson, index) => (
-                  <AccordionItem key={index} value={`lesson-${index}`}>
-                    <AccordionTrigger className="text-left">
-                      {lesson.title}
-                    </AccordionTrigger>
-                    <AccordionContent className="space-y-4">
-                      <div>
-                        <h4 className="font-medium mb-2">Lesson Objectives</h4>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          {lesson.objectives.map((objective: string, objIndex: number) => (
-                            <li key={objIndex}>{objective}</li>
-                          ))}
-                        </ul>
-                      </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium">Generated Lesson Plans</h3>
+                  {upcomingLesson?.generated_lessons && (
+                    <Badge variant="outline" className="text-xs">
+                      {upcomingLesson.generated_lessons.length} plans available
+                    </Badge>
+                  )}
+                </div>
+                
+                <Accordion type="single" collapsible className="w-full">
+                  {generatedLessons.map((lesson, index) => (
+                    <AccordionItem key={index} value={`lesson-${index}`}>
+                      <AccordionTrigger className="text-left">
+                        {lesson.title}
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-4">
+                        <div>
+                          <h4 className="font-medium mb-2">Lesson Objectives</h4>
+                          <ul className="list-disc list-inside text-sm space-y-1">
+                            {lesson.objectives.map((objective: string, objIndex: number) => (
+                              <li key={objIndex}>{objective}</li>
+                            ))}
+                          </ul>
+                        </div>
 
-                      <div>
-                        <h4 className="font-medium mb-2">Activities</h4>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          {lesson.activities.map((activity: string, actIndex: number) => (
-                            <li key={actIndex}>{activity}</li>
-                          ))}
-                        </ul>
-                      </div>
+                        <div>
+                          <h4 className="font-medium mb-2">Activities</h4>
+                          <ul className="list-disc list-inside text-sm space-y-1">
+                            {lesson.activities.map((activity: string, actIndex: number) => (
+                              <li key={actIndex}>{activity}</li>
+                            ))}
+                          </ul>
+                        </div>
 
-                      <div>
-                        <h4 className="font-medium mb-2">Materials Needed</h4>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          {lesson.materials.map((material: string, matIndex: number) => (
-                            <li key={matIndex}>{material}</li>
-                          ))}
-                        </ul>
-                      </div>
+                        <div>
+                          <h4 className="font-medium mb-2">Materials Needed</h4>
+                          <ul className="list-disc list-inside text-sm space-y-1">
+                            {lesson.materials.map((material: string, matIndex: number) => (
+                              <li key={matIndex}>{material}</li>
+                            ))}
+                          </ul>
+                        </div>
 
-                      <div>
-                        <h4 className="font-medium mb-2">Assessment Ideas</h4>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          {lesson.assessment.map((item: string, assIndex: number) => (
-                            <li key={assIndex}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+                        <div>
+                          <h4 className="font-medium mb-2">Assessment Ideas</h4>
+                          <ul className="list-disc list-inside text-sm space-y-1">
+                            {lesson.assessment.map((item: string, assIndex: number) => (
+                              <li key={assIndex}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
             )}
           </CardContent>
         </Card>

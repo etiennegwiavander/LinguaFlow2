@@ -8,7 +8,8 @@ const corsHeaders = {
 }
 
 interface GenerateLessonRequest {
-  student_id: string;
+  lesson_id?: string;
+  student_id?: string;
 }
 
 interface Student {
@@ -23,6 +24,18 @@ interface Student {
   conversational_fluency_barriers: string | null;
   learning_styles: string[] | null;
   notes: string | null;
+}
+
+interface Lesson {
+  id: string;
+  student_id: string;
+  tutor_id: string;
+  date: string;
+  status: string;
+  materials: string[];
+  notes: string | null;
+  generated_lessons: string[] | null;
+  student?: Student;
 }
 
 const languageMap: Record<string, string> = {
@@ -184,40 +197,87 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+    let user;
     
-    if (authError || !user) {
-      console.error('❌ Auth error:', authError)
-      throw new Error('Invalid token')
+    // Check if this is a service role token (for automated calls)
+    if (token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+      console.log('🤖 Service role authentication detected');
+      user = { id: 'service-role' }; // We'll get the actual tutor_id from the lesson record
+    } else {
+      // Regular user authentication
+      const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser(token)
+      
+      if (authError || !authUser) {
+        console.error('❌ Auth error:', authError)
+        throw new Error('Invalid token')
+      }
+      user = authUser;
+      console.log('✅ User authenticated:', user.id);
     }
-
-    console.log('✅ User authenticated:', user.id);
 
     console.log('📦 Parsing request body...');
-    const { student_id }: GenerateLessonRequest = await req.json()
+    const { lesson_id, student_id }: GenerateLessonRequest = await req.json()
 
-    if (!student_id) {
-      throw new Error('Student ID is required')
+    if (!lesson_id && !student_id) {
+      throw new Error('Either lesson_id or student_id is required')
     }
 
-    console.log('🔍 Fetching student details for ID:', student_id);
-    // Fetch student details
-    const { data: student, error: studentError } = await supabaseClient
-      .from('students')
-      .select('*')
-      .eq('id', student_id)
-      .eq('tutor_id', user.id) // Ensure the student belongs to the authenticated tutor
-      .single()
+    let lesson: Lesson;
+    let student: Student;
 
-    if (studentError || !student) {
-      console.error('❌ Student fetch error:', studentError);
-      throw new Error('Student not found or access denied')
+    if (lesson_id) {
+      console.log('🔍 Fetching lesson details for ID:', lesson_id);
+      
+      // Fetch lesson with student details
+      const { data: lessonData, error: lessonError } = await supabaseClient
+        .from('lessons')
+        .select(`
+          *,
+          student:students(*)
+        `)
+        .eq('id', lesson_id)
+        .single()
+
+      if (lessonError || !lessonData) {
+        console.error('❌ Lesson fetch error:', lessonError);
+        throw new Error('Lesson not found')
+      }
+
+      lesson = lessonData as Lesson;
+      student = lesson.student as Student;
+
+      // For non-service role calls, verify ownership
+      if (user.id !== 'service-role' && lesson.tutor_id !== user.id) {
+        throw new Error('Access denied - lesson does not belong to authenticated tutor')
+      }
+
+      console.log('✅ Lesson found:', lesson.id, 'for student:', student.name);
+    } else {
+      // Legacy mode: student_id provided, create new lesson
+      console.log('🔍 Fetching student details for ID:', student_id);
+      
+      if (user.id === 'service-role') {
+        throw new Error('Service role calls must provide lesson_id')
+      }
+
+      const { data: studentData, error: studentError } = await supabaseClient
+        .from('students')
+        .select('*')
+        .eq('id', student_id)
+        .eq('tutor_id', user.id)
+        .single()
+
+      if (studentError || !studentData) {
+        console.error('❌ Student fetch error:', studentError);
+        throw new Error('Student not found or access denied')
+      }
+
+      student = studentData as Student;
+      console.log('✅ Student found:', student.name);
     }
-
-    console.log('✅ Student found:', student.name);
 
     // Construct the prompt
-    const prompt = constructPrompt(student as Student)
+    const prompt = constructPrompt(student)
     console.log('📝 Prompt constructed, length:', prompt.length);
 
     // Get Gemini API key
@@ -246,7 +306,7 @@ serve(async (req) => {
             content: prompt
           }
         ],
-        temperature: 0.1, // Even lower temperature for more consistent JSON output
+        temperature: 0.1,
         max_tokens: 2000,
       }),
     })
@@ -329,48 +389,84 @@ serve(async (req) => {
 
     // Validate lesson structure
     for (let i = 0; i < parsedLessons.lessons.length; i++) {
-      const lesson = parsedLessons.lessons[i];
-      if (!lesson.title || !lesson.objectives || !lesson.activities || !lesson.materials || !lesson.assessment) {
-        console.error(`❌ Invalid lesson structure at index ${i}:`, lesson);
+      const lessonPlan = parsedLessons.lessons[i];
+      if (!lessonPlan.title || !lessonPlan.objectives || !lessonPlan.activities || !lessonPlan.materials || !lessonPlan.assessment) {
+        console.error(`❌ Invalid lesson structure at index ${i}:`, lessonPlan);
         throw new Error(`Lesson ${i + 1} is missing required fields`);
       }
     }
 
-    // Create a new lesson entry with the generated content
-    console.log('💾 Saving lesson to database...');
-    const { data: lessonData, error: lessonError } = await supabaseClient
-      .from('lessons')
-      .insert({
-        student_id: student_id,
-        tutor_id: user.id,
-        date: new Date().toISOString(),
-        status: 'upcoming',
-        materials: ['AI Generated Lesson Plans'],
-        notes: `AI-generated lesson plans created on ${new Date().toLocaleDateString()}`,
-        generated_lessons: parsedLessons.lessons.map((lesson: any) => JSON.stringify(lesson))
-      })
-      .select()
-      .single()
+    if (lesson_id) {
+      // Update existing lesson
+      console.log('💾 Updating existing lesson with generated content...');
+      const { data: updatedLesson, error: updateError } = await supabaseClient
+        .from('lessons')
+        .update({
+          generated_lessons: parsedLessons.lessons.map((lessonPlan: any) => JSON.stringify(lessonPlan)),
+          notes: `AI-generated lesson plans updated on ${new Date().toLocaleDateString()}`
+        })
+        .eq('id', lesson_id)
+        .select()
+        .single()
 
-    if (lessonError) {
-      console.error('❌ Database save error:', lessonError);
-      throw new Error(`Failed to save lesson: ${lessonError.message}`)
+      if (updateError) {
+        console.error('❌ Database update error:', updateError);
+        throw new Error(`Failed to update lesson: ${updateError.message}`)
+      }
+
+      console.log('✅ Lesson updated successfully with ID:', updatedLesson.id);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          lessons: parsedLessons.lessons,
+          lesson_id: updatedLesson.id,
+          message: 'Lesson plans updated successfully',
+          updated: true
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      )
+    } else {
+      // Create new lesson (legacy mode)
+      console.log('💾 Creating new lesson with generated content...');
+      const { data: lessonData, error: lessonError } = await supabaseClient
+        .from('lessons')
+        .insert({
+          student_id: student_id,
+          tutor_id: user.id,
+          date: new Date().toISOString(),
+          status: 'upcoming',
+          materials: ['AI Generated Lesson Plans'],
+          notes: `AI-generated lesson plans created on ${new Date().toLocaleDateString()}`,
+          generated_lessons: parsedLessons.lessons.map((lessonPlan: any) => JSON.stringify(lessonPlan))
+        })
+        .select()
+        .single()
+
+      if (lessonError) {
+        console.error('❌ Database save error:', lessonError);
+        throw new Error(`Failed to save lesson: ${lessonError.message}`)
+      }
+
+      console.log('✅ Lesson saved successfully with ID:', lessonData.id);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          lessons: parsedLessons.lessons,
+          lesson_id: lessonData.id,
+          message: 'Lesson plans generated successfully',
+          created: true
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      )
     }
-
-    console.log('✅ Lesson saved successfully with ID:', lessonData.id);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        lessons: parsedLessons.lessons,
-        lesson_id: lessonData.id,
-        message: 'Lesson plans generated successfully'
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    )
 
   } catch (error) {
     console.error('❌ Edge function error:', error)
