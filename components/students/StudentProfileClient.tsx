@@ -18,6 +18,13 @@ import {
   User,
   Brain,
   History,
+  Copy,
+  FileText,
+  CheckCircle,
+  Play,
+  Clock,
+  Lightbulb,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +49,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import StudentForm from "@/components/students/StudentForm";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -71,6 +85,9 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
   const [upcomingLesson, setUpcomingLesson] = useState<UpcomingLesson | null>(null);
   const [loadingUpcomingLesson, setLoadingUpcomingLesson] = useState(true);
+  const [generationProgress, setGenerationProgress] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [hasGeneratedBefore, setHasGeneratedBefore] = useState(false);
 
   const getInitials = (name: string) => {
     return name
@@ -118,10 +135,22 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
                 JSON.parse(lessonStr)
               );
               setGeneratedLessons(parsedLessons);
+              setHasGeneratedBefore(true);
             } catch (parseError) {
               console.error('Error parsing generated lessons:', parseError);
             }
           }
+        }
+
+        // Check if user has generated lessons before (for onboarding)
+        const { data: allLessons } = await supabase
+          .from('lessons')
+          .select('generated_lessons')
+          .eq('tutor_id', user.id)
+          .not('generated_lessons', 'is', null);
+
+        if (!allLessons || allLessons.length === 0) {
+          setShowOnboarding(true);
         }
       } catch (error) {
         console.error('Error in loadUpcomingLesson:', error);
@@ -135,6 +164,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
   const handleGenerateLessons = async () => {
     setIsGenerating(true);
+    setGenerationProgress("Analyzing learning profile...");
     
     try {
       console.log('🚀 Starting lesson generation for student:', student.id);
@@ -145,6 +175,10 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       }
 
       console.log('✅ Session found, making request to edge function...');
+
+      // Update progress message
+      setTimeout(() => setGenerationProgress(`Crafting personalized lesson ideas for ${student.name}...`), 1000);
+      setTimeout(() => setGenerationProgress("Creating engaging activities and materials..."), 2000);
 
       const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-lesson-plan`;
       console.log('📡 Function URL:', functionUrl);
@@ -198,6 +232,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       
       if (result.success && result.lessons) {
         setGeneratedLessons(result.lessons);
+        setHasGeneratedBefore(true);
+        setShowOnboarding(false);
         
         // If we updated an existing lesson, refresh the upcoming lesson data
         if (result.updated && upcomingLesson) {
@@ -246,7 +282,37 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       }
     } finally {
       setIsGenerating(false);
+      setGenerationProgress("");
     }
+  };
+
+  const copyToClipboard = async (content: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success(`${type} copied to clipboard!`);
+    } catch (error) {
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
+  const copyLessonPlan = async (lesson: LessonPlan) => {
+    const content = `
+${lesson.title}
+
+OBJECTIVES:
+${lesson.objectives.map(obj => `• ${obj}`).join('\n')}
+
+ACTIVITIES:
+${lesson.activities.map(act => `• ${act}`).join('\n')}
+
+MATERIALS:
+${lesson.materials.map(mat => `• ${mat}`).join('\n')}
+
+ASSESSMENT:
+${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
+    `.trim();
+    
+    await copyToClipboard(content, 'Lesson plan');
   };
 
   const languageInfo = getLanguageInfo(student.target_language);
@@ -255,7 +321,18 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     if (isGenerating) {
       return upcomingLesson?.generated_lessons ? 'Regenerating...' : 'Generating...';
     }
-    return upcomingLesson?.generated_lessons ? 'Regenerate Lesson Ideas' : 'Generate Lesson Ideas';
+    
+    if (upcomingLesson) {
+      const lessonDate = new Date(upcomingLesson.date).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric'
+      });
+      return upcomingLesson.generated_lessons ? 
+        `Regenerate Ideas for Next Lesson (${lessonDate})` : 
+        `Generate Ideas for Next Lesson (${lessonDate})`;
+    }
+    
+    return hasGeneratedBefore ? 'Generate New Lesson Ideas' : 'Generate Lesson Ideas';
   };
 
   const getButtonIcon = () => {
@@ -265,6 +342,12 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     return upcomingLesson?.generated_lessons ? 
       <RefreshCw className="mr-2 h-4 w-4" /> : 
       <Target className="mr-2 h-4 w-4" />;
+  };
+
+  const getProgressMessage = () => {
+    if (generationProgress) return generationProgress;
+    if (isGenerating) return "This may take a moment...";
+    return "";
   };
 
   return (
@@ -296,7 +379,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         </div>
 
         {/* Tabbed Content */}
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs defaultValue="ai-architect" className="space-y-6">
           
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="ai-architect" className="flex items-center space-x-2">
@@ -314,25 +397,54 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
               <span className="hidden sm:inline">Learning Profile</span>
               <span className="sm:hidden">Profile</span>
             </TabsTrigger>
-
-
           </TabsList>
 
           {/* AI Lesson Architect Tab */}
           <TabsContent value="ai-architect" className="space-y-6">
-            <Card>
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Sparkles className="mr-2 h-5 w-5" />
+                  <Sparkles className="mr-2 h-5 w-5 text-primary" />
                   AI Lesson Architect
+                  {showOnboarding && (
+                    <Badge variant="secondary" className="ml-2 animate-pulse">
+                      <Lightbulb className="w-3 h-3 mr-1" />
+                      New!
+                    </Badge>
+                  )}
                 </CardTitle>
                 <CardDescription>
                   Generate personalized lesson plans based on {student.name}'s profile and learning history
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border">
-                  <div className="space-y-1">
+                {/* Onboarding Alert for First-Time Users */}
+                {showOnboarding && !hasGeneratedBefore && (
+                  <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                    <Lightbulb className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800 dark:text-blue-200">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <strong>Welcome to AI Lesson Architect!</strong>
+                          <p className="mt-1 text-sm">
+                            Instantly create tailored lesson plans for {student.name}! Our AI analyzes their profile to suggest objectives, activities, and materials. Click the button below to get started.
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowOnboarding(false)}
+                          className="ml-2 h-6 w-6 p-0 text-blue-600 hover:text-blue-800"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-primary/20">
+                  <div className="space-y-2 flex-1">
                     <p className="font-medium">
                       {upcomingLesson ? 
                         `Generate lesson ideas for ${student.name}'s upcoming lesson` :
@@ -340,7 +452,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
                       }
                     </p>
                     {upcomingLesson && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground flex items-center">
+                        <Clock className="w-4 h-4 mr-1" />
                         Scheduled for {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
                           weekday: 'long',
                           month: 'short',
@@ -350,25 +463,52 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
                         })}
                       </p>
                     )}
+                    <p className="text-xs text-muted-foreground">
+                      Generate 3 personalized lesson plans based on {student.name}'s profile
+                    </p>
+                    {isGenerating && (
+                      <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                        <span>{getProgressMessage()}</span>
+                      </div>
+                    )}
                   </div>
-                  <Button
-                    onClick={handleGenerateLessons}
-                    disabled={isGenerating}
-                    size="lg"
-                  >
-                    {getButtonIcon()}
-                    {getButtonText()}
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handleGenerateLessons}
+                          disabled={isGenerating}
+                          size="lg"
+                          className="ml-4 min-w-[200px]"
+                        >
+                          {getButtonIcon()}
+                          {getButtonText()}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {upcomingLesson?.generated_lessons ? 
+                            'Create new lesson ideas for this student' :
+                            'Generate AI-powered lesson plans tailored to this student'
+                          }
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
 
                 {generatedLessons.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-lg">Generated Lesson Plans</h3>
+                      <h3 className="font-medium text-lg flex items-center">
+                        <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
+                        {generatedLessons.length} Lesson Plans Ready!
+                      </h3>
                       {upcomingLesson?.generated_lessons && (
                         <Badge variant="outline" className="text-xs">
                           <Sparkles className="w-3 h-3 mr-1" />
-                          {upcomingLesson.generated_lessons.length} plans available
+                          AI Generated
                         </Badge>
                       )}
                     </div>
@@ -385,6 +525,31 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="space-y-6 pt-4">
+                            {/* Action Buttons */}
+                            <div className="flex flex-wrap gap-2 p-4 bg-muted/30 rounded-lg">
+                              <Button size="sm" className="flex-1 min-w-[120px]">
+                                <Play className="w-4 h-4 mr-2" />
+                                Use This Plan
+                              </Button>
+                              <Button variant="outline" size="sm" className="flex-1 min-w-[120px]">
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit Plan
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => copyLessonPlan(lesson)}
+                                className="flex-1 min-w-[120px]"
+                              >
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy to Clipboard
+                              </Button>
+                              <Button variant="outline" size="sm" className="flex-1 min-w-[120px]">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Export
+                              </Button>
+                            </div>
+
                             <div className="grid gap-6 md:grid-cols-2">
                               <div>
                                 <h4 className="font-medium mb-3 flex items-center">
@@ -456,16 +621,29 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
                 {generatedLessons.length === 0 && !isGenerating && (
                   <div className="text-center py-12 border-2 border-dashed border-muted rounded-lg">
                     <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-medium text-lg mb-2">No Lesson Plans Generated Yet</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Click the generate button above to create personalized lesson plans for {student.name}
+                    <h3 className="font-medium text-lg mb-2">Ready to Create Amazing Lessons?</h3>
+                    <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                      Our AI will analyze {student.name}'s learning profile and create personalized lesson plans with objectives, activities, materials, and assessment ideas.
                     </p>
+                    <div className="flex items-center justify-center space-x-4 text-xs text-muted-foreground">
+                      <div className="flex items-center">
+                        <Target className="w-4 h-4 mr-1" />
+                        Tailored Objectives
+                      </div>
+                      <div className="flex items-center">
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        Engaging Activities
+                      </div>
+                      <div className="flex items-center">
+                        <Book className="w-4 h-4 mr-1" />
+                        Resource Lists
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
-
 
           {/* Lesson History Tab */}
           <TabsContent value="history" className="space-y-6">
