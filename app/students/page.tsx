@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import MainLayout from "@/components/main-layout";
 import { Student } from "@/types";
 import { languages } from "@/lib/sample-data";
@@ -164,14 +165,19 @@ export default function StudentsPage() {
                   students.map((student) => {
                     const langInfo = getLanguageInfo(student.target_language);
                     return (
-                      <TableRow key={student.id}>
+                      <TableRow key={student.id} className="hover:bg-muted/50 transition-colors">
                         <TableCell className="font-medium">
                           <div className="flex items-center">
                             <Avatar className="h-8 w-8 mr-3">
                               <AvatarImage src={student.avatar_url || undefined} alt={student.name} />
                               <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
                             </Avatar>
-                            {student.name}
+                            <Link 
+                              href={`/students/${student.id}`}
+                              className="text-primary hover:text-primary/80 hover:underline transition-colors font-medium"
+                            >
+                              {student.name}
+                            </Link>
                           </div>
                         </TableCell>
                         <TableCell>
