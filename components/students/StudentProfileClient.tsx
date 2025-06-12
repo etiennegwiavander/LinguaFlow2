@@ -15,6 +15,9 @@ import {
   Sparkles,
   Target,
   RefreshCw,
+  User,
+  Brain,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +30,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Accordion,
   AccordionContent,
@@ -262,7 +271,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     <MainLayout>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
           <div className="flex items-center space-x-4">
             <Avatar className="h-16 w-16">
               <AvatarImage src={student.avatar_url || undefined} alt={student.name} />
@@ -286,249 +295,383 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Student Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <GraduationCap className="mr-2 h-5 w-5" />
-                Learning Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h3 className="font-medium mb-2">End Goals</h3>
-                <p className="text-sm text-muted-foreground">
-                  {student.end_goals || "No end goals specified"}
-                </p>
-              </div>
+        {/* Tabbed Content */}
+        <Tabs defaultValue="profile" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="profile" className="flex items-center space-x-2">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Learning Profile</span>
+              <span className="sm:hidden">Profile</span>
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center space-x-2">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Lesson History</span>
+              <span className="sm:hidden">History</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-architect" className="flex items-center space-x-2">
+              <Brain className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Lesson Architect</span>
+              <span className="sm:hidden">AI Plans</span>
+            </TabsTrigger>
+          </TabsList>
 
-              <div>
-                <h3 className="font-medium mb-2">Learning Styles</h3>
-                <div className="flex flex-wrap gap-2">
-                  {student.learning_styles?.map((style) => (
-                    <Badge key={style} variant="secondary">
-                      {style}
-                    </Badge>
-                  )) || <span className="text-sm text-muted-foreground">No learning styles specified</span>}
-                </div>
-              </div>
+          {/* Learning Profile Tab */}
+          <TabsContent value="profile" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <GraduationCap className="mr-2 h-5 w-5" />
+                  Learning Profile
+                </CardTitle>
+                <CardDescription>
+                  Comprehensive overview of {student.name}'s learning journey and preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <h3 className="font-medium mb-3 text-lg">Learning Goals</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">End Goals</h4>
+                        <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                          {student.end_goals || "No end goals specified"}
+                        </p>
+                      </div>
 
-              <Separator />
+                      <div>
+                        <h4 className="font-medium mb-2">Learning Styles</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {student.learning_styles?.map((style) => (
+                            <Badge key={style} variant="secondary">
+                              {style}
+                            </Badge>
+                          )) || <span className="text-sm text-muted-foreground">No learning styles specified</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-medium mb-2">Areas for Improvement</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground">
-                        Grammar Weaknesses
-                      </h4>
-                      <p className="text-sm">
-                        {student.grammar_weaknesses || "None specified"}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground">
-                        Vocabulary Gaps
-                      </h4>
-                      <p className="text-sm">
-                        {student.vocabulary_gaps || "None specified"}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground">
-                        Pronunciation Challenges
-                      </h4>
-                      <p className="text-sm">
-                        {student.pronunciation_challenges || "None specified"}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground">
-                        Conversational Fluency Barriers
-                      </h4>
-                      <p className="text-sm">
-                        {student.conversational_fluency_barriers || "None specified"}
-                      </p>
+                  <div>
+                    <h3 className="font-medium mb-3 text-lg">Language Details</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-md">
+                        <span className="text-2xl">{languageInfo.flag}</span>
+                        <div>
+                          <p className="font-medium">{languageInfo.name}</p>
+                          <p className="text-sm text-muted-foreground capitalize">
+                            {student.level} Level
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <Separator />
+                <Separator />
 
-              <div>
-                <h3 className="font-medium mb-2">Additional Notes</h3>
-                <p className="text-sm text-muted-foreground">
-                  {student.notes || "No additional notes"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="space-y-4">
+                  <h3 className="font-medium text-lg">Areas for Improvement</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-3">
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-red-600 mb-2 flex items-center">
+                          <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                          Grammar Weaknesses
+                        </h4>
+                        <p className="text-sm">
+                          {student.grammar_weaknesses || "None specified"}
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-orange-600 mb-2 flex items-center">
+                          <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                          Vocabulary Gaps
+                        </h4>
+                        <p className="text-sm">
+                          {student.vocabulary_gaps || "None specified"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-blue-600 mb-2 flex items-center">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                          Pronunciation Challenges
+                        </h4>
+                        <p className="text-sm">
+                          {student.pronunciation_challenges || "None specified"}
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-purple-600 mb-2 flex items-center">
+                          <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                          Conversational Fluency Barriers
+                        </h4>
+                        <p className="text-sm">
+                          {student.conversational_fluency_barriers || "None specified"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-          {/* Lesson History */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Book className="mr-2 h-5 w-5" />
-                Lesson History
-              </CardTitle>
-              <CardDescription>Recent lessons and upcoming sessions</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Next Lesson</h3>
+                <Separator />
+
+                <div>
+                  <h3 className="font-medium mb-2">Additional Notes</h3>
+                  <div className="bg-muted/50 p-4 rounded-md">
+                    <p className="text-sm text-muted-foreground">
+                      {student.notes || "No additional notes"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Lesson History Tab */}
+          <TabsContent value="history" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Book className="mr-2 h-5 w-5" />
+                  Lesson History
+                </CardTitle>
+                <CardDescription>Recent lessons and upcoming sessions with {student.name}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-lg">Next Lesson</h3>
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                    </div>
                     {loadingUpcomingLesson ? (
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 p-4 border rounded-lg">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <span className="text-sm text-muted-foreground">Loading...</span>
                       </div>
                     ) : upcomingLesson ? (
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                        {upcomingLesson.generated_lessons && (
-                          <Badge variant="secondary" className="text-xs">
-                            AI Plans Ready
-                          </Badge>
-                        )}
+                      <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                        <div className="space-y-2">
+                          <p className="font-medium">
+                            {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(upcomingLesson.date).toLocaleTimeString(undefined, {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                          {upcomingLesson.generated_lessons && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              AI Plans Ready
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     ) : (
+                      <div className="p-4 border rounded-lg text-center">
+                        <p className="text-sm text-muted-foreground">
+                          No upcoming lessons scheduled
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-lg">Last Lesson</h3>
+                      <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div className="p-4 border rounded-lg text-center">
                       <p className="text-sm text-muted-foreground">
-                        No upcoming lessons scheduled
+                        No previous lessons recorded
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="font-medium mb-4 text-lg">Lesson Statistics</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">0</div>
+                      <div className="text-sm text-muted-foreground">Total Lessons</div>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">0</div>
+                      <div className="text-sm text-muted-foreground">Completed</div>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {upcomingLesson ? '1' : '0'}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Upcoming</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* AI Lesson Architect Tab */}
+          <TabsContent value="ai-architect" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  AI Lesson Architect
+                </CardTitle>
+                <CardDescription>
+                  Generate personalized lesson plans based on {student.name}'s profile and learning history
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border">
+                  <div className="space-y-1">
+                    <p className="font-medium">
+                      {upcomingLesson ? 
+                        `Generate lesson ideas for ${student.name}'s upcoming lesson` :
+                        `Generate new lesson ideas tailored to ${student.name}'s learning style and goals`
+                      }
+                    </p>
+                    {upcomingLesson && (
+                      <p className="text-sm text-muted-foreground">
+                        Scheduled for {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
+                          weekday: 'long',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </p>
                     )}
                   </div>
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <Button
+                    onClick={handleGenerateLessons}
+                    disabled={isGenerating}
+                    size="lg"
+                  >
+                    {getButtonIcon()}
+                    {getButtonText()}
+                  </Button>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Last Lesson</h3>
-                    <p className="text-sm text-muted-foreground">
-                      No previous lessons
+                {generatedLessons.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-lg">Generated Lesson Plans</h3>
+                      {upcomingLesson?.generated_lessons && (
+                        <Badge variant="outline" className="text-xs">
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          {upcomingLesson.generated_lessons.length} plans available
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <Accordion type="single" collapsible className="w-full">
+                      {generatedLessons.map((lesson, index) => (
+                        <AccordionItem key={index} value={`lesson-${index}`}>
+                          <AccordionTrigger className="text-left hover:no-underline">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-bold text-primary">{index + 1}</span>
+                              </div>
+                              <span className="font-medium">{lesson.title}</span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="space-y-6 pt-4">
+                            <div className="grid gap-6 md:grid-cols-2">
+                              <div>
+                                <h4 className="font-medium mb-3 flex items-center">
+                                  <Target className="w-4 h-4 mr-2 text-blue-600" />
+                                  Lesson Objectives
+                                </h4>
+                                <ul className="space-y-2">
+                                  {lesson.objectives.map((objective: string, objIndex: number) => (
+                                    <li key={objIndex} className="text-sm flex items-start">
+                                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                      {objective}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              <div>
+                                <h4 className="font-medium mb-3 flex items-center">
+                                  <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
+                                  Activities
+                                </h4>
+                                <ul className="space-y-2">
+                                  {lesson.activities.map((activity: string, actIndex: number) => (
+                                    <li key={actIndex} className="text-sm flex items-start">
+                                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                      {activity}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              <div>
+                                <h4 className="font-medium mb-3 flex items-center">
+                                  <Book className="w-4 h-4 mr-2 text-green-600" />
+                                  Materials Needed
+                                </h4>
+                                <ul className="space-y-2">
+                                  {lesson.materials.map((material: string, matIndex: number) => (
+                                    <li key={matIndex} className="text-sm flex items-start">
+                                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                      {material}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              <div>
+                                <h4 className="font-medium mb-3 flex items-center">
+                                  <GraduationCap className="w-4 h-4 mr-2 text-orange-600" />
+                                  Assessment Ideas
+                                </h4>
+                                <ul className="space-y-2">
+                                  {lesson.assessment.map((item: string, assIndex: number) => (
+                                    <li key={assIndex} className="text-sm flex items-start">
+                                      <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                      {item}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </div>
+                )}
+
+                {generatedLessons.length === 0 && !isGenerating && (
+                  <div className="text-center py-12 border-2 border-dashed border-muted rounded-lg">
+                    <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-medium text-lg mb-2">No Lesson Plans Generated Yet</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Click the generate button above to create personalized lesson plans for {student.name}
                     </p>
                   </div>
-                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* AI Lesson Architect */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Sparkles className="mr-2 h-5 w-5" />
-              AI Lesson Architect
-            </CardTitle>
-            <CardDescription>
-              Generate personalized lesson plans based on student profile and learning history
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  {upcomingLesson ? 
-                    `Generate lesson ideas for ${student.name}'s upcoming lesson` :
-                    `Generate new lesson ideas tailored to ${student.name}'s learning style and goals`
-                  }
-                </p>
-                {upcomingLesson && (
-                  <p className="text-xs text-muted-foreground">
-                    Scheduled for {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
-                      weekday: 'long',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
                 )}
-              </div>
-              <Button
-                onClick={handleGenerateLessons}
-                disabled={isGenerating}
-              >
-                {getButtonIcon()}
-                {getButtonText()}
-              </Button>
-            </div>
-
-            {generatedLessons.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium">Generated Lesson Plans</h3>
-                  {upcomingLesson?.generated_lessons && (
-                    <Badge variant="outline" className="text-xs">
-                      {upcomingLesson.generated_lessons.length} plans available
-                    </Badge>
-                  )}
-                </div>
-                
-                <Accordion type="single" collapsible className="w-full">
-                  {generatedLessons.map((lesson, index) => (
-                    <AccordionItem key={index} value={`lesson-${index}`}>
-                      <AccordionTrigger className="text-left">
-                        {lesson.title}
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-4">
-                        <div>
-                          <h4 className="font-medium mb-2">Lesson Objectives</h4>
-                          <ul className="list-disc list-inside text-sm space-y-1">
-                            {lesson.objectives.map((objective: string, objIndex: number) => (
-                              <li key={objIndex}>{objective}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div>
-                          <h4 className="font-medium mb-2">Activities</h4>
-                          <ul className="list-disc list-inside text-sm space-y-1">
-                            {lesson.activities.map((activity: string, actIndex: number) => (
-                              <li key={actIndex}>{activity}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div>
-                          <h4 className="font-medium mb-2">Materials Needed</h4>
-                          <ul className="list-disc list-inside text-sm space-y-1">
-                            {lesson.materials.map((material: string, matIndex: number) => (
-                              <li key={matIndex}>{material}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div>
-                          <h4 className="font-medium mb-2">Assessment Ideas</h4>
-                          <ul className="list-disc list-inside text-sm space-y-1">
-                            {lesson.assessment.map((item: string, assIndex: number) => (
-                              <li key={assIndex}>{item}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         <StudentForm
           open={isFormOpen}
