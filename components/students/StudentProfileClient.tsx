@@ -297,232 +297,26 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
         {/* Tabbed Content */}
         <Tabs defaultValue="profile" className="space-y-6">
+          
           <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="ai-architect" className="flex items-center space-x-2">
+              <Brain className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Lesson Architect</span>
+              <span className="sm:hidden">AI Plans</span>
+            </TabsTrigger>            
+            <TabsTrigger value="history" className="flex items-center space-x-2">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Lesson History</span>
+              <span className="sm:hidden">History</span>
+            </TabsTrigger>            
             <TabsTrigger value="profile" className="flex items-center space-x-2">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Learning Profile</span>
               <span className="sm:hidden">Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center space-x-2">
-              <History className="h-4 w-4" />
-              <span className="hidden sm:inline">Lesson History</span>
-              <span className="sm:hidden">History</span>
-            </TabsTrigger>
-            <TabsTrigger value="ai-architect" className="flex items-center space-x-2">
-              <Brain className="h-4 w-4" />
-              <span className="hidden sm:inline">AI Lesson Architect</span>
-              <span className="sm:hidden">AI Plans</span>
-            </TabsTrigger>
+
+
           </TabsList>
-
-          {/* Learning Profile Tab */}
-          <TabsContent value="profile" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <GraduationCap className="mr-2 h-5 w-5" />
-                  Learning Profile
-                </CardTitle>
-                <CardDescription>
-                  Comprehensive overview of {student.name}'s learning journey and preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div>
-                    <h3 className="font-medium mb-3 text-lg">Learning Goals</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium mb-2">End Goals</h4>
-                        <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                          {student.end_goals || "No end goals specified"}
-                        </p>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium mb-2">Learning Styles</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {student.learning_styles?.map((style) => (
-                            <Badge key={style} variant="secondary">
-                              {style}
-                            </Badge>
-                          )) || <span className="text-sm text-muted-foreground">No learning styles specified</span>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium mb-3 text-lg">Language Details</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-md">
-                        <span className="text-2xl">{languageInfo.flag}</span>
-                        <div>
-                          <p className="font-medium">{languageInfo.name}</p>
-                          <p className="text-sm text-muted-foreground capitalize">
-                            {student.level} Level
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h3 className="font-medium text-lg">Areas for Improvement</h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-3">
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium text-red-600 mb-2 flex items-center">
-                          <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                          Grammar Weaknesses
-                        </h4>
-                        <p className="text-sm">
-                          {student.grammar_weaknesses || "None specified"}
-                        </p>
-                      </div>
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium text-orange-600 mb-2 flex items-center">
-                          <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                          Vocabulary Gaps
-                        </h4>
-                        <p className="text-sm">
-                          {student.vocabulary_gaps || "None specified"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium text-blue-600 mb-2 flex items-center">
-                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                          Pronunciation Challenges
-                        </h4>
-                        <p className="text-sm">
-                          {student.pronunciation_challenges || "None specified"}
-                        </p>
-                      </div>
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium text-purple-600 mb-2 flex items-center">
-                          <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                          Conversational Fluency Barriers
-                        </h4>
-                        <p className="text-sm">
-                          {student.conversational_fluency_barriers || "None specified"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-medium mb-2">Additional Notes</h3>
-                  <div className="bg-muted/50 p-4 rounded-md">
-                    <p className="text-sm text-muted-foreground">
-                      {student.notes || "No additional notes"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Lesson History Tab */}
-          <TabsContent value="history" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Book className="mr-2 h-5 w-5" />
-                  Lesson History
-                </CardTitle>
-                <CardDescription>Recent lessons and upcoming sessions with {student.name}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-lg">Next Lesson</h3>
-                      <Calendar className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    {loadingUpcomingLesson ? (
-                      <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm text-muted-foreground">Loading...</span>
-                      </div>
-                    ) : upcomingLesson ? (
-                      <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
-                        <div className="space-y-2">
-                          <p className="font-medium">
-                            {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(upcomingLesson.date).toLocaleTimeString(undefined, {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                          {upcomingLesson.generated_lessons && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Sparkles className="w-3 h-3 mr-1" />
-                              AI Plans Ready
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 border rounded-lg text-center">
-                        <p className="text-sm text-muted-foreground">
-                          No upcoming lessons scheduled
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-lg">Last Lesson</h3>
-                      <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div className="p-4 border rounded-lg text-center">
-                      <p className="text-sm text-muted-foreground">
-                        No previous lessons recorded
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-medium mb-4 text-lg">Lesson Statistics</h3>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">0</div>
-                      <div className="text-sm text-muted-foreground">Total Lessons</div>
-                    </div>
-                    <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">0</div>
-                      <div className="text-sm text-muted-foreground">Completed</div>
-                    </div>
-                    <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">
-                        {upcomingLesson ? '1' : '0'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Upcoming</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* AI Lesson Architect Tab */}
           <TabsContent value="ai-architect" className="space-y-6">
@@ -671,6 +465,217 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
               </CardContent>
             </Card>
           </TabsContent>
+
+
+          {/* Lesson History Tab */}
+          <TabsContent value="history" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Book className="mr-2 h-5 w-5" />
+                  Lesson History
+                </CardTitle>
+                <CardDescription>Recent lessons and upcoming sessions with {student.name}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-lg">Next Lesson</h3>
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    {loadingUpcomingLesson ? (
+                      <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm text-muted-foreground">Loading...</span>
+                      </div>
+                    ) : upcomingLesson ? (
+                      <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                        <div className="space-y-2">
+                          <p className="font-medium">
+                            {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(upcomingLesson.date).toLocaleTimeString(undefined, {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                          {upcomingLesson.generated_lessons && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              AI Plans Ready
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 border rounded-lg text-center">
+                        <p className="text-sm text-muted-foreground">
+                          No upcoming lessons scheduled
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-lg">Last Lesson</h3>
+                      <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div className="p-4 border rounded-lg text-center">
+                      <p className="text-sm text-muted-foreground">
+                        No previous lessons recorded
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="font-medium mb-4 text-lg">Lesson Statistics</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">0</div>
+                      <div className="text-sm text-muted-foreground">Total Lessons</div>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">0</div>
+                      <div className="text-sm text-muted-foreground">Completed</div>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {upcomingLesson ? '1' : '0'}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Upcoming</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+                    
+          {/* Learning Profile Tab */}
+          <TabsContent value="profile" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <GraduationCap className="mr-2 h-5 w-5" />
+                  Learning Profile
+                </CardTitle>
+                <CardDescription>
+                  Comprehensive overview of {student.name}'s learning journey and preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <h3 className="font-medium mb-3 text-lg">Learning Goals</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">End Goals</h4>
+                        <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                          {student.end_goals || "No end goals specified"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium mb-2">Learning Styles</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {student.learning_styles?.map((style) => (
+                            <Badge key={style} variant="secondary">
+                              {style}
+                            </Badge>
+                          )) || <span className="text-sm text-muted-foreground">No learning styles specified</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-medium mb-3 text-lg">Language Details</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-md">
+                        <span className="text-2xl">{languageInfo.flag}</span>
+                        <div>
+                          <p className="font-medium">{languageInfo.name}</p>
+                          <p className="text-sm text-muted-foreground capitalize">
+                            {student.level} Level
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="font-medium text-lg">Areas for Improvement</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-3">
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-red-600 mb-2 flex items-center">
+                          <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                          Grammar Weaknesses
+                        </h4>
+                        <p className="text-sm">
+                          {student.grammar_weaknesses || "None specified"}
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-orange-600 mb-2 flex items-center">
+                          <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                          Vocabulary Gaps
+                        </h4>
+                        <p className="text-sm">
+                          {student.vocabulary_gaps || "None specified"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-blue-600 mb-2 flex items-center">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                          Pronunciation Challenges
+                        </h4>
+                        <p className="text-sm">
+                          {student.pronunciation_challenges || "None specified"}
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-purple-600 mb-2 flex items-center">
+                          <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                          Conversational Fluency Barriers
+                        </h4>
+                        <p className="text-sm">
+                          {student.conversational_fluency_barriers || "None specified"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="font-medium mb-2">Additional Notes</h3>
+                  <div className="bg-muted/50 p-4 rounded-md">
+                    <p className="text-sm text-muted-foreground">
+                      {student.notes || "No additional notes"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
 
         <StudentForm
