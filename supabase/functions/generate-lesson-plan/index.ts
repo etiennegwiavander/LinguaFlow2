@@ -35,6 +35,7 @@ interface Lesson {
   materials: string[];
   notes: string | null;
   generated_lessons: string[] | null;
+  lesson_template_id: string | null;
   student?: Student;
 }
 
@@ -224,6 +225,23 @@ serve(async (req) => {
 
     let lesson: Lesson;
     let student: Student;
+    let lessonTemplateId: string | null = null;
+
+    // Get the A1 Conversation template ID (we'll use this as default for now)
+    console.log('🎯 Fetching lesson template...');
+    const { data: templateData, error: templateError } = await supabaseClient
+      .from('lesson_templates')
+      .select('id')
+      .eq('name', 'A1 Conversation Lesson')
+      .eq('is_active', true)
+      .single();
+
+    if (templateError) {
+      console.error('⚠️ Could not fetch lesson template:', templateError);
+    } else {
+      lessonTemplateId = templateData.id;
+      console.log('✅ Found lesson template ID:', lessonTemplateId);
+    }
 
     if (lesson_id) {
       console.log('🔍 Fetching lesson details for ID:', lesson_id);
@@ -399,12 +417,20 @@ serve(async (req) => {
     if (lesson_id) {
       // Update existing lesson
       console.log('💾 Updating existing lesson with generated content...');
+      const updateData: any = {
+        generated_lessons: parsedLessons.lessons.map((lessonPlan: any) => JSON.stringify(lessonPlan)),
+        notes: `AI-generated lesson plans updated on ${new Date().toLocaleDateString()}`
+      };
+
+      // Add lesson template ID if we found one
+      if (lessonTemplateId) {
+        updateData.lesson_template_id = lessonTemplateId;
+        console.log('📎 Adding lesson template ID to update:', lessonTemplateId);
+      }
+
       const { data: updatedLesson, error: updateError } = await supabaseClient
         .from('lessons')
-        .update({
-          generated_lessons: parsedLessons.lessons.map((lessonPlan: any) => JSON.stringify(lessonPlan)),
-          notes: `AI-generated lesson plans updated on ${new Date().toLocaleDateString()}`
-        })
+        .update(updateData)
         .eq('id', lesson_id)
         .select()
         .single()
@@ -421,6 +447,7 @@ serve(async (req) => {
           success: true, 
           lessons: parsedLessons.lessons,
           lesson_id: updatedLesson.id,
+          lesson_template_id: lessonTemplateId,
           message: 'Lesson plans updated successfully',
           updated: true
         }),
@@ -432,17 +459,25 @@ serve(async (req) => {
     } else {
       // Create new lesson (legacy mode)
       console.log('💾 Creating new lesson with generated content...');
+      const insertData: any = {
+        student_id: student_id,
+        tutor_id: user.id,
+        date: new Date().toISOString(),
+        status: 'upcoming',
+        materials: ['AI Generated Lesson Plans'],
+        notes: `AI-generated lesson plans created on ${new Date().toLocaleDateString()}`,
+        generated_lessons: parsedLessons.lessons.map((lessonPlan: any) => JSON.stringify(lessonPlan))
+      };
+
+      // Add lesson template ID if we found one
+      if (lessonTemplateId) {
+        insertData.lesson_template_id = lessonTemplateId;
+        console.log('📎 Adding lesson template ID to new lesson:', lessonTemplateId);
+      }
+
       const { data: lessonData, error: lessonError } = await supabaseClient
         .from('lessons')
-        .insert({
-          student_id: student_id,
-          tutor_id: user.id,
-          date: new Date().toISOString(),
-          status: 'upcoming',
-          materials: ['AI Generated Lesson Plans'],
-          notes: `AI-generated lesson plans created on ${new Date().toLocaleDateString()}`,
-          generated_lessons: parsedLessons.lessons.map((lessonPlan: any) => JSON.stringify(lessonPlan))
-        })
+        .insert(insertData)
         .select()
         .single()
 
@@ -458,6 +493,7 @@ serve(async (req) => {
           success: true, 
           lessons: parsedLessons.lessons,
           lesson_id: lessonData.id,
+          lesson_template_id: lessonTemplateId,
           message: 'Lesson plans generated successfully',
           created: true
         }),

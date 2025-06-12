@@ -25,6 +25,7 @@ import {
   Clock,
   Lightbulb,
   X,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +58,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import StudentForm from "@/components/students/StudentForm";
+import LessonMaterialDisplay from "@/components/lessons/LessonMaterialDisplay";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -73,6 +75,7 @@ interface UpcomingLesson {
   date: string;
   status: string;
   generated_lessons: string[] | null;
+  lesson_template_id: string | null;
 }
 
 interface StudentProfileClientProps {
@@ -88,6 +91,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [generationProgress, setGenerationProgress] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [hasGeneratedBefore, setHasGeneratedBefore] = useState(false);
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("ai-architect");
 
   const getInitials = (name: string) => {
     return name
@@ -111,7 +116,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         // Find the next upcoming lesson for this student
         const { data: lessons, error } = await supabase
           .from('lessons')
-          .select('id, date, status, generated_lessons')
+          .select('id, date, status, generated_lessons, lesson_template_id')
           .eq('student_id', student.id)
           .eq('tutor_id', user.id)
           .eq('status', 'upcoming')
@@ -239,7 +244,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         if (result.updated && upcomingLesson) {
           setUpcomingLesson({
             ...upcomingLesson,
-            generated_lessons: result.lessons.map((lesson: LessonPlan) => JSON.stringify(lesson))
+            generated_lessons: result.lessons.map((lesson: LessonPlan) => JSON.stringify(lesson)),
+            lesson_template_id: result.lesson_template_id || upcomingLesson.lesson_template_id
           });
         }
         
@@ -250,7 +256,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
           if (user) {
             const { data: lessons } = await supabase
               .from('lessons')
-              .select('id, date, status, generated_lessons')
+              .select('id, date, status, generated_lessons, lesson_template_id')
               .eq('student_id', student.id)
               .eq('tutor_id', user.id)
               .eq('status', 'upcoming')
@@ -313,6 +319,16 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     `.trim();
     
     await copyToClipboard(content, 'Lesson plan');
+  };
+
+  const handleUseLessonPlan = (lessonIndex: number) => {
+    if (upcomingLesson) {
+      setSelectedLessonId(upcomingLesson.id);
+      setActiveTab("lesson-material");
+      toast.success('Lesson material loaded! You can now view the interactive lesson.');
+    } else {
+      toast.error('No lesson available to display');
+    }
   };
 
   const languageInfo = getLanguageInfo(student.target_language);
@@ -379,13 +395,18 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         </div>
 
         {/* Tabbed Content */}
-        <Tabs defaultValue="ai-architect" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="ai-architect" className="flex items-center space-x-2">
               <Brain className="h-4 w-4" />
               <span className="hidden sm:inline">AI Lesson Architect</span>
               <span className="sm:hidden">AI Plans</span>
+            </TabsTrigger>
+            <TabsTrigger value="lesson-material" className="flex items-center space-x-2">
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Lesson Material</span>
+              <span className="sm:hidden">Material</span>
             </TabsTrigger>            
             <TabsTrigger value="history" className="flex items-center space-x-2">
               <History className="h-4 w-4" />
@@ -527,7 +548,12 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                           <AccordionContent className="space-y-6 pt-4">
                             {/* Action Buttons */}
                             <div className="flex flex-wrap gap-2 p-4 bg-muted/30 rounded-lg">
-                              <Button size="sm" className="flex-1 min-w-[120px]">
+                              <Button 
+                                size="sm" 
+                                className="flex-1 min-w-[120px]"
+                                onClick={() => handleUseLessonPlan(index)}
+                                disabled={!upcomingLesson}
+                              >
                                 <Play className="w-4 h-4 mr-2" />
                                 Use This Plan
                               </Button>
@@ -645,6 +671,42 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
             </Card>
           </TabsContent>
 
+          {/* Lesson Material Tab */}
+          <TabsContent value="lesson-material" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BookOpen className="mr-2 h-5 w-5" />
+                  Interactive Lesson Material
+                </CardTitle>
+                <CardDescription>
+                  Personalized lesson content for {student.name} with interactive exercises
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {selectedLessonId ? (
+                  <LessonMaterialDisplay lessonId={selectedLessonId} />
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <BookOpen className="w-8 h-8 text-gray-600" />
+                    </div>
+                    <h3 className="font-medium text-lg mb-2">No Lesson Selected</h3>
+                    <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                      Generate lesson plans in the AI Lesson Architect tab and click "Use This Plan" to view the interactive lesson material here.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setActiveTab("ai-architect")}
+                    >
+                      Go to AI Lesson Architect
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Lesson History Tab */}
           <TabsContent value="history" className="space-y-6">
             <Card>
@@ -688,6 +750,12 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                             <Badge variant="secondary" className="text-xs">
                               <Sparkles className="w-3 h-3 mr-1" />
                               AI Plans Ready
+                            </Badge>
+                          )}
+                          {upcomingLesson.lesson_template_id && (
+                            <Badge variant="outline" className="text-xs">
+                              <BookOpen className="w-3 h-3 mr-1" />
+                              Interactive Material
                             </Badge>
                           )}
                         </div>
