@@ -13,7 +13,14 @@ import {
   ArrowRight,
   Volume2,
   Edit3,
-  RotateCcw
+  RotateCcw,
+  Mic,
+  Play,
+  Pause,
+  Image as ImageIcon,
+  PenTool,
+  Eye,
+  MessageCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 interface LessonTemplate {
@@ -87,6 +95,14 @@ interface LessonPlan {
   assessment: string[];
 }
 
+interface UpcomingLesson {
+  id: string;
+  date: string;
+  status: string;
+  generated_lessons: string[] | null;
+  lesson_template_id: string | null;
+}
+
 interface LessonMaterialDisplayProps {
   lessonId: string;
 }
@@ -99,6 +115,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
   const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+  const [isPlaying, setIsPlaying] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!user || !lessonId) return;
@@ -184,6 +201,21 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
       ...prev,
       [questionId]: answer
     }));
+  };
+
+  const handleAudioPlay = (audioId: string) => {
+    setIsPlaying(prev => ({
+      ...prev,
+      [audioId]: !prev[audioId]
+    }));
+    
+    // Simulate audio playback
+    setTimeout(() => {
+      setIsPlaying(prev => ({
+        ...prev,
+        [audioId]: false
+      }));
+    }, 3000);
   };
 
   const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
@@ -276,6 +308,184 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
             {items.map((item: string, index: number) => (
               <div key={index} className="p-3 bg-gray-50 rounded-lg text-center">
                 <span className="font-medium">{item}</span>
+              </div>
+            ))}
+          </div>
+        );
+
+      case 'drawing_tool_match':
+        return (
+          <div className="space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg border-2 border-dashed border-blue-200">
+              <div className="flex items-center justify-center mb-4">
+                <PenTool className="w-8 h-8 text-blue-600 mr-2" />
+                <span className="text-lg font-medium text-blue-800">Interactive Matching Activity</span>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h4 className="font-medium text-blue-700">Words</h4>
+                  {['Cat', 'Dogs', 'Book', 'Pencils'].map((word, index) => (
+                    <div key={index} className="p-3 bg-white rounded-lg border border-blue-200 text-center font-medium">
+                      {word}
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-3">
+                  <h4 className="font-medium text-blue-700">Pictures</h4>
+                  {['🐱', '🐕🐕', '📖', '✏️✏️'].map((emoji, index) => (
+                    <div key={index} className="p-3 bg-white rounded-lg border border-blue-200 text-center text-2xl">
+                      {emoji}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p className="text-sm text-blue-600 mt-4 text-center">
+                Draw lines to match words with their corresponding pictures
+              </p>
+            </div>
+          </div>
+        );
+
+      case 'listen_repeat':
+        return (
+          <div className="space-y-4">
+            {['I have one cat.', 'There are two dogs.', 'She has three books.', 'We need four pencils.'].map((sentence, index) => (
+              <div key={index} className="flex items-center space-x-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAudioPlay(`listen_${index}`)}
+                  className="flex items-center"
+                >
+                  {isPlaying[`listen_${index}`] ? (
+                    <Pause className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Play className="w-4 h-4 mr-2" />
+                  )}
+                  {isPlaying[`listen_${index}`] ? 'Playing...' : 'Listen'}
+                </Button>
+                <span className="flex-1 font-medium">{sentence}</span>
+                <Button variant="outline" size="sm">
+                  <Mic className="w-4 h-4 mr-2" />
+                  Repeat
+                </Button>
+              </div>
+            ))}
+          </div>
+        );
+
+      case 'audio_picture_choice':
+        return (
+          <div className="space-y-6">
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <div className="flex items-center justify-center mb-4">
+                <Button
+                  variant="outline"
+                  onClick={() => handleAudioPlay('audio_question')}
+                  className="flex items-center"
+                >
+                  {isPlaying['audio_question'] ? (
+                    <Pause className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 mr-2" />
+                  )}
+                  {isPlaying['audio_question'] ? 'Playing...' : 'Listen to Question'}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {['🐱', '🐕🐕', '📚📚📚', '✏️'].map((emoji, index) => (
+                <button
+                  key={index}
+                  className="p-6 bg-white rounded-lg border-2 border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-colors text-4xl"
+                  onClick={() => handleAnswerChange(`audio_choice`, index.toString())}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'say_what_you_see':
+        return (
+          <div className="space-y-4">
+            <div className="bg-orange-50 p-6 rounded-lg border border-orange-200 text-center">
+              <ImageIcon className="w-16 h-16 text-orange-600 mx-auto mb-4" />
+              <p className="text-lg font-medium text-orange-800 mb-2">Picture Description Activity</p>
+              <p className="text-sm text-orange-600">Your tutor will show you a picture. Describe what you see using singular and plural nouns.</p>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {['🏠🏠🏠', '🌳', '🚗🚗', '👨‍👩‍👧‍👦', '🐕', '🌸🌸🌸🌸'].map((scene, index) => (
+                <div key={index} className="p-6 bg-white rounded-lg border-2 border-gray-200 text-center text-3xl hover:border-orange-400 hover:bg-orange-50 transition-colors cursor-pointer">
+                  {scene}
+                </div>
+              ))}
+            </div>
+            
+            <Textarea
+              placeholder="Student's description will be noted here..."
+              className="mt-4"
+              rows={3}
+            />
+          </div>
+        );
+
+      case 'complete_sentence':
+        return (
+          <div className="space-y-4">
+            {[
+              { sentence: 'I have ___ cat.', options: ['one', 'two', 'three'] },
+              { sentence: 'There are ___ dogs in the park.', options: ['one', 'two', 'many'] },
+              { sentence: 'She needs ___ pencil.', options: ['a', 'some', 'many'] },
+              { sentence: 'We saw ___ birds.', options: ['one', 'two', 'several'] }
+            ].map((item, index) => (
+              <div key={index} className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="font-medium mb-3">{item.sentence}</p>
+                <div className="flex flex-wrap gap-2">
+                  {item.options.map((option, optIndex) => (
+                    <Button
+                      key={optIndex}
+                      variant={userAnswers[`complete_${index}`] === option ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleAnswerChange(`complete_${index}`, option)}
+                    >
+                      {option}
+                    </Button>
+                  ))}
+                </div>
+                {userAnswers[`complete_${index}`] && (
+                  <div className="mt-3 p-2 bg-green-100 rounded text-green-800 text-sm">
+                    Complete sentence: {item.sentence.replace('___', userAnswers[`complete_${index}`])}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+
+      case 'answer_questions':
+        return (
+          <div className="space-y-6">
+            {[
+              { image: '🏫', question: 'How many windows does the school have?' },
+              { image: '🌳🌳🌳', question: 'How many trees do you see?' },
+              { image: '🚗', question: 'How many cars are there?' },
+              { image: '👨‍👩‍👧‍👦', question: 'How many people are in the family?' }
+            ].map((item, index) => (
+              <div key={index} className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="text-4xl">{item.image}</div>
+                  <p className="font-medium text-teal-800">{item.question}</p>
+                </div>
+                <Textarea
+                  placeholder="Write your complete sentence answer here..."
+                  className="w-full"
+                  rows={2}
+                  onChange={(e) => handleAnswerChange(`answer_${index}`, e.target.value)}
+                />
               </div>
             ))}
           </div>
