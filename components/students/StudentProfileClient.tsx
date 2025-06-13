@@ -111,9 +111,15 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
   // Load upcoming lesson and any existing generated lessons
   const loadUpcomingLesson = async () => {
+    console.log('🔄 loadUpcomingLesson called');
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log('❌ No user found in loadUpcomingLesson');
+        return;
+      }
+
+      console.log('🔍 Searching for upcoming lessons for student:', student.id);
 
       // Find the next upcoming lesson for this student
       const { data: lessons, error } = await supabase
@@ -127,12 +133,15 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         .limit(1);
 
       if (error) {
-        console.error('Error loading upcoming lesson:', error);
+        console.error('❌ Error loading upcoming lesson:', error);
         return;
       }
 
+      console.log('📊 Query results:', lessons);
+
       if (lessons && lessons.length > 0) {
         const lesson = lessons[0];
+        console.log('✅ Found upcoming lesson:', lesson);
         setUpcomingLesson(lesson);
 
         // If the lesson has generated content, parse and display it
@@ -143,10 +152,14 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
             );
             setGeneratedLessons(parsedLessons);
             setHasGeneratedBefore(true);
+            console.log('✅ Parsed generated lessons:', parsedLessons.length);
           } catch (parseError) {
-            console.error('Error parsing generated lessons:', parseError);
+            console.error('❌ Error parsing generated lessons:', parseError);
           }
         }
+      } else {
+        console.log('ℹ️ No upcoming lessons found');
+        setUpcomingLesson(null);
       }
 
       // Check if user has generated lessons before (for onboarding)
@@ -160,9 +173,10 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         setShowOnboarding(true);
       }
     } catch (error) {
-      console.error('Error in loadUpcomingLesson:', error);
+      console.error('❌ Error in loadUpcomingLesson:', error);
     } finally {
       setLoadingUpcomingLesson(false);
+      console.log('✅ loadUpcomingLesson completed');
     }
   };
 
@@ -255,6 +269,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         // If we created a new lesson, we might want to refresh the upcoming lesson
         if (result.created) {
           // Reload upcoming lesson data
+          console.log('🔄 Reloading upcoming lesson data after creation...');
           await loadUpcomingLesson();
         }
         
@@ -310,7 +325,12 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
   };
 
   const handleUseLessonPlan = async (lessonIndex: number) => {
+    console.log('🎯 handleUseLessonPlan called with index:', lessonIndex);
+    console.log('📊 Current upcomingLesson state:', upcomingLesson);
+    console.log('📊 Current isGeneratingInteractive state:', isGeneratingInteractive);
+    
     if (!upcomingLesson) {
+      console.log('❌ No upcoming lesson available');
       toast.error('No lesson available to generate interactive material for');
       return;
     }
@@ -392,6 +412,17 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
       setIsGeneratingInteractive(false);
       setInteractiveGenerationProgress("");
     }
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const getDisplayName = () => {
+    return student.name.split(' ')[0]; // First name only
   };
 
   const languageInfo = getLanguageInfo(student.target_language);
@@ -598,128 +629,141 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     </div>
                     
                     <Accordion type="single" collapsible className="w-full">
-                      {generatedLessons.map((lesson, index) => (
-                        <AccordionItem key={index} value={`lesson-${index}`}>
-                          <AccordionTrigger className="text-left hover:no-underline">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-bold text-primary">{index + 1}</span>
+                      {generatedLessons.map((lesson, index) => {
+                        // Add debugging logs for each lesson plan button
+                        console.log(`🔍 Rendering lesson plan ${index}:`);
+                        console.log(`  - upcomingLesson:`, upcomingLesson);
+                        console.log(`  - isGeneratingInteractive:`, isGeneratingInteractive);
+                        console.log(`  - Button should be disabled:`, !upcomingLesson || isGeneratingInteractive);
+                        
+                        return (
+                          <AccordionItem key={index} value={`lesson-${index}`}>
+                            <AccordionTrigger className="text-left hover:no-underline">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                  <span className="text-sm font-bold text-primary">{index + 1}</span>
+                                </div>
+                                <span className="font-medium">{lesson.title}</span>
                               </div>
-                              <span className="font-medium">{lesson.title}</span>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="space-y-6 pt-4">
-                            {/* Action Buttons */}
-                            <div className="flex flex-wrap gap-2 p-4 bg-muted/30 rounded-lg">
-                              <Button 
-                                size="sm" 
-                                className="flex-1 min-w-[120px]"
-                                onClick={() => handleUseLessonPlan(index)}
-                                disabled={!upcomingLesson || isGeneratingInteractive}
-                              >
-                                {isGeneratingInteractive ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Creating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Use This Plan
-                                  </>
-                                )}
-                              </Button>
-                              <Button variant="outline" size="sm" className="flex-1 min-w-[120px]">
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit Plan
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => copyLessonPlan(lesson)}
-                                className="flex-1 min-w-[120px]"
-                              >
-                                <Copy className="w-4 h-4 mr-2" />
-                                Copy to Clipboard
-                              </Button>
-                              <Button variant="outline" size="sm" className="flex-1 min-w-[120px]">
-                                <FileText className="w-4 h-4 mr-2" />
-                                Export
-                              </Button>
-                            </div>
-
-                            {/* Interactive Generation Progress */}
-                            {isGeneratingInteractive && (
-                              <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                                <span>{interactiveGenerationProgress}</span>
-                              </div>
-                            )}
-
-                            <div className="grid gap-6 md:grid-cols-2">
-                              <div>
-                                <h4 className="font-medium mb-3 flex items-center">
-                                  <Target className="w-4 h-4 mr-2 text-blue-600" />
-                                  Lesson Objectives
-                                </h4>
-                                <ul className="space-y-2">
-                                  {lesson.objectives.map((objective: string, objIndex: number) => (
-                                    <li key={objIndex} className="text-sm flex items-start">
-                                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                      {objective}
-                                    </li>
-                                  ))}
-                                </ul>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-6 pt-4">
+                              {/* Action Buttons */}
+                              <div className="flex flex-wrap gap-2 p-4 bg-muted/30 rounded-lg">
+                                <Button 
+                                  size="sm" 
+                                  className="flex-1 min-w-[120px]"
+                                  onClick={() => {
+                                    console.log(`🎯 Use This Plan button clicked for lesson ${index}`);
+                                    console.log(`📊 Current state - upcomingLesson:`, upcomingLesson);
+                                    console.log(`📊 Current state - isGeneratingInteractive:`, isGeneratingInteractive);
+                                    handleUseLessonPlan(index);
+                                  }}
+                                  disabled={!upcomingLesson || isGeneratingInteractive}
+                                >
+                                  {isGeneratingInteractive ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Creating...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Play className="w-4 h-4 mr-2" />
+                                      Use This Plan
+                                    </>
+                                  )}
+                                </Button>
+                                <Button variant="outline" size="sm" className="flex-1 min-w-[120px]">
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Edit Plan
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => copyLessonPlan(lesson)}
+                                  className="flex-1 min-w-[120px]"
+                                >
+                                  <Copy className="w-4 h-4 mr-2" />
+                                  Copy to Clipboard
+                                </Button>
+                                <Button variant="outline" size="sm" className="flex-1 min-w-[120px]">
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Export
+                                </Button>
                               </div>
 
-                              <div>
-                                <h4 className="font-medium mb-3 flex items-center">
-                                  <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
-                                  Activities
-                                </h4>
-                                <ul className="space-y-2">
-                                  {lesson.activities.map((activity: string, actIndex: number) => (
-                                    <li key={actIndex} className="text-sm flex items-start">
-                                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                      {activity}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
+                              {/* Interactive Generation Progress */}
+                              {isGeneratingInteractive && (
+                                <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                  <span>{interactiveGenerationProgress}</span>
+                                </div>
+                              )}
 
-                              <div>
-                                <h4 className="font-medium mb-3 flex items-center">
-                                  <Book className="w-4 h-4 mr-2 text-green-600" />
-                                  Materials Needed
-                                </h4>
-                                <ul className="space-y-2">
-                                  {lesson.materials.map((material: string, matIndex: number) => (
-                                    <li key={matIndex} className="text-sm flex items-start">
-                                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                      {material}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
+                              <div className="grid gap-6 md:grid-cols-2">
+                                <div>
+                                  <h4 className="font-medium mb-3 flex items-center">
+                                    <Target className="w-4 h-4 mr-2 text-blue-600" />
+                                    Lesson Objectives
+                                  </h4>
+                                  <ul className="space-y-2">
+                                    {lesson.objectives.map((objective: string, objIndex: number) => (
+                                      <li key={objIndex} className="text-sm flex items-start">
+                                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                        {objective}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
 
-                              <div>
-                                <h4 className="font-medium mb-3 flex items-center">
-                                  <GraduationCap className="w-4 h-4 mr-2 text-orange-600" />
-                                  Assessment Ideas
-                                </h4>
-                                <ul className="space-y-2">
-                                  {lesson.assessment.map((item: string, assIndex: number) => (
-                                    <li key={assIndex} className="text-sm flex items-start">
-                                      <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                      {item}
-                                    </li>
-                                  ))}
-                                </ul>
+                                <div>
+                                  <h4 className="font-medium mb-3 flex items-center">
+                                    <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
+                                    Activities
+                                  </h4>
+                                  <ul className="space-y-2">
+                                    {lesson.activities.map((activity: string, actIndex: number) => (
+                                      <li key={actIndex} className="text-sm flex items-start">
+                                        <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                        {activity}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-medium mb-3 flex items-center">
+                                    <Book className="w-4 h-4 mr-2 text-green-600" />
+                                    Materials Needed
+                                  </h4>
+                                  <ul className="space-y-2">
+                                    {lesson.materials.map((material: string, matIndex: number) => (
+                                      <li key={matIndex} className="text-sm flex items-start">
+                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                        {material}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-medium mb-3 flex items-center">
+                                    <GraduationCap className="w-4 h-4 mr-2 text-orange-600" />
+                                    Assessment Ideas
+                                  </h4>
+                                  <ul className="space-y-2">
+                                    {lesson.assessment.map((item: string, assIndex: number) => (
+                                      <li key={assIndex} className="text-sm flex items-start">
+                                        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                        {item}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
                               </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
                     </Accordion>
                   </div>
                 )}
