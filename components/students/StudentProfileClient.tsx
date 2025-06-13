@@ -121,15 +121,15 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
       console.log('🔍 Searching for upcoming lessons for student:', student.id);
 
-      // Find the next upcoming lesson for this student
+      // Find the most recent upcoming lesson for this student
+      // Remove the date filter to avoid timestamp issues and order by created_at instead
       const { data: lessons, error } = await supabase
         .from('lessons')
         .select('id, date, status, generated_lessons, lesson_template_id, interactive_lesson_content')
         .eq('student_id', student.id)
         .eq('tutor_id', user.id)
         .eq('status', 'upcoming')
-        .gte('date', new Date().toISOString())
-        .order('date', { ascending: true })
+        .order('created_at', { ascending: false }) // Get the most recently created lesson first
         .limit(1);
 
       if (error) {
@@ -268,7 +268,6 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         
         // If we created a new lesson, we might want to refresh the upcoming lesson
         if (result.created) {
-          // Reload upcoming lesson data
           console.log('🔄 Reloading upcoming lesson data after creation...');
           await loadUpcomingLesson();
         }
