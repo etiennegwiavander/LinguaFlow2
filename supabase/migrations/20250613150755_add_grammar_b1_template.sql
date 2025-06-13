@@ -45,7 +45,7 @@ VALUES (
         "id": "grammar_explanation",
         "type": "exercise",
         "title": "Grammar Explanation",
-        "instruction": "Brief, clear explanation of the target grammar, with example sentences. (e.g., how to use 'can' and 'can’t' for ability).",
+        "instruction": "Brief, clear explanation of the target grammar, with example sentences.",
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "text",
         "ai_placeholder": "grammar_explanation"
