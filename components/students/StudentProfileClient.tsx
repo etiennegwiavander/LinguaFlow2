@@ -1,3 +1,19 @@
+/*
+  # Updated StudentProfileClient.tsx
+  
+  1. Changes
+    - Modified handleUseLessonPlan to call the new generate-interactive-material Edge Function
+    - Added loading states and error handling for interactive material generation
+    - Updated state management to handle the new interactive content flow
+    
+  2. Flow
+    - User clicks "Use This Plan" button
+    - Calls generate-interactive-material function with lesson_id and selected plan index
+    - Shows loading state during generation
+    - Updates lesson state with new interactive content
+    - Switches to "Lesson Material" tab to display the interactive content
+*/
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -76,6 +92,7 @@ interface UpcomingLesson {
   status: string;
   generated_lessons: string[] | null;
   lesson_template_id: string | null;
+  interactive_lesson_content: any | null;
 }
 
 interface StudentProfileClientProps {
@@ -93,6 +110,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [hasGeneratedBefore, setHasGeneratedBefore] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("ai-architect");
+  const [isGeneratingInteractive, setIsGeneratingInteractive] = useState(false);
+  const [interactiveGenerationProgress, setInteractiveGenerationProgress] = useState("");
 
   const getInitials = (name: string) => {
     return name
@@ -116,7 +135,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         // Find the next upcoming lesson for this student
         const { data: lessons, error } = await supabase
           .from('lessons')
-          .select('id, date, status, generated_lessons, lesson_template_id')
+          .select('id, date, status, generated_lessons, lesson_template_id, interactive_lesson_content')
           .eq('student_id', student.id)
           .eq('tutor_id', user.id)
           .eq('status', 'upcoming')
@@ -256,7 +275,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
           if (user) {
             const { data: lessons } = await supabase
               .from('lessons')
-              .select('id, date, status, generated_lessons, lesson_template_id')
+              .select('id, date, status, generated_lessons, lesson_template_id, interactive_lesson_content')
               .eq('student_id', student.id)
               .eq('tutor_id', user.id)
               .eq('status', 'upcoming')
@@ -321,13 +340,85 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     await copyToClipboard(content, 'Lesson plan');
   };
 
-  const handleUseLessonPlan = (lessonIndex: number) => {
-    if (upcomingLesson) {
-      setSelectedLessonId(upcomingLesson.id);
-      setActiveTab("lesson-material");
-      toast.success('Lesson material loaded! You can now view the interactive lesson.');
-    } else {
-      toast.error('No lesson available to display');
+  const handleUseLessonPlan = async (lessonIndex: number) => {
+    if (!upcomingLesson) {
+      toast.error('No lesson available to generate interactive material for');
+      return;
+    }
+
+    setIsGeneratingInteractive(true);
+    setInteractiveGenerationProgress("Preparing interactive lesson material...");
+
+    try {
+      console.log('🎯 Generating interactive material for lesson plan:', lessonIndex);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      // Update progress messages
+      setTimeout(() => setInteractiveGenerationProgress("Selecting appropriate lesson template..."), 1000);
+      setTimeout(() => setInteractiveGenerationProgress("Creating interactive exercises and activities..."), 2000);
+      setTimeout(() => setInteractiveGenerationProgress("Personalizing content for " + student.name + "..."), 3000);
+
+      const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-interactive-material`;
+      
+      const requestBody = {
+        lesson_id: upcomingLesson.id,
+        selected_lesson_plan_index: lessonIndex
+      };
+
+      console.log('📦 Interactive material request:', requestBody);
+
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Interactive material generation error:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
+        throw new Error(errorData.error || `Failed to generate interactive material: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Interactive material generated:', result);
+      
+      if (result.success) {
+        // Update the upcoming lesson state with the new interactive content
+        setUpcomingLesson({
+          ...upcomingLesson,
+          interactive_lesson_content: result.interactive_content,
+          lesson_template_id: result.lesson_template_id
+        });
+
+        // Set the selected lesson ID and switch to the lesson material tab
+        setSelectedLessonId(upcomingLesson.id);
+        setActiveTab("lesson-material");
+        
+        toast.success(`Interactive lesson material created successfully using ${result.template_name}!`);
+      } else {
+        throw new Error(result.error || 'Failed to generate interactive material');
+      }
+    } catch (error: any) {
+      console.error('❌ Error generating interactive material:', error);
+      toast.error(error.message || 'Failed to generate interactive lesson material. Please try again.');
+    } finally {
+      setIsGeneratingInteractive(false);
+      setInteractiveGenerationProgress("");
     }
   };
 
@@ -552,10 +643,19 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                 size="sm" 
                                 className="flex-1 min-w-[120px]"
                                 onClick={() => handleUseLessonPlan(index)}
-                                disabled={!upcomingLesson}
+                                disabled={!upcomingLesson || isGeneratingInteractive}
                               >
-                                <Play className="w-4 h-4 mr-2" />
-                                Use This Plan
+                                {isGeneratingInteractive ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Creating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="w-4 h-4 mr-2" />
+                                    Use This Plan
+                                  </>
+                                )}
                               </Button>
                               <Button variant="outline" size="sm" className="flex-1 min-w-[120px]">
                                 <Edit className="w-4 h-4 mr-2" />
@@ -575,6 +675,14 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                 Export
                               </Button>
                             </div>
+
+                            {/* Interactive Generation Progress */}
+                            {isGeneratingInteractive && (
+                              <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                <span>{interactiveGenerationProgress}</span>
+                              </div>
+                            )}
 
                             <div className="grid gap-6 md:grid-cols-2">
                               <div>
@@ -752,10 +860,16 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                               AI Plans Ready
                             </Badge>
                           )}
+                          {upcomingLesson.interactive_lesson_content && (
+                            <Badge variant="outline" className="text-xs">
+                              <BookOpen className="w-3 h-3 mr-1" />
+                              Interactive Material Ready
+                            </Badge>
+                          )}
                           {upcomingLesson.lesson_template_id && (
                             <Badge variant="outline" className="text-xs">
                               <BookOpen className="w-3 h-3 mr-1" />
-                              Interactive Material
+                              Template Applied
                             </Badge>
                           )}
                         </div>
