@@ -74,7 +74,7 @@ VALUES (
         "id": "guided_practice_fill_in_the_blank",
         "type": "exercise",
         "title": "Guided Practice/Fill-in-the-Blank",
-        "instruction": "Fill-in-the-blank or matching exercises using 'can' and 'can’t'.",
+        "instruction": "Fill-in-the-blank or matching exercises using ''can'' and ''can’t''.",
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "fill_in_the_blanks_dialogue",
         "dialogue_elements": [],
