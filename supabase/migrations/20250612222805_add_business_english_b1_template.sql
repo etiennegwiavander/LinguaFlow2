@@ -1,18 +1,18 @@
--- Insert Business English B2 Lesson Template
+-- Insert Business English B1 Networking Lesson Template
 INSERT INTO lesson_templates (name, category, level, template_json)
 VALUES (
-  'Business English Lesson',
+  'Business English Networking Lesson',
   'Business English',
-  'b2',
+  'b1',
   '{
-    "name": "Business English Lesson",
+    "name": "Business English Networking Lesson",
     "category": "Business English",
-    "level": "b2",
+    "level": "b1",
     "colors": {
-      "primary_bg": "bg-purple-100",
-      "secondary_bg": "bg-orange-100",
+      "primary_bg": "bg-green-100",
+      "secondary_bg": "bg-lime-100",
       "text_color": "text-gray-800",
-      "accent_color": "text-purple-600",
+      "accent_color": "text-green-600",
       "border_color": "border-gray-300"
     },
     "sections": [
@@ -35,14 +35,10 @@ VALUES (
         "id": "key_vocabulary",
         "type": "exercise",
         "title": "Key Vocabulary",
-        "instruction": "Essential business and networking terms, with definitions and example sentences.",
+        "instruction": "Essential networking and business terms, with definitions and example sentences.",
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "vocabulary_matching",
-        "vocabulary_items": [
-          { "image_url": "https://images.pexels.com/photos/3184416/pexels-photo-3184416.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2", "name": "Networking", "prompt": "The action or process of interacting with others to exchange information and develop professional or social contacts." },
-          { "image_url": "https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2", "name": "Business Card", "prompt": "A small card printed with one name, professional occupation, company, and contact information." },
-          { "image_url": "https://images.pexels.com/photos/356043/pexels-photo-356043.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2", "name": "Global Network", "prompt": "A worldwide system of interconnected business or professional contacts." }
-        ],
+        "vocabulary_items": [],
         "ai_placeholder": "vocabulary_items"
       },
       {
@@ -64,6 +60,16 @@ VALUES (
         "content_type": "matching",
         "matching_pairs": [],
         "ai_placeholder": "comprehension_questions"
+      },
+      {
+        "id": "role_play",
+        "type": "exercise",
+        "title": "Role-Play Scenarios",
+        "instruction": "Practice real-life networking situations.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "items": [],
+        "ai_placeholder": "role_play_scenarios"
       },
       {
         "id": "discussion_questions_prompts",
