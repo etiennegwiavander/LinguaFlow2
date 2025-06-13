@@ -1,19 +1,3 @@
-/*
-  # Updated StudentProfileClient.tsx
-  
-  1. Changes
-    - Modified handleUseLessonPlan to call the new generate-interactive-material Edge Function
-    - Added loading states and error handling for interactive material generation
-    - Updated state management to handle the new interactive content flow
-    
-  2. Flow
-    - User clicks "Use This Plan" button
-    - Calls generate-interactive-material function with lesson_id and selected plan index
-    - Shows loading state during generation
-    - Updates lesson state with new interactive content
-    - Switches to "Lesson Material" tab to display the interactive content
-*/
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -126,63 +110,63 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   };
 
   // Load upcoming lesson and any existing generated lessons
-  useEffect(() => {
-    const loadUpcomingLesson = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+  const loadUpcomingLesson = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        // Find the next upcoming lesson for this student
-        const { data: lessons, error } = await supabase
-          .from('lessons')
-          .select('id, date, status, generated_lessons, lesson_template_id, interactive_lesson_content')
-          .eq('student_id', student.id)
-          .eq('tutor_id', user.id)
-          .eq('status', 'upcoming')
-          .gte('date', new Date().toISOString())
-          .order('date', { ascending: true })
-          .limit(1);
+      // Find the next upcoming lesson for this student
+      const { data: lessons, error } = await supabase
+        .from('lessons')
+        .select('id, date, status, generated_lessons, lesson_template_id, interactive_lesson_content')
+        .eq('student_id', student.id)
+        .eq('tutor_id', user.id)
+        .eq('status', 'upcoming')
+        .gte('date', new Date().toISOString())
+        .order('date', { ascending: true })
+        .limit(1);
 
-        if (error) {
-          console.error('Error loading upcoming lesson:', error);
-          return;
-        }
+      if (error) {
+        console.error('Error loading upcoming lesson:', error);
+        return;
+      }
 
-        if (lessons && lessons.length > 0) {
-          const lesson = lessons[0];
-          setUpcomingLesson(lesson);
+      if (lessons && lessons.length > 0) {
+        const lesson = lessons[0];
+        setUpcomingLesson(lesson);
 
-          // If the lesson has generated content, parse and display it
-          if (lesson.generated_lessons && lesson.generated_lessons.length > 0) {
-            try {
-              const parsedLessons = lesson.generated_lessons.map((lessonStr: string) => 
-                JSON.parse(lessonStr)
-              );
-              setGeneratedLessons(parsedLessons);
-              setHasGeneratedBefore(true);
-            } catch (parseError) {
-              console.error('Error parsing generated lessons:', parseError);
-            }
+        // If the lesson has generated content, parse and display it
+        if (lesson.generated_lessons && lesson.generated_lessons.length > 0) {
+          try {
+            const parsedLessons = lesson.generated_lessons.map((lessonStr: string) => 
+              JSON.parse(lessonStr)
+            );
+            setGeneratedLessons(parsedLessons);
+            setHasGeneratedBefore(true);
+          } catch (parseError) {
+            console.error('Error parsing generated lessons:', parseError);
           }
         }
-
-        // Check if user has generated lessons before (for onboarding)
-        const { data: allLessons } = await supabase
-          .from('lessons')
-          .select('generated_lessons')
-          .eq('tutor_id', user.id)
-          .not('generated_lessons', 'is', null);
-
-        if (!allLessons || allLessons.length === 0) {
-          setShowOnboarding(true);
-        }
-      } catch (error) {
-        console.error('Error in loadUpcomingLesson:', error);
-      } finally {
-        setLoadingUpcomingLesson(false);
       }
-    };
 
+      // Check if user has generated lessons before (for onboarding)
+      const { data: allLessons } = await supabase
+        .from('lessons')
+        .select('generated_lessons')
+        .eq('tutor_id', user.id)
+        .not('generated_lessons', 'is', null);
+
+      if (!allLessons || allLessons.length === 0) {
+        setShowOnboarding(true);
+      }
+    } catch (error) {
+      console.error('Error in loadUpcomingLesson:', error);
+    } finally {
+      setLoadingUpcomingLesson(false);
+    }
+  };
+
+  useEffect(() => {
     loadUpcomingLesson();
   }, [student.id]);
 
@@ -271,22 +255,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         // If we created a new lesson, we might want to refresh the upcoming lesson
         if (result.created) {
           // Reload upcoming lesson data
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: lessons } = await supabase
-              .from('lessons')
-              .select('id, date, status, generated_lessons, lesson_template_id, interactive_lesson_content')
-              .eq('student_id', student.id)
-              .eq('tutor_id', user.id)
-              .eq('status', 'upcoming')
-              .gte('date', new Date().toISOString())
-              .order('date', { ascending: true })
-              .limit(1);
-
-            if (lessons && lessons.length > 0) {
-              setUpcomingLesson(lessons[0]);
-            }
-          }
+          await loadUpcomingLesson();
         }
         
         const actionText = result.updated ? 'regenerated' : 'generated';
@@ -404,6 +373,9 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           interactive_lesson_content: result.interactive_content,
           lesson_template_id: result.lesson_template_id
         });
+
+        // Refresh the upcoming lesson data to ensure state consistency
+        await loadUpcomingLesson();
 
         // Set the selected lesson ID and switch to the lesson material tab
         setSelectedLessonId(upcomingLesson.id);
