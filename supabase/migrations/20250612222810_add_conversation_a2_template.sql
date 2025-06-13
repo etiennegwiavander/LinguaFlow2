@@ -38,9 +38,9 @@ VALUES (
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "vocabulary_matching",
         "vocabulary_items": [
-          { "image_url": "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2", "name": "House", "prompt": "A building where people live." },
-          { "image_url": "https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2", "name": "Apartment", "prompt": "A set of rooms for living in, usually on one floor of a larger building." },
-          { "image_url": "https://images.pexels.com/photos/157811/pexels-photo-157811.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2", "name": "City", "prompt": "A large town." }
+          { "image_url": "", "name": "House", "prompt": "A building where people live." },
+          { "image_url": "", "name": "Apartment", "prompt": "A set of rooms for living in, usually on one floor of a larger building." },
+          { "image_url": "", "name": "City", "prompt": "A large town." }
         ],
         "ai_placeholder": "vocabulary_items"
       },
