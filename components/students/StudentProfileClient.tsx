@@ -146,9 +146,12 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       if (lessons && lessons.length > 0) {
         const lesson = lessons[0];
         console.log('✅ Found upcoming lesson:', lesson);
-        console.log('📋 Lesson sub_topics:', lesson.sub_topics);
-        console.log('📋 Sub_topics type:', typeof lesson.sub_topics);
-        console.log('📋 Sub_topics length:', lesson.sub_topics ? lesson.sub_topics.length : 'null');
+        
+        // Ensure sub_topics is always an array, even if null from DB
+        if (!lesson.sub_topics || !Array.isArray(lesson.sub_topics)) {
+          console.warn('⚠️ Correcting lesson.sub_topics to an empty array. Original value:', lesson.sub_topics);
+          lesson.sub_topics = [];
+        }
         
         setUpcomingLesson(lesson);
 
@@ -166,15 +169,10 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
           }
         }
 
-        // Set available sub-topics from the lesson
-        if (lesson.sub_topics && Array.isArray(lesson.sub_topics)) {
-          console.log('✅ Setting available sub-topics:', lesson.sub_topics);
-          setAvailableSubTopics(lesson.sub_topics);
-          console.log('✅ Available sub-topics set, count:', lesson.sub_topics.length);
-        } else {
-          console.log('⚠️ No sub-topics found or invalid format');
-          setAvailableSubTopics([]);
-        }
+        // Set available sub-topics from the lesson (now guaranteed to be an array)
+        console.log('✅ Setting available sub-topics:', lesson.sub_topics);
+        setAvailableSubTopics(lesson.sub_topics);
+        console.log('✅ Available sub-topics set, count:', lesson.sub_topics.length);
       } else {
         console.log('ℹ️ No upcoming lessons found');
         setUpcomingLesson(null);
@@ -277,19 +275,18 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         setHasGeneratedBefore(true);
         setShowOnboarding(false);
         
-        // Set available sub-topics
-        if (result.sub_topics && Array.isArray(result.sub_topics)) {
-          console.log('✅ Setting sub-topics from generation result:', result.sub_topics);
-          setAvailableSubTopics(result.sub_topics);
-          console.log('✅ Sub-topics loaded:', result.sub_topics.length);
-        }
+        // Set available sub-topics - ensure it's always an array
+        const subTopics = result.sub_topics && Array.isArray(result.sub_topics) ? result.sub_topics : [];
+        console.log('✅ Setting sub-topics from generation result:', subTopics);
+        setAvailableSubTopics(subTopics);
+        console.log('✅ Sub-topics loaded:', subTopics.length);
         
         // If we updated an existing lesson, refresh the upcoming lesson data
         if (result.updated && upcomingLesson) {
           setUpcomingLesson({
             ...upcomingLesson,
             generated_lessons: result.lessons.map((lesson: LessonPlan) => JSON.stringify(lesson)),
-            sub_topics: result.sub_topics || null,
+            sub_topics: subTopics,
             lesson_template_id: result.lesson_template_id || upcomingLesson.lesson_template_id
           });
         }
@@ -301,7 +298,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         }
         
         const actionText = result.updated ? 'regenerated' : 'generated';
-        toast.success(`AI lesson plans ${actionText} successfully with ${result.sub_topics?.length || 0} sub-topics!`);
+        toast.success(`AI lesson plans ${actionText} successfully with ${subTopics.length} sub-topics!`);
       } else {
         throw new Error(result.error || 'Invalid response format');
       }
