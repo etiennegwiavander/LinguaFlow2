@@ -411,21 +411,28 @@ serve(async (req) => {
     const geminiData = await geminiResponse.json()
     console.log('✅ Gemini API response received');
     
+    // 🔍 DEBUG: Log the full AI response
+    console.log('🔍 DEBUG: Full Gemini API response:');
+    console.log(JSON.stringify(geminiData, null, 2));
+    
     const generatedContent = geminiData.choices[0]?.message?.content
 
     if (!generatedContent) {
       throw new Error('No content generated from Gemini')
     }
 
-    console.log('📄 Raw generated content:');
-    console.log('---START RAW CONTENT---');
+    // 🔍 DEBUG: Log the extracted content
+    console.log('🔍 DEBUG: Extracted content from AI:');
+    console.log('---START EXTRACTED CONTENT---');
     console.log(generatedContent);
-    console.log('---END RAW CONTENT---');
+    console.log('---END EXTRACTED CONTENT---');
     console.log('📏 Generated content length:', generatedContent.length);
 
     // Clean the JSON response
     const cleanedContent = cleanJsonResponse(generatedContent);
-    console.log('🧹 Cleaned content:');
+    
+    // 🔍 DEBUG: Log the cleaned content
+    console.log('🔍 DEBUG: Cleaned content:');
     console.log('---START CLEANED CONTENT---');
     console.log(cleanedContent);
     console.log('---END CLEANED CONTENT---');
@@ -485,6 +492,10 @@ serve(async (req) => {
       };
     }
 
+    // 🔍 DEBUG: Log the parsed lessons object
+    console.log('🔍 DEBUG: Parsed lessons object:');
+    console.log(JSON.stringify(parsedLessons, null, 2));
+
     if (!parsedLessons.lessons || !Array.isArray(parsedLessons.lessons)) {
       console.error('❌ Invalid lesson format:', parsedLessons);
       throw new Error('Invalid lesson format from Gemini - missing lessons array')
@@ -496,6 +507,10 @@ serve(async (req) => {
     let allSubTopics: any[] = [];
     for (let i = 0; i < parsedLessons.lessons.length; i++) {
       const lessonPlan = parsedLessons.lessons[i];
+      
+      // 🔍 DEBUG: Log each lesson plan structure
+      console.log(`🔍 DEBUG: Lesson ${i + 1} structure:`, JSON.stringify(lessonPlan, null, 2));
+      
       if (!lessonPlan.title || !lessonPlan.objectives || !lessonPlan.activities || !lessonPlan.materials || !lessonPlan.assessment) {
         console.error(`❌ Invalid lesson structure at index ${i}:`, lessonPlan);
         throw new Error(`Lesson ${i + 1} is missing required fields`);
@@ -503,9 +518,17 @@ serve(async (req) => {
       
       // Collect sub-topics from all lessons
       if (lessonPlan.sub_topics && Array.isArray(lessonPlan.sub_topics)) {
+        console.log(`🔍 DEBUG: Found ${lessonPlan.sub_topics.length} sub-topics in lesson ${i + 1}:`, lessonPlan.sub_topics);
         allSubTopics = allSubTopics.concat(lessonPlan.sub_topics);
+      } else {
+        console.log(`⚠️ DEBUG: No sub-topics found in lesson ${i + 1} or invalid format:`, lessonPlan.sub_topics);
       }
     }
+
+    // 🔍 DEBUG: Log the final allSubTopics array before database operation
+    console.log('🔍 DEBUG: Final allSubTopics array before database operation:');
+    console.log('  - Length:', allSubTopics.length);
+    console.log('  - Content:', JSON.stringify(allSubTopics, null, 2));
 
     console.log('✅ Total sub-topics extracted:', allSubTopics.length);
 
@@ -524,6 +547,12 @@ serve(async (req) => {
         console.log('📎 Adding lesson template ID to update:', lessonTemplateId);
       }
 
+      // 🔍 DEBUG: Log the update data being sent to database
+      console.log('🔍 DEBUG: Update data being sent to database:');
+      console.log('  - generated_lessons count:', updateData.generated_lessons.length);
+      console.log('  - sub_topics:', JSON.stringify(updateData.sub_topics, null, 2));
+      console.log('  - lesson_template_id:', updateData.lesson_template_id);
+
       const { data: updatedLesson, error: updateError } = await supabaseClient
         .from('lessons')
         .update(updateData)
@@ -535,6 +564,10 @@ serve(async (req) => {
         console.error('❌ Database update error:', updateError);
         throw new Error(`Failed to update lesson: ${updateError.message}`)
       }
+
+      // 🔍 DEBUG: Log the updated lesson data returned from database
+      console.log('🔍 DEBUG: Updated lesson data returned from database:');
+      console.log('  - sub_topics in returned data:', JSON.stringify(updatedLesson.sub_topics, null, 2));
 
       console.log('✅ Lesson updated successfully with ID:', updatedLesson.id);
 
@@ -573,6 +606,12 @@ serve(async (req) => {
         console.log('📎 Adding lesson template ID to new lesson:', lessonTemplateId);
       }
 
+      // 🔍 DEBUG: Log the insert data being sent to database
+      console.log('🔍 DEBUG: Insert data being sent to database:');
+      console.log('  - generated_lessons count:', insertData.generated_lessons.length);
+      console.log('  - sub_topics:', JSON.stringify(insertData.sub_topics, null, 2));
+      console.log('  - lesson_template_id:', insertData.lesson_template_id);
+
       const { data: lessonData, error: lessonError } = await supabaseClient
         .from('lessons')
         .insert(insertData)
@@ -583,6 +622,10 @@ serve(async (req) => {
         console.error('❌ Database save error:', lessonError);
         throw new Error(`Failed to save lesson: ${lessonError.message}`)
       }
+
+      // 🔍 DEBUG: Log the created lesson data returned from database
+      console.log('🔍 DEBUG: Created lesson data returned from database:');
+      console.log('  - sub_topics in returned data:', JSON.stringify(lessonData.sub_topics, null, 2));
 
       console.log('✅ Lesson saved successfully with ID:', lessonData.id);
 
@@ -610,7 +653,7 @@ serve(async (req) => {
         error: error.message || 'Internal server error' 
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       },
     )
