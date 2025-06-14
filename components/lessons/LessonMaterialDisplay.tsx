@@ -2,16 +2,17 @@
   # Updated LessonMaterialDisplay.tsx
   
   1. Changes
-    - Added defensive checks for array properties to prevent undefined errors
+    - Added defensive checks for object properties to prevent React child errors
     - Enhanced error handling for malformed data structures
-    - Added fallback content when data is missing or invalid
-    - Fixed React child rendering error by properly handling multiple_choice elements
+    - Added proper string conversion for text, question, and correct_answer properties
+    - Fixed React child rendering error by ensuring all rendered content is valid React nodes
     
   2. Flow
-    - Validates array properties before mapping
+    - Validates that text properties are strings before rendering
+    - Converts objects to JSON strings when necessary
     - Provides meaningful fallback messages
     - Logs warnings for debugging purposes
-    - Properly renders multiple_choice elements as JSX components
+    - Properly renders all elements as valid JSX components
 */
 
 "use client";
@@ -116,6 +117,27 @@ interface LessonPlan {
 interface LessonMaterialDisplayProps {
   lessonId: string;
 }
+
+// Helper function to safely convert any value to a string for rendering
+const safeStringify = (value: any): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      return '[Object]';
+    }
+  }
+  return String(value);
+};
 
 export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDisplayProps) {
   const { user } = useAuth();
@@ -487,21 +509,23 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                       }`}>
                         {element.character || 'Speaker'}:
                       </p>
-                      <p>{element.text || 'No text available'}</p>
+                      <p>{safeStringify(element.text) || 'No text available'}</p>
                     </div>
                   </div>
                 );
               } else if (element.type === 'multiple_choice') {
                 return (
                   <div key={index} className="border rounded-lg p-4 bg-yellow-50">
-                    <p className="font-medium mb-3">{element.text || element.question || 'Question not available'}</p>
+                    <p className="font-medium mb-3">
+                      {safeStringify(element.text || element.question) || 'Question not available'}
+                    </p>
                     <RadioGroup 
                       onValueChange={(value) => handleAnswerChange(`${section.id}_mc_${index}`, value)}
                     >
                       {Array.isArray(element.options) && element.options.map((option: string, optIndex: number) => (
                         <div key={optIndex} className="flex items-center space-x-2">
                           <RadioGroupItem value={option} id={`${section.id}_${index}_${optIndex}`} />
-                          <Label htmlFor={`${section.id}_${index}_${optIndex}`}>{option}</Label>
+                          <Label htmlFor={`${section.id}_${index}_${optIndex}`}>{safeStringify(option)}</Label>
                         </div>
                       ))}
                       {(!Array.isArray(element.options) || element.options.length === 0) && (
@@ -510,7 +534,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                     </RadioGroup>
                     {element.correct_answer && (
                       <p className="text-xs text-gray-500 mt-2">
-                        Correct answer: {element.correct_answer}
+                        Correct answer: {safeStringify(element.correct_answer)}
                       </p>
                     )}
                   </div>
@@ -539,14 +563,14 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
           <div className="space-y-4">
             {section.matching_pairs.map((pair, index) => (
               <div key={index} className="border rounded-lg p-4">
-                <p className="font-medium mb-3">{pair.question || 'Question not available'}</p>
+                <p className="font-medium mb-3">{safeStringify(pair.question) || 'Question not available'}</p>
                 <RadioGroup 
                   onValueChange={(value) => handleAnswerChange(`${section.id}_match_${index}`, value)}
                 >
                   {Array.isArray(pair.answers) && pair.answers.map((answer: string, ansIndex: number) => (
                     <div key={ansIndex} className="flex items-center space-x-2">
                       <RadioGroupItem value={answer} id={`${section.id}_${index}_${ansIndex}`} />
-                      <Label htmlFor={`${section.id}_${index}_${ansIndex}`}>{answer}</Label>
+                      <Label htmlFor={`${section.id}_${index}_${ansIndex}`}>{safeStringify(answer)}</Label>
                     </div>
                   ))}
                   {(!Array.isArray(pair.answers) || pair.answers.length === 0) && (
