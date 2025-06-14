@@ -35,6 +35,7 @@ interface Lesson {
   materials: string[];
   notes: string | null;
   generated_lessons: string[] | null;
+  sub_topics: any[] | null;
   lesson_template_id: string | null;
   student?: Student;
 }
@@ -55,7 +56,7 @@ const languageMap: Record<string, string> = {
 function constructPrompt(student: Student): string {
   const languageName = languageMap[student.target_language] || student.target_language;
   
-  return `You are an expert language tutor creating personalized lesson plans. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
+  return `You are an expert language tutor creating personalized lesson plans with detailed sub-topics. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
 
 Student Profile:
 - Name: ${student.name}
@@ -74,35 +75,106 @@ CRITICAL: Respond with ONLY the JSON object below. Do not include any other text
 {
   "lessons": [
     {
-      "title": "Lesson Title Here",
+      "title": "Main Lesson Title Here",
       "objectives": ["Objective 1", "Objective 2", "Objective 3"],
       "activities": ["Activity 1", "Activity 2", "Activity 3"],
       "materials": ["Material 1", "Material 2", "Material 3"],
-      "assessment": ["Assessment method 1", "Assessment method 2"]
+      "assessment": ["Assessment method 1", "Assessment method 2"],
+      "sub_topics": [
+        {
+          "id": "subtopic_1",
+          "title": "Grammar: Present Simple Tense",
+          "category": "Grammar",
+          "level": "${student.level}",
+          "description": "Focus on forming and using present simple tense"
+        },
+        {
+          "id": "subtopic_2", 
+          "title": "Vocabulary: Daily Routines",
+          "category": "Vocabulary",
+          "level": "${student.level}",
+          "description": "Learn vocabulary related to daily activities"
+        },
+        {
+          "id": "subtopic_3",
+          "title": "Conversation: Talking About Hobbies",
+          "category": "Conversation", 
+          "level": "${student.level}",
+          "description": "Practice discussing personal interests and hobbies"
+        }
+      ]
     },
     {
-      "title": "Second Lesson Title",
+      "title": "Second Main Lesson Title",
       "objectives": ["Objective 1", "Objective 2", "Objective 3"],
       "activities": ["Activity 1", "Activity 2", "Activity 3"],
       "materials": ["Material 1", "Material 2", "Material 3"],
-      "assessment": ["Assessment method 1", "Assessment method 2"]
+      "assessment": ["Assessment method 1", "Assessment method 2"],
+      "sub_topics": [
+        {
+          "id": "subtopic_4",
+          "title": "Grammar: Past Tense Verbs",
+          "category": "Grammar",
+          "level": "${student.level}",
+          "description": "Learn regular and irregular past tense forms"
+        },
+        {
+          "id": "subtopic_5",
+          "title": "Vocabulary: Travel and Transportation",
+          "category": "Vocabulary", 
+          "level": "${student.level}",
+          "description": "Essential travel vocabulary and phrases"
+        },
+        {
+          "id": "subtopic_6",
+          "title": "Conversation: Making Plans",
+          "category": "Conversation",
+          "level": "${student.level}",
+          "description": "Practice discussing future plans and arrangements"
+        }
+      ]
     },
     {
-      "title": "Third Lesson Title",
+      "title": "Third Main Lesson Title",
       "objectives": ["Objective 1", "Objective 2", "Objective 3"],
       "activities": ["Activity 1", "Activity 2", "Activity 3"],
       "materials": ["Material 1", "Material 2", "Material 3"],
-      "assessment": ["Assessment method 1", "Assessment method 2"]
+      "assessment": ["Assessment method 1", "Assessment method 2"],
+      "sub_topics": [
+        {
+          "id": "subtopic_7",
+          "title": "Grammar: Question Formation",
+          "category": "Grammar",
+          "level": "${student.level}",
+          "description": "Learn to form different types of questions"
+        },
+        {
+          "id": "subtopic_8",
+          "title": "Vocabulary: Food and Dining",
+          "category": "Vocabulary",
+          "level": "${student.level}",
+          "description": "Food vocabulary and restaurant expressions"
+        },
+        {
+          "id": "subtopic_9",
+          "title": "Conversation: Ordering Food",
+          "category": "Conversation",
+          "level": "${student.level}",
+          "description": "Practice ordering food and drinks in restaurants"
+        }
+      ]
     }
   ]
 }
 
-Requirements for each lesson:
+Requirements for each lesson and sub-topic:
 1. Tailor to ${student.level.toUpperCase()} level ${languageName}
 2. Address specific weaknesses and gaps mentioned
 3. Incorporate preferred learning styles
 4. Be practical for 45-60 minute sessions
-5. Include mix of speaking, listening, reading, writing
+5. Generate 3-6 sub-topics per lesson covering different skill areas
+6. Sub-topics should be specific, focused, and teachable in 15-20 minutes each
+7. Categories should match available lesson templates: Grammar, Conversation, Business English, English for Kids, Vocabulary, Pronunciation, Picture Description, English for Travel
 
 RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT.`;
 }
@@ -153,7 +225,6 @@ function validateAndFixJson(jsonString: string): any {
       // Fix missing commas between array elements
       .replace(/}(\s*){/g, '},$1{')
       .replace(/](\s*)\[/g, '],$1[');
-      // Removed the problematic regex that was causing parsing errors
     
     try {
       return JSON.parse(fixed);
@@ -325,7 +396,7 @@ serve(async (req) => {
           }
         ],
         temperature: 0.1,
-        max_tokens: 2000,
+        max_tokens: 3000,
       }),
     })
 
@@ -392,6 +463,22 @@ serve(async (req) => {
             assessment: [
               "Oral assessment",
               "Grammar quiz"
+            ],
+            sub_topics: [
+              {
+                id: "subtopic_1",
+                title: "Basic Conversation",
+                category: "Conversation",
+                level: student.level,
+                description: "Practice basic conversational skills"
+              },
+              {
+                id: "subtopic_2",
+                title: "Essential Grammar",
+                category: "Grammar",
+                level: student.level,
+                description: "Review fundamental grammar concepts"
+              }
             ]
           }
         ]
@@ -405,20 +492,29 @@ serve(async (req) => {
 
     console.log('✅ Lessons parsed successfully, count:', parsedLessons.lessons.length);
 
-    // Validate lesson structure
+    // Validate lesson structure and extract sub-topics
+    let allSubTopics: any[] = [];
     for (let i = 0; i < parsedLessons.lessons.length; i++) {
       const lessonPlan = parsedLessons.lessons[i];
       if (!lessonPlan.title || !lessonPlan.objectives || !lessonPlan.activities || !lessonPlan.materials || !lessonPlan.assessment) {
         console.error(`❌ Invalid lesson structure at index ${i}:`, lessonPlan);
         throw new Error(`Lesson ${i + 1} is missing required fields`);
       }
+      
+      // Collect sub-topics from all lessons
+      if (lessonPlan.sub_topics && Array.isArray(lessonPlan.sub_topics)) {
+        allSubTopics = allSubTopics.concat(lessonPlan.sub_topics);
+      }
     }
+
+    console.log('✅ Total sub-topics extracted:', allSubTopics.length);
 
     if (lesson_id) {
       // Update existing lesson
       console.log('💾 Updating existing lesson with generated content...');
       const updateData: any = {
         generated_lessons: parsedLessons.lessons.map((lessonPlan: any) => JSON.stringify(lessonPlan)),
+        sub_topics: allSubTopics,
         notes: `AI-generated lesson plans updated on ${new Date().toLocaleDateString()}`
       };
 
@@ -446,6 +542,7 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           lessons: parsedLessons.lessons,
+          sub_topics: allSubTopics,
           lesson_id: updatedLesson.id,
           lesson_template_id: lessonTemplateId,
           message: 'Lesson plans updated successfully',
@@ -466,7 +563,8 @@ serve(async (req) => {
         status: 'upcoming',
         materials: ['AI Generated Lesson Plans'],
         notes: `AI-generated lesson plans created on ${new Date().toLocaleDateString()}`,
-        generated_lessons: parsedLessons.lessons.map((lessonPlan: any) => JSON.stringify(lessonPlan))
+        generated_lessons: parsedLessons.lessons.map((lessonPlan: any) => JSON.stringify(lessonPlan)),
+        sub_topics: allSubTopics
       };
 
       // Add lesson template ID if we found one
@@ -492,6 +590,7 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           lessons: parsedLessons.lessons,
+          sub_topics: allSubTopics,
           lesson_id: lessonData.id,
           lesson_template_id: lessonTemplateId,
           message: 'Lesson plans generated successfully',

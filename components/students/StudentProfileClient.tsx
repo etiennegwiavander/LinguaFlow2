@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import MainLayout from "@/components/main-layout";
-import { Student } from "@/types";
+import { Student, SubTopic } from "@/types";
 import { languages } from "@/lib/sample-data";
 import {
   Book,
@@ -59,6 +59,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import StudentForm from "@/components/students/StudentForm";
 import LessonMaterialDisplay from "@/components/lessons/LessonMaterialDisplay";
+import SubTopicSelectionDialog from "@/components/students/SubTopicSelectionDialog";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -68,6 +69,7 @@ interface LessonPlan {
   activities: string[];
   materials: string[];
   assessment: string[];
+  sub_topics?: SubTopic[];
 }
 
 interface UpcomingLesson {
@@ -75,6 +77,7 @@ interface UpcomingLesson {
   date: string;
   status: string;
   generated_lessons: string[] | null;
+  sub_topics: SubTopic[] | null;
   lesson_template_id: string | null;
   interactive_lesson_content: any | null;
 }
@@ -96,6 +99,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [activeTab, setActiveTab] = useState("ai-architect");
   const [isGeneratingInteractive, setIsGeneratingInteractive] = useState(false);
   const [interactiveGenerationProgress, setInteractiveGenerationProgress] = useState("");
+  const [isSubTopicDialogOpen, setIsSubTopicDialogOpen] = useState(false);
+  const [availableSubTopics, setAvailableSubTopics] = useState<SubTopic[]>([]);
 
   const getInitials = (name: string) => {
     return name
@@ -122,14 +127,13 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       console.log('🔍 Searching for upcoming lessons for student:', student.id);
 
       // Find the most recent upcoming lesson for this student
-      // Remove the date filter to avoid timestamp issues and order by created_at instead
       const { data: lessons, error } = await supabase
         .from('lessons')
-        .select('id, date, status, generated_lessons, lesson_template_id, interactive_lesson_content')
+        .select('id, date, status, generated_lessons, sub_topics, lesson_template_id, interactive_lesson_content')
         .eq('student_id', student.id)
         .eq('tutor_id', user.id)
         .eq('status', 'upcoming')
-        .order('created_at', { ascending: false }) // Get the most recently created lesson first
+        .order('created_at', { ascending: false })
         .limit(1);
 
       if (error) {
@@ -156,6 +160,12 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
           } catch (parseError) {
             console.error('❌ Error parsing generated lessons:', parseError);
           }
+        }
+
+        // Set available sub-topics from the lesson
+        if (lesson.sub_topics && Array.isArray(lesson.sub_topics)) {
+          setAvailableSubTopics(lesson.sub_topics);
+          console.log('✅ Loaded sub-topics:', lesson.sub_topics.length);
         }
       } else {
         console.log('ℹ️ No upcoming lessons found');
@@ -201,6 +211,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       // Update progress message
       setTimeout(() => setGenerationProgress(`Crafting personalized lesson ideas for ${student.name}...`), 1000);
       setTimeout(() => setGenerationProgress("Creating engaging activities and materials..."), 2000);
+      setTimeout(() => setGenerationProgress("Generating focused sub-topics..."), 3000);
 
       const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-lesson-plan`;
       console.log('📡 Function URL:', functionUrl);
@@ -257,11 +268,18 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         setHasGeneratedBefore(true);
         setShowOnboarding(false);
         
+        // Set available sub-topics
+        if (result.sub_topics && Array.isArray(result.sub_topics)) {
+          setAvailableSubTopics(result.sub_topics);
+          console.log('✅ Sub-topics loaded:', result.sub_topics.length);
+        }
+        
         // If we updated an existing lesson, refresh the upcoming lesson data
         if (result.updated && upcomingLesson) {
           setUpcomingLesson({
             ...upcomingLesson,
             generated_lessons: result.lessons.map((lesson: LessonPlan) => JSON.stringify(lesson)),
+            sub_topics: result.sub_topics || null,
             lesson_template_id: result.lesson_template_id || upcomingLesson.lesson_template_id
           });
         }
@@ -273,7 +291,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         }
         
         const actionText = result.updated ? 'regenerated' : 'generated';
-        toast.success(`AI lesson plans ${actionText} successfully!`);
+        toast.success(`AI lesson plans ${actionText} successfully with ${result.sub_topics?.length || 0} sub-topics!`);
       } else {
         throw new Error(result.error || 'Invalid response format');
       }
@@ -325,8 +343,25 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
   const handleUseLessonPlan = async (lessonIndex: number) => {
     console.log('🎯 handleUseLessonPlan called with index:', lessonIndex);
-    console.log('📊 Current upcomingLesson state:', upcomingLesson);
-    console.log('📊 Current isGeneratingInteractive state:', isGeneratingInteractive);
+    
+    if (!upcomingLesson) {
+      console.log('❌ No upcoming lesson available');
+      toast.error('No lesson available to generate interactive material for');
+      return;
+    }
+
+    if (!availableSubTopics || availableSubTopics.length === 0) {
+      console.log('❌ No sub-topics available');
+      toast.error('No sub-topics available. Please regenerate lesson plans.');
+      return;
+    }
+
+    // Open the sub-topic selection dialog
+    setIsSubTopicDialogOpen(true);
+  };
+
+  const handleSelectSubTopic = async (subTopic: SubTopic) => {
+    console.log('🎯 handleSelectSubTopic called with:', subTopic);
     
     if (!upcomingLesson) {
       console.log('❌ No upcoming lesson available');
@@ -336,9 +371,10 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
     setIsGeneratingInteractive(true);
     setInteractiveGenerationProgress("Preparing interactive lesson material...");
+    setIsSubTopicDialogOpen(false);
 
     try {
-      console.log('🎯 Generating interactive material for lesson plan:', lessonIndex);
+      console.log('🎯 Generating interactive material for sub-topic:', subTopic.title);
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -354,7 +390,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
       
       const requestBody = {
         lesson_id: upcomingLesson.id,
-        selected_lesson_plan_index: lessonIndex
+        selected_sub_topic: subTopic
       };
 
       console.log('📦 Interactive material request:', requestBody);
@@ -400,7 +436,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         setSelectedLessonId(upcomingLesson.id);
         setActiveTab("lesson-material");
         
-        toast.success(`Interactive lesson material created successfully using ${result.template_name}!`);
+        toast.success(`Interactive lesson material created successfully for "${subTopic.title}" using ${result.template_name}!`);
       } else {
         throw new Error(result.error || 'Failed to generate interactive material');
       }
@@ -528,7 +564,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   )}
                 </CardTitle>
                 <CardDescription>
-                  Generate personalized lesson plans based on {student.name}'s profile and learning history
+                  Generate personalized lesson plans with focused sub-topics based on {student.name}'s profile and learning history
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -541,7 +577,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                         <div>
                           <strong>Welcome to AI Lesson Architect!</strong>
                           <p className="mt-1 text-sm">
-                            Instantly create tailored lesson plans for {student.name}! Our AI analyzes their profile to suggest objectives, activities, and materials. Click the button below to get started.
+                            Instantly create tailored lesson plans with focused sub-topics for {student.name}! Our AI analyzes their profile to suggest objectives, activities, materials, and specific sub-topics you can turn into interactive lessons.
                           </p>
                         </div>
                         <Button
@@ -561,8 +597,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   <div className="space-y-2 flex-1">
                     <p className="font-medium">
                       {upcomingLesson ? 
-                        `Generate lesson ideas for ${student.name}'s upcoming lesson` :
-                        `Generate new lesson ideas tailored to ${student.name}'s learning style and goals`
+                        `Generate lesson ideas with focused sub-topics for ${student.name}'s upcoming lesson` :
+                        `Generate new lesson ideas with sub-topics tailored to ${student.name}'s learning style and goals`
                       }
                     </p>
                     {upcomingLesson && (
@@ -578,7 +614,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Generate 3 personalized lesson plans based on {student.name}'s profile
+                      Generate 3 personalized lesson plans with focused sub-topics based on {student.name}'s profile
                     </p>
                     {isGenerating && (
                       <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
@@ -603,8 +639,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       <TooltipContent>
                         <p>
                           {upcomingLesson?.generated_lessons ? 
-                            'Create new lesson ideas for this student' :
-                            'Generate AI-powered lesson plans tailored to this student'
+                            'Create new lesson ideas with sub-topics for this student' :
+                            'Generate AI-powered lesson plans with focused sub-topics tailored to this student'
                           }
                         </p>
                       </TooltipContent>
@@ -619,22 +655,24 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                         <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
                         {generatedLessons.length} Lesson Plans Ready!
                       </h3>
-                      {upcomingLesson?.generated_lessons && (
-                        <Badge variant="outline" className="text-xs">
-                          <Sparkles className="w-3 h-3 mr-1" />
-                          AI Generated
-                        </Badge>
-                      )}
+                      <div className="flex items-center space-x-2">
+                        {upcomingLesson?.generated_lessons && (
+                          <Badge variant="outline" className="text-xs">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            AI Generated
+                          </Badge>
+                        )}
+                        {availableSubTopics.length > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Target className="w-3 h-3 mr-1" />
+                            {availableSubTopics.length} Sub-topics
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     
                     <Accordion type="single" collapsible className="w-full">
                       {generatedLessons.map((lesson, index) => {
-                        // Add debugging logs for each lesson plan button
-                        console.log(`🔍 Rendering lesson plan ${index}:`);
-                        console.log(`  - upcomingLesson:`, upcomingLesson);
-                        console.log(`  - isGeneratingInteractive:`, isGeneratingInteractive);
-                        console.log(`  - Button should be disabled:`, !upcomingLesson || isGeneratingInteractive);
-                        
                         return (
                           <AccordionItem key={index} value={`lesson-${index}`}>
                             <AccordionTrigger className="text-left hover:no-underline">
@@ -651,13 +689,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                 <Button 
                                   size="sm" 
                                   className="flex-1 min-w-[120px]"
-                                  onClick={() => {
-                                    console.log(`🎯 Use This Plan button clicked for lesson ${index}`);
-                                    console.log(`📊 Current state - upcomingLesson:`, upcomingLesson);
-                                    console.log(`📊 Current state - isGeneratingInteractive:`, isGeneratingInteractive);
-                                    handleUseLessonPlan(index);
-                                  }}
-                                  disabled={!upcomingLesson || isGeneratingInteractive}
+                                  onClick={() => handleUseLessonPlan(index)}
+                                  disabled={!upcomingLesson || isGeneratingInteractive || !availableSubTopics.length}
                                 >
                                   {isGeneratingInteractive ? (
                                     <>
@@ -667,7 +700,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                   ) : (
                                     <>
                                       <Play className="w-4 h-4 mr-2" />
-                                      Use This Plan
+                                      Choose Sub-topic
                                     </>
                                   )}
                                 </Button>
@@ -772,7 +805,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="font-medium text-lg mb-2">Ready to Create Amazing Lessons?</h3>
                     <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                      Our AI will analyze {student.name}'s learning profile and create personalized lesson plans with objectives, activities, materials, and assessment ideas.
+                      Our AI will analyze {student.name}'s learning profile and create personalized lesson plans with focused sub-topics, objectives, activities, materials, and assessment ideas.
                     </p>
                     <div className="flex items-center justify-center space-x-4 text-xs text-muted-foreground">
                       <div className="flex items-center">
@@ -786,6 +819,10 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       <div className="flex items-center">
                         <Book className="w-4 h-4 mr-1" />
                         Resource Lists
+                      </div>
+                      <div className="flex items-center">
+                        <Target className="w-4 h-4 mr-1" />
+                        Focused Sub-topics
                       </div>
                     </div>
                   </div>
@@ -816,7 +853,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     </div>
                     <h3 className="font-medium text-lg mb-2">No Lesson Selected</h3>
                     <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                      Generate lesson plans in the AI Lesson Architect tab and click "Use This Plan" to view the interactive lesson material here.
+                      Generate lesson plans in the AI Lesson Architect tab, then choose a sub-topic to create interactive lesson material here.
                     </p>
                     <Button 
                       variant="outline" 
@@ -873,6 +910,12 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                             <Badge variant="secondary" className="text-xs">
                               <Sparkles className="w-3 h-3 mr-1" />
                               AI Plans Ready
+                            </Badge>
+                          )}
+                          {upcomingLesson.sub_topics && upcomingLesson.sub_topics.length > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              <Target className="w-3 h-3 mr-1" />
+                              {upcomingLesson.sub_topics.length} Sub-topics
                             </Badge>
                           )}
                           {upcomingLesson.interactive_lesson_content && (
@@ -1057,6 +1100,15 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           open={isFormOpen}
           onOpenChange={setIsFormOpen}
           student={student}
+        />
+
+        <SubTopicSelectionDialog
+          open={isSubTopicDialogOpen}
+          onOpenChange={setIsSubTopicDialogOpen}
+          subTopics={availableSubTopics}
+          onSelectSubTopic={handleSelectSubTopic}
+          isGenerating={isGeneratingInteractive}
+          generationProgress={interactiveGenerationProgress}
         />
       </div>
     </MainLayout>

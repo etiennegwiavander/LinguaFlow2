@@ -29,6 +29,14 @@ export interface Language {
   flag: string;
 }
 
+export interface SubTopic {
+  id: string;
+  title: string;
+  category: string;
+  level: string;
+  description?: string;
+}
+
 export interface Lesson {
   id: string;
   student_id: string;
@@ -39,6 +47,9 @@ export interface Lesson {
   notes: string | null;
   previous_challenges: string[] | null;
   generated_lessons: string[] | null;
+  sub_topics: SubTopic[] | null;
+  lesson_template_id: string | null;
+  interactive_lesson_content: any | null;
   created_at: string;
   student: Student;
 }

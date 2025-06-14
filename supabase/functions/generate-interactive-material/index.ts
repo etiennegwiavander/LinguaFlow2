@@ -9,7 +9,13 @@ const corsHeaders = {
 
 interface GenerateInteractiveMaterialRequest {
   lesson_id: string;
-  selected_lesson_plan_index: number;
+  selected_sub_topic: {
+    id: string;
+    title: string;
+    category: string;
+    level: string;
+    description?: string;
+  };
 }
 
 interface Student {
@@ -35,16 +41,9 @@ interface Lesson {
   materials: string[];
   notes: string | null;
   generated_lessons: string[] | null;
+  sub_topics: any[] | null;
   lesson_template_id: string | null;
   student?: Student;
-}
-
-interface LessonPlan {
-  title: string;
-  objectives: string[];
-  activities: string[];
-  materials: string[];
-  assessment: string[];
 }
 
 interface LessonTemplate {
@@ -70,12 +69,14 @@ const languageMap: Record<string, string> = {
 
 function constructInteractiveMaterialPrompt(
   student: Student, 
-  lessonPlan: LessonPlan, 
-  template: LessonTemplate
+  subTopic: any,
+  template: LessonTemplate | null
 ): string {
   const languageName = languageMap[student.target_language] || student.target_language;
   
-  return `You are an expert language tutor creating interactive lesson materials. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
+  if (template) {
+    // Use template-based prompt
+    return `You are an expert language tutor creating interactive lesson materials. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
 
 Student Profile:
 - Name: ${student.name}
@@ -89,19 +90,18 @@ Student Profile:
 - Learning Styles: ${student.learning_styles?.join(', ') || 'Not specified'}
 - Additional Notes: ${student.notes || 'None'}
 
-High-Level Lesson Plan to Implement:
-- Title: ${lessonPlan.title}
-- Objectives: ${lessonPlan.objectives.join('; ')}
-- Activities: ${lessonPlan.activities.join('; ')}
-- Materials: ${lessonPlan.materials.join('; ')}
-- Assessment: ${lessonPlan.assessment.join('; ')}
+Sub-Topic to Focus On:
+- Title: ${subTopic.title}
+- Category: ${subTopic.category}
+- Level: ${subTopic.level}
+- Description: ${subTopic.description || 'No description provided'}
 
 Template Structure to Fill:
 ${JSON.stringify(template.template_json, null, 2)}
 
 CRITICAL INSTRUCTIONS:
-1. You must fill ALL "ai_placeholder" fields in the template with appropriate content based on the student profile and lesson plan
-2. Replace placeholder content like "Lesson Title Here" with the actual lesson title: "${lessonPlan.title}"
+1. You must fill ALL "ai_placeholder" fields in the template with appropriate content based on the student profile and sub-topic
+2. Replace placeholder content like "Lesson Title Here" with the actual sub-topic title: "${subTopic.title}"
 3. Generate specific, detailed content for each section that matches the student's level and needs
 4. For vocabulary_items arrays, create 4-6 relevant vocabulary words with definitions
 5. For dialogue_lines arrays, create realistic conversations appropriate for the level
@@ -110,8 +110,68 @@ CRITICAL INSTRUCTIONS:
 8. Ensure all content is appropriate for ${student.level.toUpperCase()} level ${languageName}
 9. Address the student's specific weaknesses and learning goals
 10. Make the content engaging and practical
+11. Focus specifically on the sub-topic: ${subTopic.title}
 
 RESPOND ONLY WITH THE FILLED TEMPLATE JSON - NO OTHER TEXT.`;
+  } else {
+    // Use basic prompt for fallback
+    return `You are an expert language tutor creating basic interactive lesson content. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
+
+Student Profile:
+- Name: ${student.name}
+- Target Language: ${languageName}
+- Proficiency Level: ${student.level.toUpperCase()}
+- End Goals: ${student.end_goals || 'General language improvement'}
+- Grammar Weaknesses: ${student.grammar_weaknesses || 'None specified'}
+- Vocabulary Gaps: ${student.vocabulary_gaps || 'None specified'}
+- Pronunciation Challenges: ${student.pronunciation_challenges || 'None specified'}
+- Conversational Fluency Barriers: ${student.conversational_fluency_barriers || 'None specified'}
+- Learning Styles: ${student.learning_styles?.join(', ') || 'Not specified'}
+- Additional Notes: ${student.notes || 'None'}
+
+Sub-Topic to Focus On:
+- Title: ${subTopic.title}
+- Category: ${subTopic.category}
+- Level: ${subTopic.level}
+- Description: ${subTopic.description || 'No description provided'}
+
+Create a basic interactive lesson focused on this sub-topic. Respond with this JSON structure:
+
+{
+  "name": "${subTopic.title}",
+  "category": "${subTopic.category}",
+  "level": "${subTopic.level}",
+  "content": {
+    "title": "${subTopic.title}",
+    "introduction": "Brief introduction to the topic",
+    "main_content": "Detailed explanation and examples",
+    "practice_exercises": [
+      "Exercise 1 description",
+      "Exercise 2 description",
+      "Exercise 3 description"
+    ],
+    "vocabulary": [
+      {"word": "word1", "definition": "definition1"},
+      {"word": "word2", "definition": "definition2"},
+      {"word": "word3", "definition": "definition3"}
+    ],
+    "dialogue_example": [
+      {"speaker": "Teacher", "text": "Example dialogue line 1"},
+      {"speaker": "Student", "text": "Example dialogue line 2"}
+    ],
+    "wrap_up": "Summary and key takeaways"
+  }
+}
+
+CRITICAL INSTRUCTIONS:
+1. Focus specifically on the sub-topic: ${subTopic.title}
+2. Make content appropriate for ${student.level.toUpperCase()} level ${languageName}
+3. Address the student's specific learning needs
+4. Create practical, engaging content
+5. Include vocabulary, examples, and practice exercises
+
+RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT.`;
+  }
 }
 
 function cleanJsonResponse(content: string): string {
@@ -162,63 +222,42 @@ function validateAndFixJson(jsonString: string): any {
   }
 }
 
-function selectAppropriateTemplate(student: Student, lessonPlan: LessonPlan, templates: LessonTemplate[]): LessonTemplate | null {
-  // First, try to find a template that matches the student's level exactly
-  const levelMatches = templates.filter(t => t.level === student.level);
+function selectAppropriateTemplate(subTopic: any, templates: LessonTemplate[]): LessonTemplate | null {
+  // First, try to find a template that matches the sub-topic's level and category exactly
+  const exactMatches = templates.filter(t => 
+    t.level === subTopic.level && t.category === subTopic.category
+  );
   
-  if (levelMatches.length === 0) {
-    console.log(`⚠️ No templates found for level ${student.level}`);
-    return null;
+  if (exactMatches.length > 0) {
+    console.log(`✅ Found exact match template: ${exactMatches[0].name}`);
+    return exactMatches[0];
   }
   
-  // Try to match by category based on lesson plan title and activities
-  const title = lessonPlan.title.toLowerCase();
-  const activities = lessonPlan.activities.join(' ').toLowerCase();
+  // Try to match by category only (any level)
+  const categoryMatches = templates.filter(t => t.category === subTopic.category);
   
-  // Define category keywords
-  const categoryKeywords = {
-    'Grammar': ['grammar', 'tense', 'verb', 'noun', 'adjective', 'sentence', 'structure'],
-    'Conversation': ['conversation', 'speaking', 'dialogue', 'discussion', 'talk', 'chat'],
-    'Business English': ['business', 'professional', 'work', 'office', 'meeting', 'presentation', 'networking'],
-    'English for Kids': ['kids', 'children', 'young', 'fun', 'game', 'story', 'play'],
-    'English for Travel': ['travel', 'airport', 'hotel', 'restaurant', 'directions', 'vacation'],
-    'Picture Description': ['picture', 'image', 'describe', 'visual', 'photo'],
-    'Vocabulary': ['vocabulary', 'words', 'meaning', 'definition'],
-    'Pronunciation': ['pronunciation', 'sound', 'phonics', 'accent', 'intonation']
-  };
+  if (categoryMatches.length > 0) {
+    console.log(`✅ Found category match template: ${categoryMatches[0].name}`);
+    return categoryMatches[0];
+  }
   
-  // Score each template based on keyword matches
-  const scoredTemplates = levelMatches.map(template => {
-    const keywords = categoryKeywords[template.category] || [];
-    let score = 0;
+  // Try to match by level only (any category)
+  const levelMatches = templates.filter(t => t.level === subTopic.level);
+  
+  if (levelMatches.length > 0) {
+    // Prefer Conversation templates as they're most generic
+    const conversationTemplate = levelMatches.find(t => t.category === 'Conversation');
+    if (conversationTemplate) {
+      console.log(`✅ Using Conversation template for level ${subTopic.level}: ${conversationTemplate.name}`);
+      return conversationTemplate;
+    }
     
-    keywords.forEach(keyword => {
-      if (title.includes(keyword)) score += 3;
-      if (activities.includes(keyword)) score += 1;
-    });
-    
-    return { template, score };
-  });
-  
-  // Sort by score (highest first)
-  scoredTemplates.sort((a, b) => b.score - a.score);
-  
-  // If we have a good match (score > 0), use it
-  if (scoredTemplates[0].score > 0) {
-    console.log(`✅ Selected template: ${scoredTemplates[0].template.name} (score: ${scoredTemplates[0].score})`);
-    return scoredTemplates[0].template;
+    console.log(`✅ Using first available template for level ${subTopic.level}: ${levelMatches[0].name}`);
+    return levelMatches[0];
   }
   
-  // Otherwise, default to Conversation template for the level
-  const conversationTemplate = levelMatches.find(t => t.category === 'Conversation');
-  if (conversationTemplate) {
-    console.log(`✅ Using default Conversation template for level ${student.level}`);
-    return conversationTemplate;
-  }
-  
-  // If no conversation template, use the first available template for the level
-  console.log(`✅ Using first available template for level ${student.level}: ${levelMatches[0].name}`);
-  return levelMatches[0];
+  console.log(`⚠️ No suitable template found for category: ${subTopic.category}, level: ${subTopic.level}`);
+  return null;
 }
 
 serve(async (req) => {
@@ -253,10 +292,10 @@ serve(async (req) => {
     console.log('✅ User authenticated:', user.id);
 
     console.log('📦 Parsing request body...');
-    const { lesson_id, selected_lesson_plan_index }: GenerateInteractiveMaterialRequest = await req.json()
+    const { lesson_id, selected_sub_topic }: GenerateInteractiveMaterialRequest = await req.json()
 
-    if (!lesson_id || selected_lesson_plan_index === undefined) {
-      throw new Error('lesson_id and selected_lesson_plan_index are required')
+    if (!lesson_id || !selected_sub_topic) {
+      throw new Error('lesson_id and selected_sub_topic are required')
     }
 
     console.log('🔍 Fetching lesson details for ID:', lesson_id);
@@ -281,27 +320,7 @@ serve(async (req) => {
     const student = lesson.student as Student;
 
     console.log('✅ Lesson found:', lesson.id, 'for student:', student.name);
-
-    // Validate that the lesson has generated_lessons
-    if (!lesson.generated_lessons || lesson.generated_lessons.length === 0) {
-      throw new Error('No generated lesson plans found for this lesson')
-    }
-
-    // Validate the selected index
-    if (selected_lesson_plan_index >= lesson.generated_lessons.length) {
-      throw new Error('Invalid lesson plan index')
-    }
-
-    // Parse the selected lesson plan
-    let selectedLessonPlan: LessonPlan;
-    try {
-      selectedLessonPlan = JSON.parse(lesson.generated_lessons[selected_lesson_plan_index]);
-    } catch (parseError) {
-      console.error('❌ Error parsing selected lesson plan:', parseError);
-      throw new Error('Failed to parse selected lesson plan')
-    }
-
-    console.log('✅ Selected lesson plan:', selectedLessonPlan.title);
+    console.log('🎯 Selected sub-topic:', selected_sub_topic.title);
 
     // Fetch available lesson templates
     console.log('🎯 Fetching lesson templates...');
@@ -319,16 +338,18 @@ serve(async (req) => {
     console.log(`✅ Found ${templates.length} active templates`);
 
     // Select the most appropriate template
-    const selectedTemplate = selectAppropriateTemplate(student, selectedLessonPlan, templates);
+    const selectedTemplate = selectAppropriateTemplate(selected_sub_topic, templates);
     
-    if (!selectedTemplate) {
-      throw new Error(`No suitable template found for level ${student.level}`)
+    let templateName = 'Basic Interactive Lesson';
+    if (selectedTemplate) {
+      templateName = selectedTemplate.name;
+      console.log('🎯 Using template:', selectedTemplate.name);
+    } else {
+      console.log('🎯 No specific template found, using basic interactive format');
     }
 
-    console.log('🎯 Using template:', selectedTemplate.name);
-
     // Construct the prompt for AI
-    const prompt = constructInteractiveMaterialPrompt(student, selectedLessonPlan, selectedTemplate);
+    const prompt = constructInteractiveMaterialPrompt(student, selected_sub_topic, selectedTemplate);
     console.log('📝 Prompt constructed, length:', prompt.length);
 
     // Get Gemini API key
@@ -401,7 +422,7 @@ serve(async (req) => {
       .from('lessons')
       .update({
         interactive_lesson_content: filledTemplate,
-        lesson_template_id: selectedTemplate.id
+        lesson_template_id: selectedTemplate?.id || null
       })
       .eq('id', lesson_id)
       .select()
@@ -419,8 +440,9 @@ serve(async (req) => {
         success: true, 
         message: 'Interactive lesson material generated successfully',
         lesson_id: updatedLesson.id,
-        lesson_template_id: selectedTemplate.id,
-        template_name: selectedTemplate.name,
+        lesson_template_id: selectedTemplate?.id || null,
+        template_name: templateName,
+        sub_topic: selected_sub_topic,
         interactive_content: filledTemplate
       }),
       {
