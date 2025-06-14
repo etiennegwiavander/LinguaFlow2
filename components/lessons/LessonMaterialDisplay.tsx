@@ -2,15 +2,14 @@
   # Updated LessonMaterialDisplay.tsx
   
   1. Changes
-    - Modified to prioritize displaying interactive_lesson_content if it exists
-    - Updated data fetching to include the new interactive_lesson_content column
-    - Enhanced rendering logic to use the filled template content
+    - Added defensive checks for array properties to prevent undefined errors
+    - Enhanced error handling for malformed data structures
+    - Added fallback content when data is missing or invalid
     
   2. Flow
-    - Fetches lesson data including interactive_lesson_content
-    - If interactive content exists, renders it using the filled template
-    - Falls back to high-level generated_lessons if no interactive content
-    - Provides better user experience with proper loading and error states
+    - Validates array properties before mapping
+    - Provides meaningful fallback messages
+    - Logs warnings for debugging purposes
 */
 
 "use client";
@@ -83,6 +82,7 @@ interface TemplateSection {
   matching_pairs?: any[];
   ordering_items?: string[];
   ai_placeholder?: string;
+  content?: string;
 }
 
 interface Lesson {
@@ -289,7 +289,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         );
 
       case 'info_card':
-        const objectives = section.items || [];
+        const objectives = Array.isArray(section.items) ? section.items : [];
 
         return (
           <Card key={section.id} className={`mb-6 ${getBgColor(section.background_color_var)}`}>
@@ -346,7 +346,16 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
 
     switch (section.content_type) {
       case 'list':
-        const items = section.items || [];
+        const items = Array.isArray(section.items) ? section.items : [];
+
+        if (items.length === 0) {
+          console.warn(`No items found for list section: ${section.id}`);
+          return (
+            <div className="text-center py-4 text-gray-500">
+              <p>No items available for this exercise.</p>
+            </div>
+          );
+        }
 
         return (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -366,9 +375,20 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         );
 
       case 'vocabulary_matching':
+        const vocabularyItems = Array.isArray(section.vocabulary_items) ? section.vocabulary_items : [];
+
+        if (vocabularyItems.length === 0) {
+          console.warn(`No vocabulary items found for section: ${section.id}`);
+          return (
+            <div className="text-center py-4 text-gray-500">
+              <p>No vocabulary items available for this exercise.</p>
+            </div>
+          );
+        }
+
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {section.vocabulary_items?.map((item, index) => (
+            {vocabularyItems.map((item, index) => (
               <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
                 {item.image_url && (
                   <img 
@@ -390,9 +410,20 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         );
 
       case 'full_dialogue':
+        const dialogueLines = Array.isArray(section.dialogue_lines) ? section.dialogue_lines : [];
+
+        if (dialogueLines.length === 0) {
+          console.warn(`No dialogue lines found for section: ${section.id}`);
+          return (
+            <div className="text-center py-4 text-gray-500">
+              <p>No dialogue content available for this exercise.</p>
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-3">
-            {section.dialogue_lines?.map((line, index) => (
+            {dialogueLines.map((line, index) => (
               <div key={index} className="flex items-start space-x-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   line.character === 'Tutor' ? 'bg-green-100' : 'bg-blue-100'
@@ -400,7 +431,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                   <span className={`text-xs font-bold ${
                     line.character === 'Tutor' ? 'text-green-600' : 'text-blue-600'
                   }`}>
-                    {line.character[0]}
+                    {line.character ? line.character[0] : '?'}
                   </span>
                 </div>
                 <div className={`flex-1 p-3 rounded-lg ${
@@ -409,9 +440,9 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                   <p className={`font-medium ${
                     line.character === 'Tutor' ? 'text-green-800' : 'text-blue-800'
                   }`}>
-                    {line.character}:
+                    {line.character || 'Speaker'}:
                   </p>
-                  <p>{line.text}</p>
+                  <p>{line.text || 'No text available'}</p>
                 </div>
               </div>
             ))}
@@ -419,20 +450,33 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         );
 
       case 'matching':
+        // Add defensive check for matching_pairs
+        if (!Array.isArray(section.matching_pairs) || section.matching_pairs.length === 0) {
+          console.warn(`No matching pairs found for section: ${section.id}`);
+          return (
+            <div className="text-center py-4 text-gray-500">
+              <p>No matching questions available for this exercise.</p>
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-4">
-            {section.matching_pairs?.map((pair, index) => (
+            {section.matching_pairs.map((pair, index) => (
               <div key={index} className="border rounded-lg p-4">
-                <p className="font-medium mb-3">{pair.question}</p>
+                <p className="font-medium mb-3">{pair.question || 'Question not available'}</p>
                 <RadioGroup 
                   onValueChange={(value) => handleAnswerChange(`${section.id}_match_${index}`, value)}
                 >
-                  {pair.answers?.map((answer: string, ansIndex: number) => (
+                  {Array.isArray(pair.answers) && pair.answers.map((answer: string, ansIndex: number) => (
                     <div key={ansIndex} className="flex items-center space-x-2">
                       <RadioGroupItem value={answer} id={`${section.id}_${index}_${ansIndex}`} />
                       <Label htmlFor={`${section.id}_${index}_${ansIndex}`}>{answer}</Label>
                     </div>
                   ))}
+                  {(!Array.isArray(pair.answers) || pair.answers.length === 0) && (
+                    <p className="text-sm text-gray-500">No answer options available</p>
+                  )}
                 </RadioGroup>
               </div>
             ))}
@@ -508,7 +552,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
           </div>
         </div>
 
-        {template.template_json.sections.map((section) => 
+        {Array.isArray(template.template_json.sections) && template.template_json.sections.map((section) => 
           renderTemplateSection(section, 0)
         )}
         
@@ -551,7 +595,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                     Objectives
                   </h4>
                   <ul className="space-y-2">
-                    {lessonPlan.objectives.map((objective, objIndex) => (
+                    {Array.isArray(lessonPlan.objectives) && lessonPlan.objectives.map((objective, objIndex) => (
                       <li key={objIndex} className="flex items-start">
                         <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
                         <span>{objective}</span>
@@ -568,7 +612,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                     Activities
                   </h4>
                   <ul className="space-y-2">
-                    {lessonPlan.activities.map((activity, actIndex) => (
+                    {Array.isArray(lessonPlan.activities) && lessonPlan.activities.map((activity, actIndex) => (
                       <li key={actIndex} className="flex items-start">
                         <ArrowRight className="w-4 h-4 mr-2 mt-0.5 text-purple-500 flex-shrink-0" />
                         <span>{activity}</span>
@@ -586,7 +630,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                       Materials
                     </h4>
                     <ul className="space-y-2">
-                      {lessonPlan.materials.map((material, matIndex) => (
+                      {Array.isArray(lessonPlan.materials) && lessonPlan.materials.map((material, matIndex) => (
                         <li key={matIndex} className="flex items-start">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
                           <span>{material}</span>
@@ -601,7 +645,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                       Assessment
                     </h4>
                     <ul className="space-y-2">
-                      {lessonPlan.assessment.map((item, assIndex) => (
+                      {Array.isArray(lessonPlan.assessment) && lessonPlan.assessment.map((item, assIndex) => (
                         <li key={assIndex} className="flex items-start">
                           <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
                           <span>{item}</span>
