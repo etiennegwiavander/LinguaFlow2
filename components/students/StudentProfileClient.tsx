@@ -291,10 +291,24 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
           });
         }
         
-        // If we created a new lesson, we might want to refresh the upcoming lesson
+        // If we created a new lesson, construct the upcoming lesson state directly
         if (result.created) {
-          console.log('🔄 Reloading upcoming lesson data after creation...');
-          await loadUpcomingLesson();
+          console.log('🔄 Creating upcoming lesson state directly from result...');
+          const newUpcomingLesson: UpcomingLesson = {
+            id: result.lesson_id,
+            date: new Date().toISOString(), // Use current time as default
+            status: 'upcoming',
+            generated_lessons: result.lessons.map((lesson: LessonPlan) => JSON.stringify(lesson)),
+            sub_topics: subTopics,
+            lesson_template_id: result.lesson_template_id || null,
+            interactive_lesson_content: null
+          };
+          
+          console.log('✅ Setting upcoming lesson state directly:', newUpcomingLesson);
+          setUpcomingLesson(newUpcomingLesson);
+          
+          // Don't call loadUpcomingLesson() here to avoid race condition
+          console.log('✅ Skipping database refetch to avoid race condition');
         }
         
         const actionText = result.updated ? 'regenerated' : 'generated';
