@@ -100,7 +100,6 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [isGeneratingInteractive, setIsGeneratingInteractive] = useState(false);
   const [interactiveGenerationProgress, setInteractiveGenerationProgress] = useState("");
   const [isSubTopicDialogOpen, setIsSubTopicDialogOpen] = useState(false);
-  const [availableSubTopics, setAvailableSubTopics] = useState<SubTopic[]>([]);
 
   const getInitials = (name: string) => {
     return name
@@ -146,13 +145,6 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       if (lessons && lessons.length > 0) {
         const lesson = lessons[0];
         console.log('✅ Found upcoming lesson:', lesson);
-        
-        // Ensure sub_topics is always an array, even if null from DB
-        if (!lesson.sub_topics || !Array.isArray(lesson.sub_topics)) {
-          console.warn('⚠️ Correcting lesson.sub_topics to an empty array. Original value:', lesson.sub_topics);
-          lesson.sub_topics = [];
-        }
-        
         setUpcomingLesson(lesson);
 
         // If the lesson has generated content, parse and display it
@@ -169,14 +161,15 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
           }
         }
 
-        // Set available sub-topics from the lesson (now guaranteed to be an array)
-        console.log('✅ Setting available sub-topics:', lesson.sub_topics);
-        setAvailableSubTopics(lesson.sub_topics);
-        console.log('✅ Available sub-topics set, count:', lesson.sub_topics.length);
+        // Log sub-topics for debugging
+        if (lesson.sub_topics && Array.isArray(lesson.sub_topics)) {
+          console.log('✅ Loaded sub-topics from lesson:', lesson.sub_topics.length, lesson.sub_topics);
+        } else {
+          console.log('⚠️ No sub-topics found in lesson or invalid format:', lesson.sub_topics);
+        }
       } else {
         console.log('ℹ️ No upcoming lessons found');
         setUpcomingLesson(null);
-        setAvailableSubTopics([]);
       }
 
       // Check if user has generated lessons before (for onboarding)
@@ -275,44 +268,25 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         setHasGeneratedBefore(true);
         setShowOnboarding(false);
         
-        // Set available sub-topics - ensure it's always an array
-        const subTopics = result.sub_topics && Array.isArray(result.sub_topics) ? result.sub_topics : [];
-        console.log('✅ Setting sub-topics from generation result:', subTopics);
-        setAvailableSubTopics(subTopics);
-        console.log('✅ Sub-topics loaded:', subTopics.length);
-        
         // If we updated an existing lesson, refresh the upcoming lesson data
         if (result.updated && upcomingLesson) {
           setUpcomingLesson({
             ...upcomingLesson,
             generated_lessons: result.lessons.map((lesson: LessonPlan) => JSON.stringify(lesson)),
-            sub_topics: subTopics,
+            sub_topics: result.sub_topics || null,
             lesson_template_id: result.lesson_template_id || upcomingLesson.lesson_template_id
           });
+          console.log('✅ Updated upcomingLesson state with sub-topics:', result.sub_topics?.length || 0);
         }
         
-        // If we created a new lesson, construct the upcoming lesson state directly
+        // If we created a new lesson, we might want to refresh the upcoming lesson
         if (result.created) {
-          console.log('🔄 Creating upcoming lesson state directly from result...');
-          const newUpcomingLesson: UpcomingLesson = {
-            id: result.lesson_id,
-            date: new Date().toISOString(), // Use current time as default
-            status: 'upcoming',
-            generated_lessons: result.lessons.map((lesson: LessonPlan) => JSON.stringify(lesson)),
-            sub_topics: subTopics,
-            lesson_template_id: result.lesson_template_id || null,
-            interactive_lesson_content: null
-          };
-          
-          console.log('✅ Setting upcoming lesson state directly:', newUpcomingLesson);
-          setUpcomingLesson(newUpcomingLesson);
-          
-          // Don't call loadUpcomingLesson() here to avoid race condition
-          console.log('✅ Skipping database refetch to avoid race condition');
+          console.log('🔄 Reloading upcoming lesson data after creation...');
+          await loadUpcomingLesson();
         }
         
         const actionText = result.updated ? 'regenerated' : 'generated';
-        toast.success(`AI lesson plans ${actionText} successfully with ${subTopics.length} sub-topics!`);
+        toast.success(`AI lesson plans ${actionText} successfully with ${result.sub_topics?.length || 0} sub-topics!`);
       } else {
         throw new Error(result.error || 'Invalid response format');
       }
@@ -365,31 +339,22 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
   const handleUseLessonPlan = async (lessonIndex: number) => {
     console.log('🎯 handleUseLessonPlan called with index:', lessonIndex);
     
-    // Debug the button disabled conditions
-    console.log('🔍 DEBUG: Button disabled conditions check:');
-    console.log('  - upcomingLesson exists:', !!upcomingLesson);
-    console.log('  - upcomingLesson value:', upcomingLesson);
-    console.log('  - isGeneratingInteractive:', isGeneratingInteractive);
-    console.log('  - availableSubTopics length:', availableSubTopics.length);
-    console.log('  - availableSubTopics value:', availableSubTopics);
-    
-    const isButtonDisabled = !upcomingLesson || isGeneratingInteractive || !availableSubTopics.length;
-    console.log('  - Button should be disabled:', isButtonDisabled);
-    
     if (!upcomingLesson) {
       console.log('❌ No upcoming lesson available');
       toast.error('No lesson available to generate interactive material for');
       return;
     }
 
-    if (!availableSubTopics || availableSubTopics.length === 0) {
-      console.log('❌ No sub-topics available');
-      console.log('❌ availableSubTopics:', availableSubTopics);
+    // Get sub-topics directly from upcomingLesson
+    const subTopics = upcomingLesson.sub_topics || [];
+    console.log('🔍 Sub-topics from upcomingLesson:', subTopics.length, subTopics);
+
+    if (!subTopics || subTopics.length === 0) {
+      console.log('❌ No sub-topics available in upcomingLesson');
       toast.error('No sub-topics available. Please regenerate lesson plans.');
       return;
     }
 
-    console.log('✅ All conditions met, opening sub-topic selection dialog');
     // Open the sub-topic selection dialog
     setIsSubTopicDialogOpen(true);
   };
@@ -528,6 +493,9 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     if (isGenerating) return "This may take a moment...";
     return "";
   };
+
+  // Get sub-topics directly from upcomingLesson
+  const availableSubTopics = upcomingLesson?.sub_topics || [];
 
   return (
     <MainLayout>
@@ -723,10 +691,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                 <Button 
                                   size="sm" 
                                   className="flex-1 min-w-[120px]"
-                                  onClick={() => {
-                                    console.log('🔘 Choose Sub-topic button clicked for lesson index:', index);
-                                    handleUseLessonPlan(index);
-                                  }}
+                                  onClick={() => handleUseLessonPlan(index)}
                                   disabled={!upcomingLesson || isGeneratingInteractive || !availableSubTopics.length}
                                 >
                                   {isGeneratingInteractive ? (
