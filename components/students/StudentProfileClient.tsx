@@ -146,6 +146,10 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       if (lessons && lessons.length > 0) {
         const lesson = lessons[0];
         console.log('✅ Found upcoming lesson:', lesson);
+        console.log('📋 Lesson sub_topics:', lesson.sub_topics);
+        console.log('📋 Sub_topics type:', typeof lesson.sub_topics);
+        console.log('📋 Sub_topics length:', lesson.sub_topics ? lesson.sub_topics.length : 'null');
+        
         setUpcomingLesson(lesson);
 
         // If the lesson has generated content, parse and display it
@@ -164,12 +168,17 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
         // Set available sub-topics from the lesson
         if (lesson.sub_topics && Array.isArray(lesson.sub_topics)) {
+          console.log('✅ Setting available sub-topics:', lesson.sub_topics);
           setAvailableSubTopics(lesson.sub_topics);
-          console.log('✅ Loaded sub-topics:', lesson.sub_topics.length);
+          console.log('✅ Available sub-topics set, count:', lesson.sub_topics.length);
+        } else {
+          console.log('⚠️ No sub-topics found or invalid format');
+          setAvailableSubTopics([]);
         }
       } else {
         console.log('ℹ️ No upcoming lessons found');
         setUpcomingLesson(null);
+        setAvailableSubTopics([]);
       }
 
       // Check if user has generated lessons before (for onboarding)
@@ -270,6 +279,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         
         // Set available sub-topics
         if (result.sub_topics && Array.isArray(result.sub_topics)) {
+          console.log('✅ Setting sub-topics from generation result:', result.sub_topics);
           setAvailableSubTopics(result.sub_topics);
           console.log('✅ Sub-topics loaded:', result.sub_topics.length);
         }
@@ -344,6 +354,17 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
   const handleUseLessonPlan = async (lessonIndex: number) => {
     console.log('🎯 handleUseLessonPlan called with index:', lessonIndex);
     
+    // Debug the button disabled conditions
+    console.log('🔍 DEBUG: Button disabled conditions check:');
+    console.log('  - upcomingLesson exists:', !!upcomingLesson);
+    console.log('  - upcomingLesson value:', upcomingLesson);
+    console.log('  - isGeneratingInteractive:', isGeneratingInteractive);
+    console.log('  - availableSubTopics length:', availableSubTopics.length);
+    console.log('  - availableSubTopics value:', availableSubTopics);
+    
+    const isButtonDisabled = !upcomingLesson || isGeneratingInteractive || !availableSubTopics.length;
+    console.log('  - Button should be disabled:', isButtonDisabled);
+    
     if (!upcomingLesson) {
       console.log('❌ No upcoming lesson available');
       toast.error('No lesson available to generate interactive material for');
@@ -352,10 +373,12 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
     if (!availableSubTopics || availableSubTopics.length === 0) {
       console.log('❌ No sub-topics available');
+      console.log('❌ availableSubTopics:', availableSubTopics);
       toast.error('No sub-topics available. Please regenerate lesson plans.');
       return;
     }
 
+    console.log('✅ All conditions met, opening sub-topic selection dialog');
     // Open the sub-topic selection dialog
     setIsSubTopicDialogOpen(true);
   };
@@ -689,7 +712,10 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                 <Button 
                                   size="sm" 
                                   className="flex-1 min-w-[120px]"
-                                  onClick={() => handleUseLessonPlan(index)}
+                                  onClick={() => {
+                                    console.log('🔘 Choose Sub-topic button clicked for lesson index:', index);
+                                    handleUseLessonPlan(index);
+                                  }}
                                   disabled={!upcomingLesson || isGeneratingInteractive || !availableSubTopics.length}
                                 >
                                   {isGeneratingInteractive ? (
