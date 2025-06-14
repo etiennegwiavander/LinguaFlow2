@@ -98,7 +98,7 @@ VALUES (
         "background_color_var": "primary_bg",
         "content_type": "text",
         "ai_placeholder": "wrap_up_reflection"
-      }
+      } 
     ]
   }'::jsonb
 );
