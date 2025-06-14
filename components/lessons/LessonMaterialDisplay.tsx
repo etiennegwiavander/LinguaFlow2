@@ -2,13 +2,15 @@
   # Updated LessonMaterialDisplay.tsx
   
   1. Changes
-    - Added defensive checks for object properties to prevent React child errors
+    - Added comprehensive defensive checks for all object properties
     - Enhanced error handling for malformed data structures
-    - Added proper string conversion for text, question, and correct_answer properties
+    - Added proper string conversion for all dynamic content
     - Fixed React child rendering error by ensuring all rendered content is valid React nodes
+    - Added top-level section validation
+    - Enhanced fill_in_the_blanks_dialogue element handling
     
   2. Flow
-    - Validates that text properties are strings before rendering
+    - Validates that all properties are safe before rendering
     - Converts objects to JSON strings when necessary
     - Provides meaningful fallback messages
     - Logs warnings for debugging purposes
@@ -137,6 +139,23 @@ const safeStringify = (value: any): string => {
     }
   }
   return String(value);
+};
+
+// Helper function to safely get a string property from an object
+const safeGetString = (obj: any, key: string, fallback: string = ''): string => {
+  if (!obj || typeof obj !== 'object') {
+    return fallback;
+  }
+  return safeStringify(obj[key]) || fallback;
+};
+
+// Helper function to safely get an array from an object
+const safeGetArray = (obj: any, key: string): any[] => {
+  if (!obj || typeof obj !== 'object') {
+    return [];
+  }
+  const value = obj[key];
+  return Array.isArray(value) ? value : [];
 };
 
 export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDisplayProps) {
@@ -290,48 +309,61 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
   const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
     if (!template) return null;
 
-    const colors = template.template_json.colors;
+    // Defensive check for section object
+    if (!section || typeof section !== 'object') {
+      console.warn('Invalid section object:', section);
+      return (
+        <div key="invalid-section" className="p-4 border border-red-200 rounded-lg bg-red-50">
+          <p className="text-red-600">Invalid section data</p>
+        </div>
+      );
+    }
+
+    const colors = template.template_json.colors || {};
     const currentLesson = generatedLessons[lessonIndex];
 
     // Get background color class
     const getBgColor = (colorVar?: string) => {
-      if (!colorVar) return '';
+      if (!colorVar || !colors) return '';
       return colors[colorVar as keyof typeof colors] || '';
     };
 
-    switch (section.type) {
+    const sectionId = safeGetString(section, 'id', 'unknown-section');
+    const sectionType = safeGetString(section, 'type', 'unknown');
+
+    switch (sectionType) {
       case 'title':
         return (
-          <div key={section.id} className="text-center mb-8">
+          <div key={sectionId} className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-800 mb-2">
-              {section.title}
+              {safeGetString(section, 'title', 'Lesson Title')}
             </h1>
             {section.subtitle && (
-              <p className="text-xl text-gray-600">{section.subtitle}</p>
+              <p className="text-xl text-gray-600">{safeGetString(section, 'subtitle', '')}</p>
             )}
           </div>
         );
 
       case 'info_card':
-        const objectives = Array.isArray(section.items) ? section.items : [];
+        const objectives = safeGetArray(section, 'items');
 
         return (
-          <Card key={section.id} className={`mb-6 ${getBgColor(section.background_color_var)}`}>
+          <Card key={sectionId} className={`mb-6 ${getBgColor(section.background_color_var)}`}>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Target className="w-5 h-5 mr-2 text-blue-600" />
-                {section.title}
+                {safeGetString(section, 'title', 'Information')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {typeof section.content === 'string' ? (
-                <p className="text-sm">{section.content}</p>
+                <p className="text-sm">{safeStringify(section.content)}</p>
               ) : (
                 <ul className="space-y-2">
                   {objectives.map((item, index) => (
                     <li key={index} className="flex items-start">
                       <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                      <span>{item}</span>
+                      <span>{safeStringify(item)}</span>
                     </li>
                   ))}
                 </ul>
@@ -342,15 +374,15 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
 
       case 'exercise':
         return (
-          <Card key={section.id} className="mb-6">
+          <Card key={sectionId} className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <BookOpen className="w-5 h-5 mr-2 text-purple-600" />
-                {section.title}
+                {safeGetString(section, 'title', 'Exercise')}
               </CardTitle>
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
-                  <p className="text-sm font-medium">{section.instruction}</p>
+                  <p className="text-sm font-medium">{safeGetString(section, 'instruction', '')}</p>
                 </div>
               )}
             </CardHeader>
@@ -361,16 +393,22 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         );
 
       default:
-        return null;
+        console.warn(`Unknown section type: ${sectionType}`);
+        return (
+          <div key={sectionId} className="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+            <p className="text-yellow-600">Unknown section type: {sectionType}</p>
+          </div>
+        );
     }
   };
 
   const renderExerciseContent = (section: TemplateSection, lessonIndex: number) => {
     const currentLesson = generatedLessons[lessonIndex];
+    const contentType = safeGetString(section, 'content_type', 'unknown');
 
-    switch (section.content_type) {
+    switch (contentType) {
       case 'list':
-        const items = Array.isArray(section.items) ? section.items : [];
+        const items = safeGetArray(section, 'items');
 
         if (items.length === 0) {
           console.warn(`No items found for list section: ${section.id}`);
@@ -385,7 +423,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {items.map((item: string, index: number) => (
               <div key={index} className="p-3 bg-gray-50 rounded-lg text-center">
-                <span className="font-medium">{item}</span>
+                <span className="font-medium">{safeStringify(item)}</span>
               </div>
             ))}
           </div>
@@ -394,12 +432,12 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
       case 'text':
         return (
           <div className="prose max-w-none">
-            <p>{section.content || 'Content will be displayed here.'}</p>
+            <p>{safeGetString(section, 'content', 'Content will be displayed here.')}</p>
           </div>
         );
 
       case 'vocabulary_matching':
-        const vocabularyItems = Array.isArray(section.vocabulary_items) ? section.vocabulary_items : [];
+        const vocabularyItems = safeGetArray(section, 'vocabulary_items');
 
         if (vocabularyItems.length === 0) {
           console.warn(`No vocabulary items found for section: ${section.id}`);
@@ -416,14 +454,14 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
               <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
                 {item.image_url && (
                   <img 
-                    src={item.image_url} 
-                    alt={item.name}
+                    src={safeStringify(item.image_url)} 
+                    alt={safeStringify(item.name)}
                     className="w-16 h-16 rounded-full object-cover"
                   />
                 )}
                 <div>
-                  <h4 className="font-semibold">{item.name}</h4>
-                  <p className="text-sm text-gray-600">{item.prompt}</p>
+                  <h4 className="font-semibold">{safeStringify(item.name)}</h4>
+                  <p className="text-sm text-gray-600">{safeStringify(item.prompt)}</p>
                 </div>
                 <Button size="sm" variant="outline">
                   <Volume2 className="w-4 h-4" />
@@ -434,7 +472,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         );
 
       case 'full_dialogue':
-        const dialogueLines = Array.isArray(section.dialogue_lines) ? section.dialogue_lines : [];
+        const dialogueLines = safeGetArray(section, 'dialogue_lines');
 
         if (dialogueLines.length === 0) {
           console.warn(`No dialogue lines found for section: ${section.id}`);
@@ -455,7 +493,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                   <span className={`text-xs font-bold ${
                     line.character === 'Tutor' ? 'text-green-600' : 'text-blue-600'
                   }`}>
-                    {line.character ? line.character[0] : '?'}
+                    {line.character ? safeStringify(line.character)[0] : '?'}
                   </span>
                 </div>
                 <div className={`flex-1 p-3 rounded-lg ${
@@ -464,9 +502,9 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                   <p className={`font-medium ${
                     line.character === 'Tutor' ? 'text-green-800' : 'text-blue-800'
                   }`}>
-                    {line.character || 'Speaker'}:
+                    {safeStringify(line.character) || 'Speaker'}:
                   </p>
-                  <p>{line.text || 'No text available'}</p>
+                  <p>{safeStringify(line.text) || 'No text available'}</p>
                 </div>
               </div>
             ))}
@@ -474,7 +512,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         );
 
       case 'fill_in_the_blanks_dialogue':
-        const dialogueElements = Array.isArray(section.dialogue_elements) ? section.dialogue_elements : [];
+        const dialogueElements = safeGetArray(section, 'dialogue_elements');
 
         if (dialogueElements.length === 0) {
           console.warn(`No dialogue elements found for section: ${section.id}`);
@@ -488,69 +526,90 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         return (
           <div className="space-y-4">
             {dialogueElements.map((element, index) => {
+              // Defensive check for element object
+              if (!element || typeof element !== 'object') {
+                console.warn(`Invalid dialogue element at index ${index}:`, element);
+                return (
+                  <div key={index} className="p-3 border border-red-200 rounded-lg bg-red-50">
+                    <p className="text-red-600 text-sm">Invalid dialogue element</p>
+                  </div>
+                );
+              }
+
+              const elementType = safeGetString(element, 'type', 'unknown');
+
               // Handle different element types properly
-              if (element.type === 'dialogue') {
+              if (elementType === 'dialogue') {
+                const character = safeGetString(element, 'character', 'Speaker');
+                const text = safeGetString(element, 'text', 'No text available');
+                
                 return (
                   <div key={index} className="flex items-start space-x-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      element.character === 'Tutor' ? 'bg-green-100' : 'bg-blue-100'
+                      character === 'Tutor' ? 'bg-green-100' : 'bg-blue-100'
                     }`}>
                       <span className={`text-xs font-bold ${
-                        element.character === 'Tutor' ? 'text-green-600' : 'text-blue-600'
+                        character === 'Tutor' ? 'text-green-600' : 'text-blue-600'
                       }`}>
-                        {element.character ? element.character[0] : '?'}
+                        {character[0] || '?'}
                       </span>
                     </div>
                     <div className={`flex-1 p-3 rounded-lg ${
-                      element.character === 'Tutor' ? 'bg-green-50' : 'bg-blue-50'
+                      character === 'Tutor' ? 'bg-green-50' : 'bg-blue-50'
                     }`}>
                       <p className={`font-medium ${
-                        element.character === 'Tutor' ? 'text-green-800' : 'text-blue-800'
+                        character === 'Tutor' ? 'text-green-800' : 'text-blue-800'
                       }`}>
-                        {element.character || 'Speaker'}:
+                        {character}:
                       </p>
-                      <p>{safeStringify(element.text) || 'No text available'}</p>
+                      <p>{text}</p>
                     </div>
                   </div>
                 );
-              } else if (element.type === 'multiple_choice') {
+              } else if (elementType === 'multiple_choice') {
+                const question = safeGetString(element, 'question', '') || safeGetString(element, 'text', 'Question not available');
+                const options = safeGetArray(element, 'options');
+                const correctAnswer = safeGetString(element, 'correct_answer', '');
+                
                 return (
                   <div key={index} className="border rounded-lg p-4 bg-yellow-50">
-                    <p className="font-medium mb-3">
-                      {safeStringify(element.text || element.question) || 'Question not available'}
-                    </p>
+                    <p className="font-medium mb-3">{question}</p>
                     <RadioGroup 
                       onValueChange={(value) => handleAnswerChange(`${section.id}_mc_${index}`, value)}
                     >
-                      {Array.isArray(element.options) && element.options.map((option: string, optIndex: number) => (
+                      {options.length > 0 ? options.map((option: any, optIndex: number) => (
                         <div key={optIndex} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option} id={`${section.id}_${index}_${optIndex}`} />
+                          <RadioGroupItem value={safeStringify(option)} id={`${section.id}_${index}_${optIndex}`} />
                           <Label htmlFor={`${section.id}_${index}_${optIndex}`}>{safeStringify(option)}</Label>
                         </div>
-                      ))}
-                      {(!Array.isArray(element.options) || element.options.length === 0) && (
+                      )) : (
                         <p className="text-sm text-gray-500">No answer options available</p>
                       )}
                     </RadioGroup>
-                    {element.correct_answer && (
+                    {correctAnswer && (
                       <p className="text-xs text-gray-500 mt-2">
-                        Correct answer: {safeStringify(element.correct_answer)}
+                        Correct answer: {correctAnswer}
                       </p>
                     )}
                   </div>
                 );
               } else {
-                // Return null for unrecognized element types to prevent rendering errors
-                console.warn(`Unknown dialogue element type: ${element.type}`);
-                return null;
+                // Return a warning for unrecognized element types
+                console.warn(`Unknown dialogue element type: ${elementType}`);
+                return (
+                  <div key={index} className="p-3 border border-yellow-200 rounded-lg bg-yellow-50">
+                    <p className="text-yellow-600 text-sm">Unknown element type: {elementType}</p>
+                  </div>
+                );
               }
             })}
           </div>
         );
 
       case 'matching':
-        // Add defensive check for matching_pairs
-        if (!Array.isArray(section.matching_pairs) || section.matching_pairs.length === 0) {
+        const matchingPairs = safeGetArray(section, 'matching_pairs');
+
+        if (matchingPairs.length === 0) {
           console.warn(`No matching pairs found for section: ${section.id}`);
           return (
             <div className="text-center py-4 text-gray-500">
@@ -561,31 +620,36 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
 
         return (
           <div className="space-y-4">
-            {section.matching_pairs.map((pair, index) => (
-              <div key={index} className="border rounded-lg p-4">
-                <p className="font-medium mb-3">{safeStringify(pair.question) || 'Question not available'}</p>
-                <RadioGroup 
-                  onValueChange={(value) => handleAnswerChange(`${section.id}_match_${index}`, value)}
-                >
-                  {Array.isArray(pair.answers) && pair.answers.map((answer: string, ansIndex: number) => (
-                    <div key={ansIndex} className="flex items-center space-x-2">
-                      <RadioGroupItem value={answer} id={`${section.id}_${index}_${ansIndex}`} />
-                      <Label htmlFor={`${section.id}_${index}_${ansIndex}`}>{safeStringify(answer)}</Label>
-                    </div>
-                  ))}
-                  {(!Array.isArray(pair.answers) || pair.answers.length === 0) && (
-                    <p className="text-sm text-gray-500">No answer options available</p>
-                  )}
-                </RadioGroup>
-              </div>
-            ))}
+            {matchingPairs.map((pair, index) => {
+              const question = safeGetString(pair, 'question', 'Question not available');
+              const answers = safeGetArray(pair, 'answers');
+              
+              return (
+                <div key={index} className="border rounded-lg p-4">
+                  <p className="font-medium mb-3">{question}</p>
+                  <RadioGroup 
+                    onValueChange={(value) => handleAnswerChange(`${section.id}_match_${index}`, value)}
+                  >
+                    {answers.length > 0 ? answers.map((answer: any, ansIndex: number) => (
+                      <div key={ansIndex} className="flex items-center space-x-2">
+                        <RadioGroupItem value={safeStringify(answer)} id={`${section.id}_${index}_${ansIndex}`} />
+                        <Label htmlFor={`${section.id}_${index}_${ansIndex}`}>{safeStringify(answer)}</Label>
+                      </div>
+                    )) : (
+                      <p className="text-sm text-gray-500">No answer options available</p>
+                    )}
+                  </RadioGroup>
+                </div>
+              );
+            })}
           </div>
         );
 
       default:
+        console.warn(`Unknown content type: ${contentType}`);
         return (
           <div className="text-center py-8 text-gray-500">
-            <p>Content type "{section.content_type}" will be displayed here.</p>
+            <p>Content type "{contentType}" will be displayed here.</p>
           </div>
         );
     }
@@ -635,6 +699,24 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
 
   // If we have interactive content and a template, render the interactive lesson
   if (lesson.interactive_lesson_content && template) {
+    // Defensive check for template structure
+    if (!template.template_json || !template.template_json.sections) {
+      console.error('Invalid template structure:', template);
+      return (
+        <div className="flex items-center justify-center h-[50vh]">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Invalid Template Structure</h3>
+            <p className="text-muted-foreground">The lesson template has an invalid structure.</p>
+          </div>
+        </div>
+      );
+    }
+
+    const sections = safeGetArray(template.template_json, 'sections');
+
     return (
       <div className="space-y-6 max-w-4xl mx-auto">
         <div className="mb-6 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
@@ -651,7 +733,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
           </div>
         </div>
 
-        {Array.isArray(template.template_json.sections) && template.template_json.sections.map((section) => 
+        {sections.map((section, index) => 
           renderTemplateSection(section, 0)
         )}
         
@@ -684,7 +766,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <BookOpen className="w-5 h-5 mr-2 text-primary" />
-                  {lessonPlan.title}
+                  {safeStringify(lessonPlan.title)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -697,7 +779,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                     {Array.isArray(lessonPlan.objectives) && lessonPlan.objectives.map((objective, objIndex) => (
                       <li key={objIndex} className="flex items-start">
                         <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                        <span>{objective}</span>
+                        <span>{safeStringify(objective)}</span>
                       </li>
                     ))}
                   </ul>
@@ -714,7 +796,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                     {Array.isArray(lessonPlan.activities) && lessonPlan.activities.map((activity, actIndex) => (
                       <li key={actIndex} className="flex items-start">
                         <ArrowRight className="w-4 h-4 mr-2 mt-0.5 text-purple-500 flex-shrink-0" />
-                        <span>{activity}</span>
+                        <span>{safeStringify(activity)}</span>
                       </li>
                     ))}
                   </ul>
@@ -732,7 +814,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                       {Array.isArray(lessonPlan.materials) && lessonPlan.materials.map((material, matIndex) => (
                         <li key={matIndex} className="flex items-start">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          <span>{material}</span>
+                          <span>{safeStringify(material)}</span>
                         </li>
                       ))}
                     </ul>
@@ -747,7 +829,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                       {Array.isArray(lessonPlan.assessment) && lessonPlan.assessment.map((item, assIndex) => (
                         <li key={assIndex} className="flex items-start">
                           <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          <span>{item}</span>
+                          <span>{safeStringify(item)}</span>
                         </li>
                       ))}
                     </ul>
