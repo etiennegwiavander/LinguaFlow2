@@ -5,11 +5,13 @@
     - Added defensive checks for array properties to prevent undefined errors
     - Enhanced error handling for malformed data structures
     - Added fallback content when data is missing or invalid
+    - Fixed React child rendering error by properly handling multiple_choice elements
     
   2. Flow
     - Validates array properties before mapping
     - Provides meaningful fallback messages
     - Logs warnings for debugging purposes
+    - Properly renders multiple_choice elements as JSX components
 */
 
 "use client";
@@ -446,6 +448,79 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                 </div>
               </div>
             ))}
+          </div>
+        );
+
+      case 'fill_in_the_blanks_dialogue':
+        const dialogueElements = Array.isArray(section.dialogue_elements) ? section.dialogue_elements : [];
+
+        if (dialogueElements.length === 0) {
+          console.warn(`No dialogue elements found for section: ${section.id}`);
+          return (
+            <div className="text-center py-4 text-gray-500">
+              <p>No dialogue elements available for this exercise.</p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="space-y-4">
+            {dialogueElements.map((element, index) => {
+              // Handle different element types properly
+              if (element.type === 'dialogue') {
+                return (
+                  <div key={index} className="flex items-start space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      element.character === 'Tutor' ? 'bg-green-100' : 'bg-blue-100'
+                    }`}>
+                      <span className={`text-xs font-bold ${
+                        element.character === 'Tutor' ? 'text-green-600' : 'text-blue-600'
+                      }`}>
+                        {element.character ? element.character[0] : '?'}
+                      </span>
+                    </div>
+                    <div className={`flex-1 p-3 rounded-lg ${
+                      element.character === 'Tutor' ? 'bg-green-50' : 'bg-blue-50'
+                    }`}>
+                      <p className={`font-medium ${
+                        element.character === 'Tutor' ? 'text-green-800' : 'text-blue-800'
+                      }`}>
+                        {element.character || 'Speaker'}:
+                      </p>
+                      <p>{element.text || 'No text available'}</p>
+                    </div>
+                  </div>
+                );
+              } else if (element.type === 'multiple_choice') {
+                return (
+                  <div key={index} className="border rounded-lg p-4 bg-yellow-50">
+                    <p className="font-medium mb-3">{element.text || element.question || 'Question not available'}</p>
+                    <RadioGroup 
+                      onValueChange={(value) => handleAnswerChange(`${section.id}_mc_${index}`, value)}
+                    >
+                      {Array.isArray(element.options) && element.options.map((option: string, optIndex: number) => (
+                        <div key={optIndex} className="flex items-center space-x-2">
+                          <RadioGroupItem value={option} id={`${section.id}_${index}_${optIndex}`} />
+                          <Label htmlFor={`${section.id}_${index}_${optIndex}`}>{option}</Label>
+                        </div>
+                      ))}
+                      {(!Array.isArray(element.options) || element.options.length === 0) && (
+                        <p className="text-sm text-gray-500">No answer options available</p>
+                      )}
+                    </RadioGroup>
+                    {element.correct_answer && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Correct answer: {element.correct_answer}
+                      </p>
+                    )}
+                  </div>
+                );
+              } else {
+                // Return null for unrecognized element types to prevent rendering errors
+                console.warn(`Unknown dialogue element type: ${element.type}`);
+                return null;
+              }
+            })}
           </div>
         );
 
