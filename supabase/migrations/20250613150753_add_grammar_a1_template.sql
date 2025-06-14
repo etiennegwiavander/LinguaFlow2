@@ -6,7 +6,7 @@ VALUES (
   'a1',
   '{
     "name": "Grammar Lesson",
-    "category": "Grammar",
+    "category": "Grammar", 
     "level": "a1",
     "colors": {
       "primary_bg": "bg-green-50",
