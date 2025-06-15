@@ -1,15 +1,20 @@
 /*
-  # Fixed LessonMaterialDisplay.tsx - Dialogue Property Mapping
+  # Fixed LessonMaterialDisplay.tsx - Complete Issue Resolution
   
   1. Changes
-    - Fixed dialogue rendering to use correct property names
-    - Changed line.character to line.speaker 
-    - Changed line.text to line.line
-    - Updated safeGetString calls to match actual data structure
+    - Fixed vocabulary rendering to use correct property names (word/definition)
+    - Added support for grammar_explanation content type
+    - Added support for example_sentences content type
+    - Fixed dialogue parsing to handle string format from AI
+    - Updated matching questions to work with single answer format
+    - Removed debug console.log statements
     
-  2. Fix
-    - Dialogue objects have 'speaker' and 'line' properties, not 'character' and 'text'
-    - This resolves the "No text available" issue in dialogue sections
+  2. Fixes
+    - Vocabulary items now display correctly using word/definition properties
+    - Grammar explanations render with proper formatting
+    - Example sentences display as a formatted list
+    - Dialogue lines parse character names and text from string format
+    - Matching questions show question and answer pairs properly
 */
 
 "use client";
@@ -83,6 +88,8 @@ interface TemplateSection {
   ordering_items?: string[];
   ai_placeholder?: string;
   content?: string;
+  explanation_content?: string;
+  sentences?: string[];
 }
 
 interface Lesson {
@@ -140,17 +147,11 @@ const safeStringify = (value: any): string => {
 // Helper function to safely get a string property from an object
 const safeGetString = (obj: any, key: string, fallback: string = ''): string => {
   if (!obj || typeof obj !== 'object') {
-    console.log(`🔍 DEBUG safeGetString: obj is not an object:`, obj);
     return fallback;
   }
   
   const value = obj[key];
   const result = safeStringify(value) || fallback;
-  
-  // Log when we're about to return the fallback
-  if (result === fallback && fallback !== '') {
-    console.log(`🔍 DEBUG safeGetString: Using fallback "${fallback}" for key "${key}". Original value:`, value, 'Object:', obj);
-  }
   
   return result;
 };
@@ -162,6 +163,24 @@ const safeGetArray = (obj: any, key: string): any[] => {
   }
   const value = obj[key];
   return Array.isArray(value) ? value : [];
+};
+
+// Helper function to parse dialogue strings like "A: Hello! I am Maria."
+const parseDialogueLine = (line: string): { character: string; text: string } => {
+  if (typeof line !== 'string') {
+    return { character: 'Speaker', text: 'No text available' };
+  }
+  
+  const match = line.match(/^([^:]+):\s*(.*)$/);
+  if (match) {
+    return {
+      character: match[1].trim(),
+      text: match[2].trim()
+    };
+  }
+  
+  // Fallback if no colon found
+  return { character: 'Speaker', text: line };
 };
 
 export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDisplayProps) {
@@ -179,8 +198,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
 
     const fetchLessonData = async () => {
       try {
-        console.log('🔍 Fetching lesson data for ID:', lessonId);
-
         // Fetch lesson with student details and interactive content
         const { data: lessonData, error: lessonError } = await supabase
           .from('lessons')
@@ -197,7 +214,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
           .single();
 
         if (lessonError) {
-          console.error('❌ Lesson fetch error:', lessonError);
           throw new Error('Failed to fetch lesson data');
         }
 
@@ -205,17 +221,12 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
           throw new Error('Lesson not found');
         }
 
-        console.log('✅ Lesson data fetched:', lessonData);
         setLesson(lessonData as Lesson);
 
         // Check if we have interactive lesson content
         if (lessonData.interactive_lesson_content) {
-          console.log('✅ Interactive lesson content found');
-          
           // If we have a lesson template ID, fetch the template structure
           if (lessonData.lesson_template_id) {
-            console.log('🎯 Fetching lesson template:', lessonData.lesson_template_id);
-            
             const { data: templateData, error: templateError } = await supabase
               .from('lesson_templates')
               .select('*')
@@ -225,7 +236,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
             if (templateError) {
               console.error('⚠️ Could not fetch lesson template:', templateError);
             } else {
-              console.log('✅ Template data fetched:', templateData);
               // Use the interactive content as the template JSON
               const finalTemplate = {
                 ...templateData,
@@ -233,18 +243,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
               } as LessonTemplate;
               
               setTemplate(finalTemplate);
-              
-              // 🔍 DEBUG: Log the complete template structure after setting
-              console.log('🔍 DEBUG: Complete template.template_json structure:', JSON.stringify(finalTemplate.template_json, null, 2));
-              console.log('🔍 DEBUG: Template sections:', finalTemplate.template_json.sections);
-              
-              // Log each section to see their structure
-              finalTemplate.template_json.sections?.forEach((section, index) => {
-                console.log(`🔍 DEBUG: Section ${index} (${section.id}):`, section);
-                if (section.content_type === 'full_dialogue' && section.dialogue_lines) {
-                  console.log(`🔍 DEBUG: Section ${index} dialogue_lines:`, section.dialogue_lines);
-                }
-              });
             }
           } else {
             // Create a mock template with the interactive content
@@ -257,21 +255,15 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
             } as LessonTemplate;
             
             setTemplate(mockTemplate);
-            
-            // 🔍 DEBUG: Log the mock template structure
-            console.log('🔍 DEBUG: Mock template.template_json structure:', JSON.stringify(mockTemplate.template_json, null, 2));
           }
         } else {
           // Fall back to generated lessons if no interactive content
-          console.log('📝 No interactive content, using generated lessons');
-          
           if (lessonData.generated_lessons && lessonData.generated_lessons.length > 0) {
             try {
               const parsedLessons = lessonData.generated_lessons.map((lessonStr: string) => 
                 JSON.parse(lessonStr)
               );
               setGeneratedLessons(parsedLessons);
-              console.log('✅ Generated lessons parsed:', parsedLessons.length);
             } catch (parseError) {
               console.error('❌ Error parsing generated lessons:', parseError);
               setError('Failed to parse lesson content');
@@ -281,8 +273,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
 
           // Fetch lesson template if available for fallback
           if (lessonData.lesson_template_id) {
-            console.log('🎯 Fetching lesson template for fallback:', lessonData.lesson_template_id);
-            
             const { data: templateData, error: templateError } = await supabase
               .from('lesson_templates')
               .select('*')
@@ -292,14 +282,12 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
             if (templateError) {
               console.error('⚠️ Could not fetch lesson template:', templateError);
             } else {
-              console.log('✅ Template data fetched for fallback:', templateData);
               setTemplate(templateData as LessonTemplate);
             }
           }
         }
 
       } catch (err: any) {
-        console.error('❌ Error in fetchLessonData:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -398,13 +386,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         );
 
       case 'exercise':
-        // 🔍 DEBUG: Log the section object before calling renderExerciseContent
-        console.log(`🔍 DEBUG renderTemplateSection: Exercise section "${sectionId}":`, section);
-        console.log(`🔍 DEBUG renderTemplateSection: Section content_type:`, section.content_type);
-        if (section.content_type === 'full_dialogue') {
-          console.log(`🔍 DEBUG renderTemplateSection: dialogue_lines before renderExerciseContent:`, section.dialogue_lines);
-        }
-        
         return (
           <Card key={sectionId} className="mb-6">
             <CardHeader>
@@ -443,7 +424,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         const items = safeGetArray(section, 'items');
 
         if (items.length === 0) {
-          console.warn(`No items found for list section: ${section.id}`);
           return (
             <div className="text-center py-4 text-gray-500">
               <p>No items available for this exercise.</p>
@@ -452,9 +432,9 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         }
 
         return (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="space-y-3">
             {items.map((item: string, index: number) => (
-              <div key={index} className="p-3 bg-gray-50 rounded-lg text-center">
+              <div key={index} className="p-3 bg-gray-50 rounded-lg">
                 <span className="font-medium">{safeStringify(item)}</span>
               </div>
             ))}
@@ -468,11 +448,49 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
           </div>
         );
 
+      case 'grammar_explanation':
+        const explanationContent = safeGetString(section, 'explanation_content', 'No explanation available.');
+        
+        return (
+          <div className="prose max-w-none">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                {explanationContent}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'example_sentences':
+        const sentences = safeGetArray(section, 'sentences');
+        
+        if (sentences.length === 0) {
+          return (
+            <div className="text-center py-4 text-gray-500">
+              <p>No example sentences available.</p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="space-y-2">
+            <ul className="space-y-3">
+              {sentences.map((sentence: string, index: number) => (
+                <li key={index} className="flex items-start">
+                  <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">
+                    {index + 1}
+                  </span>
+                  <span className="text-sm">{safeStringify(sentence)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+
       case 'vocabulary_matching':
         const vocabularyItems = safeGetArray(section, 'vocabulary_items');
 
         if (vocabularyItems.length === 0) {
-          console.warn(`No vocabulary items found for section: ${section.id}`);
           return (
             <div className="text-center py-4 text-gray-500">
               <p>No vocabulary items available for this exercise.</p>
@@ -487,13 +505,13 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                 {item.image_url && (
                   <img 
                     src={safeStringify(item.image_url)} 
-                    alt={safeStringify(item.name)}
+                    alt={safeStringify(item.word || item.name)}
                     className="w-16 h-16 rounded-full object-cover"
                   />
                 )}
-                <div>
-                  <h4 className="font-semibold">{safeStringify(item.name)}</h4>
-                  <p className="text-sm text-gray-600">{safeStringify(item.prompt)}</p>
+                <div className="flex-1">
+                  <h4 className="font-semibold">{safeStringify(item.word || item.name)}</h4>
+                  <p className="text-sm text-gray-600">{safeStringify(item.definition || item.prompt)}</p>
                 </div>
                 <Button size="sm" variant="outline">
                   <Volume2 className="w-4 h-4" />
@@ -506,13 +524,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
       case 'full_dialogue':
         const dialogueLines = safeGetArray(section, 'dialogue_lines');
 
-        // 🔍 DEBUG: Log the dialogue lines array
-        console.log(`🔍 DEBUG renderExerciseContent: full_dialogue section "${section.id}" dialogue_lines:`, dialogueLines);
-        console.log(`🔍 DEBUG renderExerciseContent: dialogue_lines length:`, dialogueLines.length);
-        console.log(`🔍 DEBUG renderExerciseContent: dialogue_lines type:`, typeof dialogueLines);
-
         if (dialogueLines.length === 0) {
-          console.warn(`No dialogue lines found for section: ${section.id}`);
           return (
             <div className="text-center py-4 text-gray-500">
               <p>No dialogue content available for this exercise.</p>
@@ -523,35 +535,37 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         return (
           <div className="space-y-3">
             {dialogueLines.map((line, index) => {
-              // 🔍 DEBUG: Log each individual line object
-              console.log(`🔍 DEBUG renderExerciseContent: Line ${index}:`, line);
-              console.log(`🔍 DEBUG renderExerciseContent: Line ${index} speaker:`, line.speaker);
-              console.log(`🔍 DEBUG renderExerciseContent: Line ${index} line:`, line.line);
-              console.log(`🔍 DEBUG renderExerciseContent: Line ${index} type:`, typeof line);
+              let character: string;
+              let text: string;
               
-              // FIXED: Use correct property names - 'speaker' instead of 'character', 'line' instead of 'text'
-              const character = safeGetString(line, 'speaker', 'Speaker');
-              const text = safeGetString(line, 'line', 'No text available');
-              
-              // 🔍 DEBUG: Log the processed values
-              console.log(`🔍 DEBUG renderExerciseContent: Processed line ${index} - character: "${character}", text: "${text}"`);
+              // Handle both object format and string format
+              if (typeof line === 'object' && line !== null) {
+                // Object format: { speaker: "Person A", line: "Hello!" }
+                character = safeGetString(line, 'speaker', 'Speaker');
+                text = safeGetString(line, 'line', 'No text available');
+              } else {
+                // String format: "A: Hello! I am Maria."
+                const parsed = parseDialogueLine(line);
+                character = parsed.character;
+                text = parsed.text;
+              }
               
               return (
                 <div key={index} className="flex items-start space-x-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    character === 'Tutor' ? 'bg-green-100' : 'bg-blue-100'
+                    character.toLowerCase().includes('teacher') || character.toLowerCase().includes('tutor') ? 'bg-green-100' : 'bg-blue-100'
                   }`}>
                     <span className={`text-xs font-bold ${
-                      character === 'Tutor' ? 'text-green-600' : 'text-blue-600'
+                      character.toLowerCase().includes('teacher') || character.toLowerCase().includes('tutor') ? 'text-green-600' : 'text-blue-600'
                     }`}>
                       {character ? character[0] : '?'}
                     </span>
                   </div>
                   <div className={`flex-1 p-3 rounded-lg ${
-                    character === 'Tutor' ? 'bg-green-50' : 'bg-blue-50'
+                    character.toLowerCase().includes('teacher') || character.toLowerCase().includes('tutor') ? 'bg-green-50' : 'bg-blue-50'
                   }`}>
                     <p className={`font-medium ${
-                      character === 'Tutor' ? 'text-green-800' : 'text-blue-800'
+                      character.toLowerCase().includes('teacher') || character.toLowerCase().includes('tutor') ? 'text-green-800' : 'text-blue-800'
                     }`}>
                       {character}:
                     </p>
@@ -567,7 +581,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         const dialogueElements = safeGetArray(section, 'dialogue_elements');
 
         if (dialogueElements.length === 0) {
-          console.warn(`No dialogue elements found for section: ${section.id}`);
           return (
             <div className="text-center py-4 text-gray-500">
               <p>No dialogue elements available for this exercise.</p>
@@ -580,7 +593,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
             {dialogueElements.map((element, index) => {
               // Defensive check for element object
               if (!element || typeof element !== 'object') {
-                console.warn(`Invalid dialogue element at index ${index}:`, element);
                 return (
                   <div key={index} className="p-3 border border-red-200 rounded-lg bg-red-50">
                     <p className="text-red-600 text-sm">Invalid dialogue element</p>
@@ -647,7 +659,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                 );
               } else {
                 // Return a warning for unrecognized element types
-                console.warn(`Unknown dialogue element type: ${elementType}`);
                 return (
                   <div key={index} className="p-3 border border-yellow-200 rounded-lg bg-yellow-50">
                     <p className="text-yellow-600 text-sm">Unknown element type: {elementType}</p>
@@ -662,7 +673,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         const matchingPairs = safeGetArray(section, 'matching_pairs');
 
         if (matchingPairs.length === 0) {
-          console.warn(`No matching pairs found for section: ${section.id}`);
           return (
             <div className="text-center py-4 text-gray-500">
               <p>No matching questions available for this exercise.</p>
@@ -674,23 +684,18 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
           <div className="space-y-4">
             {matchingPairs.map((pair, index) => {
               const question = safeGetString(pair, 'question', 'Question not available');
-              const answers = safeGetArray(pair, 'answers');
+              const answer = safeGetString(pair, 'answer', 'No answer available');
               
               return (
-                <div key={index} className="border rounded-lg p-4">
-                  <p className="font-medium mb-3">{question}</p>
-                  <RadioGroup 
-                    onValueChange={(value) => handleAnswerChange(`${section.id}_match_${index}`, value)}
-                  >
-                    {answers.length > 0 ? answers.map((answer: any, ansIndex: number) => (
-                      <div key={ansIndex} className="flex items-center space-x-2">
-                        <RadioGroupItem value={safeStringify(answer)} id={`${section.id}_${index}_${ansIndex}`} />
-                        <Label htmlFor={`${section.id}_${index}_${ansIndex}`}>{safeStringify(answer)}</Label>
-                      </div>
-                    )) : (
-                      <p className="text-sm text-gray-500">No answer options available</p>
-                    )}
-                  </RadioGroup>
+                <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-medium text-gray-800">{question}</p>
+                    </div>
+                    <div className="pl-4 border-l-2 border-blue-200">
+                      <p className="text-sm text-blue-700 font-medium">Answer: {answer}</p>
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -698,7 +703,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         );
 
       default:
-        console.warn(`Unknown content type: ${contentType}`);
         return (
           <div className="text-center py-8 text-gray-500">
             <p>Content type "{contentType}" will be displayed here.</p>
@@ -753,7 +757,6 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
   if (lesson.interactive_lesson_content && template) {
     // Defensive check for template structure
     if (!template.template_json || !template.template_json.sections) {
-      console.error('Invalid template structure:', template);
       return (
         <div className="flex items-center justify-center h-[50vh]">
           <div className="text-center">
