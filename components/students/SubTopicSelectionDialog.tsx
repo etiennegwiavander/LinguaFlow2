@@ -76,10 +76,17 @@ export default function SubTopicSelectionDialog({
   isGenerating,
   generationProgress
 }: SubTopicSelectionDialogProps) {
+  console.log('🔍 DEBUG: SubTopicSelectionDialog received subTopics prop:', subTopics);
+  console.log('🔍 DEBUG: Type of subTopics prop:', typeof subTopics);
+  console.log('🔍 DEBUG: Is subTopics an array?', Array.isArray(subTopics));
+  console.log('🔍 DEBUG: subTopics length:', subTopics?.length);
+
   const [editedSubTopics, setEditedSubTopics] = useState<SubTopic[]>(subTopics);
+  console.log('🔍 DEBUG: editedSubTopics state initialized to:', editedSubTopics);
 
   // Update edited sub-topics when props change
   useState(() => {
+    console.log('🔍 DEBUG: useState effect - updating editedSubTopics with new subTopics:', subTopics);
     setEditedSubTopics(subTopics);
   }, [subTopics]);
 
@@ -101,6 +108,8 @@ export default function SubTopicSelectionDialog({
   const getCategoryColor = (category: string) => {
     return categoryColors[category as keyof typeof categoryColors] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
+
+  console.log('🔍 DEBUG: About to render dialog with editedSubTopics:', editedSubTopics);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,6 +147,14 @@ export default function SubTopicSelectionDialog({
               <p className="text-muted-foreground">
                 Generate lesson plans first to see available sub-topics.
               </p>
+              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>Debug Info:</strong> Received {subTopics?.length || 0} sub-topics from parent component.
+                  {subTopics && subTopics.length > 0 && (
+                    <span> Sub-topics data: {JSON.stringify(subTopics, null, 2)}</span>
+                  )}
+                </p>
+              </div>
             </div>
           ) : (
             <div className="grid gap-4">

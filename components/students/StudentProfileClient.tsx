@@ -140,12 +140,17 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         return;
       }
 
-      console.log('📊 Query results:', lessons);
+      console.log('📊 Raw query results from database:', lessons);
 
       if (lessons && lessons.length > 0) {
         const lesson = lessons[0];
         console.log('✅ Found upcoming lesson:', lesson);
+        console.log('🔍 DEBUG: Raw lesson.sub_topics from database:', lesson.sub_topics);
+        console.log('🔍 DEBUG: Type of lesson.sub_topics:', typeof lesson.sub_topics);
+        console.log('🔍 DEBUG: Is lesson.sub_topics an array?', Array.isArray(lesson.sub_topics));
+        
         setUpcomingLesson(lesson);
+        console.log('🔍 DEBUG: Set upcomingLesson state to:', lesson);
 
         // If the lesson has generated content, parse and display it
         if (lesson.generated_lessons && lesson.generated_lessons.length > 0) {
@@ -348,12 +353,17 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     // Get sub-topics directly from upcomingLesson
     const subTopics = upcomingLesson.sub_topics || [];
     console.log('🔍 Sub-topics from upcomingLesson:', subTopics.length, subTopics);
+    console.log('🔍 DEBUG: Type of subTopics:', typeof subTopics);
+    console.log('🔍 DEBUG: Is subTopics an array?', Array.isArray(subTopics));
+    console.log('🔍 DEBUG: Raw subTopics value:', subTopics);
 
     if (!subTopics || subTopics.length === 0) {
       console.log('❌ No sub-topics available in upcomingLesson');
       toast.error('No sub-topics available. Please regenerate lesson plans.');
       return;
     }
+
+    console.log('🔍 DEBUG: About to pass availableSubTopics to dialog:', subTopics);
 
     // Open the sub-topic selection dialog
     setIsSubTopicDialogOpen(true);
@@ -496,6 +506,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
   // Get sub-topics directly from upcomingLesson
   const availableSubTopics = upcomingLesson?.sub_topics || [];
+  console.log('🔍 DEBUG: availableSubTopics in render:', availableSubTopics);
 
   return (
     <MainLayout>
