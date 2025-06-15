@@ -1,20 +1,18 @@
 /*
-  # Updated LessonMaterialDisplay.tsx
+  # Updated LessonMaterialDisplay.tsx with Debug Logging
   
   1. Changes
-    - Added comprehensive defensive checks for all object properties
-    - Enhanced error handling for malformed data structures
-    - Added proper string conversion for all dynamic content
-    - Fixed React child rendering error by ensuring all rendered content is valid React nodes
-    - Added top-level section validation
-    - Enhanced fill_in_the_blanks_dialogue element handling
+    - Added comprehensive console logging in useEffect after setTemplate
+    - Added logging in renderTemplateSection for exercise sections
+    - Added detailed logging in renderExerciseContent for full_dialogue
+    - Enhanced safeGetString with fallback logging
+    - Added individual line logging in dialogue rendering
     
-  2. Flow
-    - Validates that all properties are safe before rendering
-    - Converts objects to JSON strings when necessary
-    - Provides meaningful fallback messages
-    - Logs warnings for debugging purposes
-    - Properly renders all elements as valid JSX components
+  2. Debug Flow
+    - Logs raw template structure from backend
+    - Traces section processing before renderExerciseContent
+    - Shows dialogue_lines array and individual line objects
+    - Identifies when fallback values are used
 */
 
 "use client";
@@ -99,6 +97,7 @@ interface Lesson {
   materials: string[];
   notes: string | null;
   generated_lessons: string[] | null;
+  sub_topics: any[] | null;
   lesson_template_id: string | null;
   interactive_lesson_content: any | null;
   student: {
@@ -144,9 +143,19 @@ const safeStringify = (value: any): string => {
 // Helper function to safely get a string property from an object
 const safeGetString = (obj: any, key: string, fallback: string = ''): string => {
   if (!obj || typeof obj !== 'object') {
+    console.log(`🔍 DEBUG safeGetString: obj is not an object:`, obj);
     return fallback;
   }
-  return safeStringify(obj[key]) || fallback;
+  
+  const value = obj[key];
+  const result = safeStringify(value) || fallback;
+  
+  // Log when we're about to return the fallback
+  if (result === fallback && fallback !== '') {
+    console.log(`🔍 DEBUG safeGetString: Using fallback "${fallback}" for key "${key}". Original value:`, value, 'Object:', obj);
+  }
+  
+  return result;
 };
 
 // Helper function to safely get an array from an object
@@ -221,20 +230,39 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
             } else {
               console.log('✅ Template data fetched:', templateData);
               // Use the interactive content as the template JSON
-              setTemplate({
+              const finalTemplate = {
                 ...templateData,
                 template_json: lessonData.interactive_lesson_content
-              } as LessonTemplate);
+              } as LessonTemplate;
+              
+              setTemplate(finalTemplate);
+              
+              // 🔍 DEBUG: Log the complete template structure after setting
+              console.log('🔍 DEBUG: Complete template.template_json structure:', JSON.stringify(finalTemplate.template_json, null, 2));
+              console.log('🔍 DEBUG: Template sections:', finalTemplate.template_json.sections);
+              
+              // Log each section to see their structure
+              finalTemplate.template_json.sections?.forEach((section, index) => {
+                console.log(`🔍 DEBUG: Section ${index} (${section.id}):`, section);
+                if (section.content_type === 'full_dialogue' && section.dialogue_lines) {
+                  console.log(`🔍 DEBUG: Section ${index} dialogue_lines:`, section.dialogue_lines);
+                }
+              });
             }
           } else {
             // Create a mock template with the interactive content
-            setTemplate({
+            const mockTemplate = {
               id: 'interactive',
               name: 'Interactive Lesson',
               category: 'Interactive',
               level: lessonData.student.level,
               template_json: lessonData.interactive_lesson_content
-            } as LessonTemplate);
+            } as LessonTemplate;
+            
+            setTemplate(mockTemplate);
+            
+            // 🔍 DEBUG: Log the mock template structure
+            console.log('🔍 DEBUG: Mock template.template_json structure:', JSON.stringify(mockTemplate.template_json, null, 2));
           }
         } else {
           // Fall back to generated lessons if no interactive content
@@ -373,6 +401,13 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         );
 
       case 'exercise':
+        // 🔍 DEBUG: Log the section object before calling renderExerciseContent
+        console.log(`🔍 DEBUG renderTemplateSection: Exercise section "${sectionId}":`, section);
+        console.log(`🔍 DEBUG renderTemplateSection: Section content_type:`, section.content_type);
+        if (section.content_type === 'full_dialogue') {
+          console.log(`🔍 DEBUG renderTemplateSection: dialogue_lines before renderExerciseContent:`, section.dialogue_lines);
+        }
+        
         return (
           <Card key={sectionId} className="mb-6">
             <CardHeader>
@@ -474,6 +509,11 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
       case 'full_dialogue':
         const dialogueLines = safeGetArray(section, 'dialogue_lines');
 
+        // 🔍 DEBUG: Log the dialogue lines array
+        console.log(`🔍 DEBUG renderExerciseContent: full_dialogue section "${section.id}" dialogue_lines:`, dialogueLines);
+        console.log(`🔍 DEBUG renderExerciseContent: dialogue_lines length:`, dialogueLines.length);
+        console.log(`🔍 DEBUG renderExerciseContent: dialogue_lines type:`, typeof dialogueLines);
+
         if (dialogueLines.length === 0) {
           console.warn(`No dialogue lines found for section: ${section.id}`);
           return (
@@ -485,29 +525,43 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
 
         return (
           <div className="space-y-3">
-            {dialogueLines.map((line, index) => (
-              <div key={index} className="flex items-start space-x-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  line.character === 'Tutor' ? 'bg-green-100' : 'bg-blue-100'
-                }`}>
-                  <span className={`text-xs font-bold ${
-                    line.character === 'Tutor' ? 'text-green-600' : 'text-blue-600'
+            {dialogueLines.map((line, index) => {
+              // 🔍 DEBUG: Log each individual line object
+              console.log(`🔍 DEBUG renderExerciseContent: Line ${index}:`, line);
+              console.log(`🔍 DEBUG renderExerciseContent: Line ${index} character:`, line.character);
+              console.log(`🔍 DEBUG renderExerciseContent: Line ${index} text:`, line.text);
+              console.log(`🔍 DEBUG renderExerciseContent: Line ${index} type:`, typeof line);
+              
+              const character = safeGetString(line, 'character', 'Speaker');
+              const text = safeGetString(line, 'text', 'No text available');
+              
+              // 🔍 DEBUG: Log the processed values
+              console.log(`🔍 DEBUG renderExerciseContent: Processed line ${index} - character: "${character}", text: "${text}"`);
+              
+              return (
+                <div key={index} className="flex items-start space-x-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    character === 'Tutor' ? 'bg-green-100' : 'bg-blue-100'
                   }`}>
-                    {line.character ? safeStringify(line.character)[0] : '?'}
-                  </span>
-                </div>
-                <div className={`flex-1 p-3 rounded-lg ${
-                  line.character === 'Tutor' ? 'bg-green-50' : 'bg-blue-50'
-                }`}>
-                  <p className={`font-medium ${
-                    line.character === 'Tutor' ? 'text-green-800' : 'text-blue-800'
+                    <span className={`text-xs font-bold ${
+                      character === 'Tutor' ? 'text-green-600' : 'text-blue-600'
+                    }`}>
+                      {character ? character[0] : '?'}
+                    </span>
+                  </div>
+                  <div className={`flex-1 p-3 rounded-lg ${
+                    character === 'Tutor' ? 'bg-green-50' : 'bg-blue-50'
                   }`}>
-                    {safeStringify(line.character) || 'Speaker'}:
-                  </p>
-                  <p>{safeStringify(line.text) || 'No text available'}</p>
+                    <p className={`font-medium ${
+                      character === 'Tutor' ? 'text-green-800' : 'text-blue-800'
+                    }`}>
+                      {character}:
+                    </p>
+                    <p>{text}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         );
 
