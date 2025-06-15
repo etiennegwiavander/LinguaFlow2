@@ -1,18 +1,15 @@
 /*
-  # Updated LessonMaterialDisplay.tsx with Debug Logging
+  # Fixed LessonMaterialDisplay.tsx - Dialogue Property Mapping
   
   1. Changes
-    - Added comprehensive console logging in useEffect after setTemplate
-    - Added logging in renderTemplateSection for exercise sections
-    - Added detailed logging in renderExerciseContent for full_dialogue
-    - Enhanced safeGetString with fallback logging
-    - Added individual line logging in dialogue rendering
+    - Fixed dialogue rendering to use correct property names
+    - Changed line.character to line.speaker 
+    - Changed line.text to line.line
+    - Updated safeGetString calls to match actual data structure
     
-  2. Debug Flow
-    - Logs raw template structure from backend
-    - Traces section processing before renderExerciseContent
-    - Shows dialogue_lines array and individual line objects
-    - Identifies when fallback values are used
+  2. Fix
+    - Dialogue objects have 'speaker' and 'line' properties, not 'character' and 'text'
+    - This resolves the "No text available" issue in dialogue sections
 */
 
 "use client";
@@ -528,12 +525,13 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
             {dialogueLines.map((line, index) => {
               // 🔍 DEBUG: Log each individual line object
               console.log(`🔍 DEBUG renderExerciseContent: Line ${index}:`, line);
-              console.log(`🔍 DEBUG renderExerciseContent: Line ${index} character:`, line.character);
-              console.log(`🔍 DEBUG renderExerciseContent: Line ${index} text:`, line.text);
+              console.log(`🔍 DEBUG renderExerciseContent: Line ${index} speaker:`, line.speaker);
+              console.log(`🔍 DEBUG renderExerciseContent: Line ${index} line:`, line.line);
               console.log(`🔍 DEBUG renderExerciseContent: Line ${index} type:`, typeof line);
               
-              const character = safeGetString(line, 'character', 'Speaker');
-              const text = safeGetString(line, 'text', 'No text available');
+              // FIXED: Use correct property names - 'speaker' instead of 'character', 'line' instead of 'text'
+              const character = safeGetString(line, 'speaker', 'Speaker');
+              const text = safeGetString(line, 'line', 'No text available');
               
               // 🔍 DEBUG: Log the processed values
               console.log(`🔍 DEBUG renderExerciseContent: Processed line ${index} - character: "${character}", text: "${text}"`);
