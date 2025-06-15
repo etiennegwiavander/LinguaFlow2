@@ -104,13 +104,20 @@ CRITICAL INSTRUCTIONS:
 2. Replace placeholder content like "Lesson Title Here" with the actual sub-topic title: "${subTopic.title}"
 3. Generate specific, detailed content for each section that matches the student's level and needs
 4. For vocabulary_items arrays, create 4-6 relevant vocabulary words with definitions
-5. For dialogue_lines arrays, create realistic conversations appropriate for the level
+5. For dialogue_lines arrays, create realistic conversations appropriate for the level. Each dialogue line MUST be an object with "character" and "text" properties:
+   Example: [
+     {"character": "Teacher", "text": "Hello! How are you today?"},
+     {"character": "Student", "text": "I'm fine, thank you. How are you?"},
+     {"character": "Teacher", "text": "I'm very well, thanks for asking."}
+   ]
 6. For matching_pairs arrays, create 3-5 question-answer pairs
 7. For list items, create 3-5 relevant items
 8. Ensure all content is appropriate for ${student.level.toUpperCase()} level ${languageName}
 9. Address the student's specific weaknesses and learning goals
 10. Make the content engaging and practical
 11. Focus specifically on the sub-topic: ${subTopic.title}
+12. NEVER leave any dialogue_lines empty - always populate both "character" and "text" fields with meaningful content
+13. For dialogue_elements in fill_in_the_blanks_dialogue, ensure each dialogue element has proper "character" and "text" fields
 
 RESPOND ONLY WITH THE FILLED TEMPLATE JSON - NO OTHER TEXT.`;
   } else {
@@ -156,8 +163,8 @@ Create a basic interactive lesson focused on this sub-topic. Respond with this J
       {"word": "word3", "definition": "definition3"}
     ],
     "dialogue_example": [
-      {"speaker": "Teacher", "text": "Example dialogue line 1"},
-      {"speaker": "Student", "text": "Example dialogue line 2"}
+      {"character": "Teacher", "text": "Example dialogue line 1"},
+      {"character": "Student", "text": "Example dialogue line 2"}
     ],
     "wrap_up": "Summary and key takeaways"
   }
@@ -169,6 +176,8 @@ CRITICAL INSTRUCTIONS:
 3. Address the student's specific learning needs
 4. Create practical, engaging content
 5. Include vocabulary, examples, and practice exercises
+6. ALWAYS populate dialogue arrays with objects containing "character" and "text" properties
+7. NEVER leave dialogue text empty - always provide meaningful conversation content
 
 RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT.`;
   }
