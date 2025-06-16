@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { X } from "lucide-react";
 
 interface WordTranslationPopupProps {
@@ -18,12 +18,15 @@ export default function WordTranslationPopup({
 }: WordTranslationPopupProps) {
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const [isVisible, setIsVisible] = useState(false);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Calculate optimal position
+    // Calculate optimal position using actual popup dimensions
     const calculatePosition = () => {
-      const popupWidth = 200; // max-width
-      const popupHeight = 60; // estimated height
+      if (!popupRef.current) return;
+      
+      const popupWidth = popupRef.current.offsetWidth;
+      const popupHeight = popupRef.current.offsetHeight;
       const offset = 10;
       
       // Get viewport dimensions
@@ -56,6 +59,7 @@ export default function WordTranslationPopup({
       setPosition({ top, left });
     };
 
+    // Initial calculation after render
     calculatePosition();
     
     // Add resize listener to recalculate position if viewport changes
@@ -69,10 +73,11 @@ export default function WordTranslationPopup({
       window.removeEventListener('resize', handleResize);
       clearTimeout(timer);
     };
-  }, [wordRect]);
+  }, [wordRect, word, translation]); // Recalculate when content changes
 
   return (
     <div
+      ref={popupRef}
       className={`fixed z-50 max-w-[200px] px-3 py-2 bg-black/80 text-white text-sm rounded-lg shadow-lg transition-opacity duration-200 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
