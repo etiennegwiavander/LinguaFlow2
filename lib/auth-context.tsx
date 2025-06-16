@@ -22,9 +22,14 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 const UNPROTECTED_ROUTES = [
+  '/',
+  '/pricing',
+  '/faq',
   '/auth/login',
   '/auth/signup',
   '/auth/forgot-password',
+  '/auth/deletion-scheduled',
+  '/auth/recover-account',
   '/calendar' // Added to prevent premature redirects during OAuth
 ];
 
@@ -43,12 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const path = window.location.pathname;
       if (session?.user) {
         // User is logged in
-        if (path.startsWith('/auth/')) {
+        if (path.startsWith('/auth/') || path === '/') {
           router.replace('/dashboard');
         }
       } else {
         // User is not logged in
-        if (!UNPROTECTED_ROUTES.includes(path) && path !== '/') {
+        if (!UNPROTECTED_ROUTES.includes(path)) {
           router.replace('/auth/login');
         }
       }
@@ -63,12 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Handle navigation based on auth state
       if (session?.user) {
-        if (window.location.pathname.startsWith('/auth/')) {
+        if (window.location.pathname.startsWith('/auth/') || window.location.pathname === '/') {
           router.replace('/dashboard');
         }
       } else {
         const currentPath = window.location.pathname;
-        if (!UNPROTECTED_ROUTES.includes(currentPath) && currentPath !== '/') {
+        if (!UNPROTECTED_ROUTES.includes(currentPath)) {
           router.replace('/auth/login');
         }
       }
@@ -204,7 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       console.log('✅ Sign-out successful');
-      router.replace('/auth/login');
+      router.replace('/');
     } catch (error: any) {
       console.error('❌ Sign-out failed:', error);
       throw error;
