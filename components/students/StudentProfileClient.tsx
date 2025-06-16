@@ -26,6 +26,7 @@ import {
   Lightbulb,
   X,
   BookOpen,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -470,6 +471,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
   };
 
   const languageInfo = getLanguageInfo(student.target_language);
+  const nativeLanguageInfo = student.native_language ? getLanguageInfo(student.native_language) : null;
 
   const getButtonText = () => {
     if (isGenerating) {
@@ -510,27 +512,40 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
   return (
     <MainLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 animate-slide-up">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
           <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16">
+            <Avatar className="h-16 w-16 ring-4 ring-cyber-400/20">
               <AvatarImage src={student.avatar_url || undefined} alt={student.name} />
-              <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+              <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 text-lg">
+                {getInitials(student.name)}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">{student.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                <span className="gradient-text">{student.name}</span>
+              </h1>
               <div className="flex items-center space-x-2 text-muted-foreground">
                 <LanguagesIcon className="h-4 w-4" />
                 <span>{languageInfo.name}</span>
                 <span>•</span>
-                <Badge variant="outline" className="capitalize">
+                <Badge variant="outline" className="capitalize border-cyber-400/30">
                   {student.level}
                 </Badge>
+                {nativeLanguageInfo && (
+                  <>
+                    <span>•</span>
+                    <span className="text-xs">Native: {nativeLanguageInfo.flag} {nativeLanguageInfo.name}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
-          <Button onClick={() => setIsFormOpen(true)}>
+          <Button 
+            onClick={() => setIsFormOpen(true)}
+            className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+          >
             <Edit className="mr-2 h-4 w-4" />
             Edit Profile
           </Button>
@@ -539,23 +554,23 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="ai-architect" className="flex items-center space-x-2">
+          <TabsList className="grid w-full grid-cols-4 glass-effect border-cyber-400/20">
+            <TabsTrigger value="ai-architect" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <Brain className="h-4 w-4" />
               <span className="hidden sm:inline">AI Lesson Architect</span>
               <span className="sm:hidden">AI Plans</span>
             </TabsTrigger>
-            <TabsTrigger value="lesson-material" className="flex items-center space-x-2">
+            <TabsTrigger value="lesson-material" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Lesson Material</span>
               <span className="sm:hidden">Material</span>
             </TabsTrigger>            
-            <TabsTrigger value="history" className="flex items-center space-x-2">
+            <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <History className="h-4 w-4" />
               <span className="hidden sm:inline">Lesson History</span>
               <span className="sm:hidden">History</span>
             </TabsTrigger>            
-            <TabsTrigger value="profile" className="flex items-center space-x-2">
+            <TabsTrigger value="profile" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Learning Profile</span>
               <span className="sm:hidden">Profile</span>
@@ -563,11 +578,11 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           </TabsList>
 
           {/* AI Lesson Architect Tab */}
-          <TabsContent value="ai-architect" className="space-y-6">
-            <Card className="border-2 border-primary/20 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
+          <TabsContent value="ai-architect" className="space-y-6 animate-scale-in">
+            <Card className="floating-card glass-effect border-cyber-400/20 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Sparkles className="mr-2 h-5 w-5 text-primary" />
+                  <Sparkles className="mr-2 h-5 w-5 text-cyber-400" />
                   AI Lesson Architect
                   {showOnboarding && (
                     <Badge variant="secondary" className="ml-2 animate-pulse">
@@ -606,7 +621,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </Alert>
                 )}
 
-                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-primary/20">
+                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-cyber-400/20">
                   <div className="space-y-2 flex-1">
                     <p className="font-medium">
                       {upcomingLesson ? 
@@ -643,7 +658,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                           onClick={handleGenerateLessons}
                           disabled={isGenerating}
                           size="lg"
-                          className="ml-4 min-w-[200px]"
+                          className="ml-4 min-w-[200px] bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
                         >
                           {getButtonIcon()}
                           {getButtonText()}
@@ -670,7 +685,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       </h3>
                       <div className="flex items-center space-x-2">
                         {upcomingLesson?.generated_lessons && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs border-cyber-400/30">
                             <Sparkles className="w-3 h-3 mr-1" />
                             AI Generated
                           </Badge>
@@ -690,18 +705,18 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                           <AccordionItem key={index} value={`lesson-${index}`}>
                             <AccordionTrigger className="text-left hover:no-underline">
                               <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                  <span className="text-sm font-bold text-primary">{index + 1}</span>
+                                <div className="w-8 h-8 bg-gradient-to-br from-cyber-400/20 to-neon-400/20 rounded-full flex items-center justify-center">
+                                  <span className="text-sm font-bold text-cyber-600 dark:text-cyber-400">{index + 1}</span>
                                 </div>
                                 <span className="font-medium">{lesson.title}</span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-6 pt-4">
                               {/* Action Buttons */}
-                              <div className="flex flex-wrap gap-2 p-4 bg-muted/30 rounded-lg">
+                              <div className="flex flex-wrap gap-2 p-4 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20">
                                 <Button 
                                   size="sm" 
-                                  className="flex-1 min-w-[120px]"
+                                  className="flex-1 min-w-[120px] bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
                                   onClick={() => handleUseLessonPlan(index)}
                                   disabled={!upcomingLesson || isGeneratingInteractive || !availableSubTopics.length}
                                 >
@@ -717,20 +732,20 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                     </>
                                   )}
                                 </Button>
-                                <Button variant="outline" size="sm" className="flex-1 min-w-[120px]">
+                                <Button variant="outline" size="sm" className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10">
                                   <Edit className="w-4 h-4 mr-2" />
                                   Edit Plan
                                 </Button>
                                 <Button 
                                   variant="outline" 
-                                  size="sm" 
+                                  size="sm"
                                   onClick={() => copyLessonPlan(lesson)}
-                                  className="flex-1 min-w-[120px]"
+                                  className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
                                 >
                                   <Copy className="w-4 h-4 mr-2" />
                                   Copy to Clipboard
                                 </Button>
-                                <Button variant="outline" size="sm" className="flex-1 min-w-[120px]">
+                                <Button variant="outline" size="sm" className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10">
                                   <FileText className="w-4 h-4 mr-2" />
                                   Export
                                 </Button>
@@ -738,7 +753,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
                               {/* Interactive Generation Progress */}
                               {isGeneratingInteractive && (
-                                <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                                <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
                                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                                   <span>{interactiveGenerationProgress}</span>
                                 </div>
@@ -814,8 +829,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                 )}
 
                 {generatedLessons.length === 0 && !isGenerating && (
-                  <div className="text-center py-12 border-2 border-dashed border-muted rounded-lg">
-                    <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <div className="text-center py-12 border-2 border-dashed border-cyber-400/20 rounded-lg">
+                    <Brain className="h-12 w-12 text-cyber-400 mx-auto mb-4" />
                     <h3 className="font-medium text-lg mb-2">Ready to Create Amazing Lessons?</h3>
                     <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
                       Our AI will analyze {student.name}'s learning profile and create personalized lesson plans with focused sub-topics, objectives, activities, materials, and assessment ideas.
@@ -845,11 +860,11 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           </TabsContent>
 
           {/* Lesson Material Tab */}
-          <TabsContent value="lesson-material" className="space-y-6">
-            <Card>
+          <TabsContent value="lesson-material" className="space-y-6 animate-scale-in">
+            <Card className="floating-card glass-effect border-cyber-400/20">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <BookOpen className="mr-2 h-5 w-5" />
+                  <BookOpen className="mr-2 h-5 w-5 text-cyber-400" />
                   Interactive Lesson Material
                 </CardTitle>
                 <CardDescription>
@@ -858,11 +873,14 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               </CardHeader>
               <CardContent>
                 {selectedLessonId ? (
-                  <LessonMaterialDisplay lessonId={selectedLessonId} />
+                  <LessonMaterialDisplay 
+                    lessonId={selectedLessonId} 
+                    studentNativeLanguage={student.native_language}
+                  />
                 ) : (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <BookOpen className="w-8 h-8 text-gray-600" />
+                    <div className="w-16 h-16 bg-cyber-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <BookOpen className="w-8 h-8 text-cyber-400" />
                     </div>
                     <h3 className="font-medium text-lg mb-2">No Lesson Selected</h3>
                     <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
@@ -871,6 +889,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     <Button 
                       variant="outline" 
                       onClick={() => setActiveTab("ai-architect")}
+                      className="border-cyber-400/30 hover:bg-cyber-400/10"
                     >
                       Go to AI Lesson Architect
                     </Button>
@@ -881,11 +900,11 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           </TabsContent>
 
           {/* Lesson History Tab */}
-          <TabsContent value="history" className="space-y-6">
-            <Card>
+          <TabsContent value="history" className="space-y-6 animate-scale-in">
+            <Card className="floating-card glass-effect border-cyber-400/20">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Book className="mr-2 h-5 w-5" />
+                  <Book className="mr-2 h-5 w-5 text-cyber-400" />
                   Lesson History
                 </CardTitle>
                 <CardDescription>Recent lessons and upcoming sessions with {student.name}</CardDescription>
@@ -895,15 +914,15 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-lg">Next Lesson</h3>
-                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                      <Calendar className="h-5 w-5 text-cyber-400" />
                     </div>
                     {loadingUpcomingLesson ? (
-                      <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                      <div className="flex items-center space-x-2 p-4 border border-cyber-400/20 rounded-lg">
+                        <Loader2 className="h-4 w-4 animate-spin text-cyber-400" />
                         <span className="text-sm text-muted-foreground">Loading...</span>
                       </div>
                     ) : upcomingLesson ? (
-                      <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
                         <div className="space-y-2">
                           <p className="font-medium">
                             {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
@@ -926,19 +945,19 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                             </Badge>
                           )}
                           {upcomingLesson.sub_topics && upcomingLesson.sub_topics.length > 0 && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs border-cyber-400/30">
                               <Target className="w-3 h-3 mr-1" />
                               {upcomingLesson.sub_topics.length} Sub-topics
                             </Badge>
                           )}
                           {upcomingLesson.interactive_lesson_content && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs border-cyber-400/30">
                               <BookOpen className="w-3 h-3 mr-1" />
                               Interactive Material Ready
                             </Badge>
                           )}
                           {upcomingLesson.lesson_template_id && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs border-cyber-400/30">
                               <BookOpen className="w-3 h-3 mr-1" />
                               Template Applied
                             </Badge>
@@ -946,7 +965,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 border rounded-lg text-center">
+                      <div className="p-4 border border-cyber-400/20 rounded-lg text-center">
                         <p className="text-sm text-muted-foreground">
                           No upcoming lessons scheduled
                         </p>
@@ -957,9 +976,9 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-lg">Last Lesson</h3>
-                      <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                      <MessageSquare className="h-5 w-5 text-cyber-400" />
                     </div>
-                    <div className="p-4 border rounded-lg text-center">
+                    <div className="p-4 border border-cyber-400/20 rounded-lg text-center">
                       <p className="text-sm text-muted-foreground">
                         No previous lessons recorded
                       </p>
@@ -967,21 +986,21 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </div>
                 </div>
 
-                <Separator />
+                <Separator className="bg-cyber-400/20" />
 
                 <div>
                   <h3 className="font-medium mb-4 text-lg">Lesson Statistics</h3>
                   <div className="grid gap-4 md:grid-cols-3">
-                    <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">0</div>
+                    <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
+                      <div className="text-2xl font-bold gradient-text">0</div>
                       <div className="text-sm text-muted-foreground">Total Lessons</div>
                     </div>
-                    <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">0</div>
+                    <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20">
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">0</div>
                       <div className="text-sm text-muted-foreground">Completed</div>
                     </div>
-                    <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-orange-50/50 to-amber-50/50 dark:from-orange-950/20 dark:to-amber-950/20">
+                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                         {upcomingLesson ? '1' : '0'}
                       </div>
                       <div className="text-sm text-muted-foreground">Upcoming</div>
@@ -993,11 +1012,11 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           </TabsContent>
                     
           {/* Learning Profile Tab */}
-          <TabsContent value="profile" className="space-y-6">
-            <Card>
+          <TabsContent value="profile" className="space-y-6 animate-scale-in">
+            <Card className="floating-card glass-effect border-cyber-400/20">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <GraduationCap className="mr-2 h-5 w-5" />
+                  <GraduationCap className="mr-2 h-5 w-5 text-cyber-400" />
                   Learning Profile
                 </CardTitle>
                 <CardDescription>
@@ -1011,7 +1030,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     <div className="space-y-4">
                       <div>
                         <h4 className="font-medium mb-2">End Goals</h4>
-                        <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                        <p className="text-sm text-muted-foreground bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 p-3 rounded-md border border-cyber-400/20">
                           {student.end_goals || "No end goals specified"}
                         </p>
                       </div>
@@ -1020,7 +1039,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                         <h4 className="font-medium mb-2">Learning Styles</h4>
                         <div className="flex flex-wrap gap-2">
                           {student.learning_styles?.map((style) => (
-                            <Badge key={style} variant="secondary">
+                            <Badge key={style} variant="secondary" className="bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30">
                               {style}
                             </Badge>
                           )) || <span className="text-sm text-muted-foreground">No learning styles specified</span>}
@@ -1032,27 +1051,40 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   <div>
                     <h3 className="font-medium mb-3 text-lg">Language Details</h3>
                     <div className="space-y-4">
-                      <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-md">
+                      <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-md border border-cyber-400/20">
                         <span className="text-2xl">{languageInfo.flag}</span>
                         <div>
-                          <p className="font-medium">{languageInfo.name}</p>
+                          <p className="font-medium">Target: {languageInfo.name}</p>
                           <p className="text-sm text-muted-foreground capitalize">
                             {student.level} Level
                           </p>
                         </div>
                       </div>
+                      
+                      {nativeLanguageInfo && (
+                        <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md border border-purple-400/20">
+                          <span className="text-2xl">{nativeLanguageInfo.flag}</span>
+                          <div>
+                            <p className="font-medium">Native: {nativeLanguageInfo.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              <Globe className="w-4 h-4 inline mr-1" />
+                              Used for translation assistance
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <Separator />
+                <Separator className="bg-cyber-400/20" />
 
                 <div className="space-y-4">
                   <h3 className="font-medium text-lg">Areas for Improvement</h3>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-3">
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium text-red-600 mb-2 flex items-center">
+                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-red-50/50 to-pink-50/50 dark:from-red-950/20 dark:to-pink-950/20">
+                        <h4 className="font-medium text-red-600 dark:text-red-400 mb-2 flex items-center">
                           <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
                           Grammar Weaknesses
                         </h4>
@@ -1060,8 +1092,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                           {student.grammar_weaknesses || "None specified"}
                         </p>
                       </div>
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium text-orange-600 mb-2 flex items-center">
+                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-orange-50/50 to-amber-50/50 dark:from-orange-950/20 dark:to-amber-950/20">
+                        <h4 className="font-medium text-orange-600 dark:text-orange-400 mb-2 flex items-center">
                           <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
                           Vocabulary Gaps
                         </h4>
@@ -1071,8 +1103,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       </div>
                     </div>
                     <div className="space-y-3">
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium text-blue-600 mb-2 flex items-center">
+                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-blue-50/50 to-cyan-50/50 dark:from-blue-950/20 dark:to-cyan-950/20">
+                        <h4 className="font-medium text-blue-600 dark:text-blue-400 mb-2 flex items-center">
                           <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
                           Pronunciation Challenges
                         </h4>
@@ -1080,8 +1112,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                           {student.pronunciation_challenges || "None specified"}
                         </p>
                       </div>
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium text-purple-600 mb-2 flex items-center">
+                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-purple-50/50 to-violet-50/50 dark:from-purple-950/20 dark:to-violet-950/20">
+                        <h4 className="font-medium text-purple-600 dark:text-purple-400 mb-2 flex items-center">
                           <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
                           Conversational Fluency Barriers
                         </h4>
@@ -1093,11 +1125,11 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </div>
                 </div>
 
-                <Separator />
+                <Separator className="bg-cyber-400/20" />
 
                 <div>
                   <h3 className="font-medium mb-2">Additional Notes</h3>
-                  <div className="bg-muted/50 p-4 rounded-md">
+                  <div className="bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 p-4 rounded-md border border-cyber-400/20">
                     <p className="text-sm text-muted-foreground">
                       {student.notes || "No additional notes"}
                     </p>
@@ -1113,6 +1145,11 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           open={isFormOpen}
           onOpenChange={setIsFormOpen}
           student={student}
+          onSuccess={() => {
+            setIsFormOpen(false);
+            // Refresh the page to get updated student data
+            window.location.reload();
+          }}
         />
 
         <SubTopicSelectionDialog

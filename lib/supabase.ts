@@ -41,6 +41,7 @@ export type Database = {
           name: string;
           avatar_url: string | null;
           target_language: string;
+          native_language: string | null;
           level: string;
           tutor_id: string;
           end_goals: string | null;
@@ -57,6 +58,7 @@ export type Database = {
           name: string;
           avatar_url?: string | null;
           target_language: string;
+          native_language?: string | null;
           level: string;
           tutor_id: string;
           end_goals?: string | null;
@@ -73,6 +75,7 @@ export type Database = {
           name?: string;
           avatar_url?: string | null;
           target_language?: string;
+          native_language?: string | null;
           level?: string;
           tutor_id?: string;
           end_goals?: string | null;

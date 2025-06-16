@@ -57,6 +57,7 @@ const learningStyles = [
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   targetLanguage: z.string().min(1, "Please select a target language"),
+  nativeLanguage: z.string().optional(),
   proficiencyLevel: z.string().min(1, "Please select a proficiency level"),
   endGoals: z.string().min(1, "Please specify the student's end goals"),
   grammarWeaknesses: z.string(),
@@ -82,6 +83,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
     defaultValues: {
       name: "",
       targetLanguage: "",
+      nativeLanguage: "",
       proficiencyLevel: "",
       endGoals: "",
       grammarWeaknesses: "",
@@ -98,6 +100,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
       form.reset({
         name: student.name,
         targetLanguage: student.target_language,
+        nativeLanguage: student.native_language || "",
         proficiencyLevel: student.level,
         endGoals: student.end_goals || "",
         grammarWeaknesses: student.grammar_weaknesses || "",
@@ -111,6 +114,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
       form.reset({
         name: "",
         targetLanguage: "",
+        nativeLanguage: "",
         proficiencyLevel: "",
         endGoals: "",
         grammarWeaknesses: "",
@@ -130,6 +134,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
       const studentData = {
         name: values.name,
         target_language: values.targetLanguage,
+        native_language: values.nativeLanguage || null,
         level: values.proficiencyLevel,
         tutor_id: user.id,
         end_goals: values.endGoals,
@@ -168,9 +173,11 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto glass-effect border-cyber-400/30">
         <DialogHeader>
-          <DialogTitle>{student ? "Edit Student" : "Add New Student"}</DialogTitle>
+          <DialogTitle className="gradient-text">
+            {student ? "Edit Student" : "Add New Student"}
+          </DialogTitle>
           <DialogDescription>
             {student
               ? "Update the student's information and learning preferences."
@@ -187,7 +194,11 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
                 <FormItem>
                   <FormLabel>Student Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter student's name" {...field} />
+                    <Input 
+                      placeholder="Enter student's name" 
+                      className="border-cyber-400/30 focus:border-cyber-400"
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -206,11 +217,11 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a language" />
+                        <SelectTrigger className="border-cyber-400/30 focus:border-cyber-400">
+                          <SelectValue placeholder="Select target language" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="glass-effect border-cyber-400/30">
                         {languages.map((language) => (
                           <SelectItem key={language.code} value={language.code}>
                             <span className="mr-2">{language.flag}</span>
@@ -226,32 +237,67 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
 
               <FormField
                 control={form.control}
-                name="proficiencyLevel"
+                name="nativeLanguage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Proficiency Level</FormLabel>
+                    <FormLabel>Native Language</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select level" />
+                        <SelectTrigger className="border-cyber-400/30 focus:border-cyber-400">
+                          <SelectValue placeholder="Select native language (optional)" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {proficiencyLevels.map((level) => (
-                          <SelectItem key={level.value} value={level.value}>
-                            {level.label}
+                      <SelectContent className="glass-effect border-cyber-400/30">
+                        <SelectItem value="">
+                          <span className="text-muted-foreground">Not specified</span>
+                        </SelectItem>
+                        {languages.map((language) => (
+                          <SelectItem key={language.code} value={language.code}>
+                            <span className="mr-2">{language.flag}</span>
+                            {language.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormDescription>
+                      Used for translation assistance during lessons
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="proficiencyLevel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Proficiency Level</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="border-cyber-400/30 focus:border-cyber-400">
+                        <SelectValue placeholder="Select level" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="glass-effect border-cyber-400/30">
+                      {proficiencyLevels.map((level) => (
+                        <SelectItem key={level.value} value={level.value}>
+                          {level.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -262,7 +308,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
                   <FormControl>
                     <Textarea
                       placeholder="What does the student want to achieve?"
-                      className="min-h-[100px] resize-y"
+                      className="min-h-[100px] resize-y border-cyber-400/30 focus:border-cyber-400"
                       {...field}
                     />
                   </FormControl>
@@ -281,7 +327,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
                     <FormControl>
                       <Textarea
                         placeholder="Note any grammar challenges"
-                        className="min-h-[100px] resize-y"
+                        className="min-h-[100px] resize-y border-cyber-400/30 focus:border-cyber-400"
                         {...field}
                       />
                     </FormControl>
@@ -299,7 +345,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
                     <FormControl>
                       <Textarea
                         placeholder="Note any vocabulary areas to improve"
-                        className="min-h-[100px] resize-y"
+                        className="min-h-[100px] resize-y border-cyber-400/30 focus:border-cyber-400"
                         {...field}
                       />
                     </FormControl>
@@ -319,7 +365,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
                     <FormControl>
                       <Textarea
                         placeholder="Note any pronunciation difficulties"
-                        className="min-h-[100px] resize-y"
+                        className="min-h-[100px] resize-y border-cyber-400/30 focus:border-cyber-400"
                         {...field}
                       />
                     </FormControl>
@@ -337,7 +383,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
                     <FormControl>
                       <Textarea
                         placeholder="Note any conversation challenges"
-                        className="min-h-[100px] resize-y"
+                        className="min-h-[100px] resize-y border-cyber-400/30 focus:border-cyber-400"
                         {...field}
                       />
                     </FormControl>
@@ -402,7 +448,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
                   <FormControl>
                     <Textarea
                       placeholder="Any other relevant information"
-                      className="min-h-[100px] resize-y"
+                      className="min-h-[100px] resize-y border-cyber-400/30 focus:border-cyber-400"
                       {...field}
                     />
                   </FormControl>
@@ -412,10 +458,18 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                className="border-cyber-400/30 hover:bg-cyber-400/10"
+              >
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button 
+                type="submit"
+                className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
+              >
                 {student ? "Update Student" : "Add Student"}
               </Button>
             </DialogFooter>

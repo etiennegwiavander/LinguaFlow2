@@ -1,22 +1,3 @@
-/*
-  # Fixed LessonMaterialDisplay.tsx - Complete Issue Resolution
-  
-  1. Changes
-    - Fixed vocabulary rendering to use correct property names (word/definition)
-    - Added support for grammar_explanation content type
-    - Added support for example_sentences content type
-    - Fixed dialogue parsing to handle string format from AI
-    - Updated matching questions to work with single answer format
-    - Removed debug console.log statements
-    
-  2. Fixes
-    - Vocabulary items now display correctly using word/definition properties
-    - Grammar explanations render with proper formatting
-    - Example sentences display as a formatted list
-    - Dialogue lines parse character names and text from string format
-    - Matching questions show question and answer pairs properly
-*/
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -39,7 +20,8 @@ import {
   Image as ImageIcon,
   PenTool,
   Eye,
-  MessageCircle
+  MessageCircle,
+  Globe
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,6 +89,7 @@ interface Lesson {
   student: {
     name: string;
     target_language: string;
+    native_language: string | null;
     level: string;
   };
 }
@@ -121,6 +104,7 @@ interface LessonPlan {
 
 interface LessonMaterialDisplayProps {
   lessonId: string;
+  studentNativeLanguage?: string | null;
 }
 
 // Helper function to safely convert any value to a string for rendering
@@ -183,7 +167,7 @@ const parseDialogueLine = (line: string): { character: string; text: string } =>
   return { character: 'Speaker', text: line };
 };
 
-export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDisplayProps) {
+export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage }: LessonMaterialDisplayProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -192,6 +176,8 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
   const [error, setError] = useState<string | null>(null);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [isPlaying, setIsPlaying] = useState<Record<string, boolean>>({});
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !lessonId) return;
@@ -206,6 +192,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
             student:students(
               name,
               target_language,
+              native_language,
               level
             )
           `)
@@ -319,6 +306,65 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
     }, 3000);
   };
 
+  const handleTranslateText = async (text: string) => {
+    if (!studentNativeLanguage) {
+      toast.info("No native language set for this student. Please add it in the student profile.");
+      return;
+    }
+
+    if (isTranslating) return;
+    
+    setIsTranslating(true);
+    setTranslatedText(null);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/translate-text`;
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text_to_translate: text,
+          target_language_code: studentNativeLanguage
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Translation failed');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.translated_text) {
+        setTranslatedText(result.translated_text);
+        toast.success("Translation successful", {
+          description: result.translated_text,
+          duration: 5000,
+          action: {
+            label: "Close",
+            onClick: () => setTranslatedText(null)
+          }
+        });
+      } else {
+        throw new Error(result.error || 'Translation failed');
+      }
+    } catch (error: any) {
+      console.error('Translation error:', error);
+      toast.error(error.message || 'Failed to translate text');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
     if (!template) return null;
 
@@ -344,15 +390,37 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
     const sectionId = safeGetString(section, 'id', 'unknown-section');
     const sectionType = safeGetString(section, 'type', 'unknown');
 
+    // Add double-click handler for translation
+    const handleDoubleClick = (e: React.MouseEvent<HTMLElement>) => {
+      if (!studentNativeLanguage) return;
+      
+      // Get the selected text
+      const selection = window.getSelection();
+      const selectedText = selection?.toString().trim();
+      
+      if (selectedText && selectedText.length > 0) {
+        e.preventDefault();
+        handleTranslateText(selectedText);
+      }
+    };
+
     switch (sectionType) {
       case 'title':
         return (
           <div key={sectionId} className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            <h1 
+              className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2 gradient-text"
+              onDoubleClick={handleDoubleClick}
+            >
               {safeGetString(section, 'title', 'Lesson Title')}
             </h1>
             {section.subtitle && (
-              <p className="text-xl text-gray-600">{safeGetString(section, 'subtitle', '')}</p>
+              <p 
+                className="text-xl text-gray-600 dark:text-gray-300"
+                onDoubleClick={handleDoubleClick}
+              >
+                {safeGetString(section, 'subtitle', '')}
+              </p>
             )}
           </div>
         );
@@ -361,22 +429,27 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         const objectives = safeGetArray(section, 'items');
 
         return (
-          <Card key={sectionId} className={`mb-6 ${getBgColor(section.background_color_var)}`}>
+          <Card key={sectionId} className={`mb-6 floating-card glass-effect border-cyber-400/20 ${getBgColor(section.background_color_var)}`}>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Target className="w-5 h-5 mr-2 text-blue-600" />
+                <Target className="w-5 h-5 mr-2 text-cyber-400" />
                 {safeGetString(section, 'title', 'Information')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {typeof section.content === 'string' ? (
-                <p className="text-sm">{safeStringify(section.content)}</p>
+                <p 
+                  className="text-sm"
+                  onDoubleClick={handleDoubleClick}
+                >
+                  {safeStringify(section.content)}
+                </p>
               ) : (
                 <ul className="space-y-2">
                   {objectives.map((item, index) => (
                     <li key={index} className="flex items-start">
                       <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                      <span>{safeStringify(item)}</span>
+                      <span onDoubleClick={handleDoubleClick}>{safeStringify(item)}</span>
                     </li>
                   ))}
                 </ul>
@@ -387,20 +460,25 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
 
       case 'exercise':
         return (
-          <Card key={sectionId} className="mb-6">
+          <Card key={sectionId} className="mb-6 floating-card glass-effect border-cyber-400/20">
             <CardHeader>
               <CardTitle className="flex items-center">
-                <BookOpen className="w-5 h-5 mr-2 text-purple-600" />
+                <BookOpen className="w-5 h-5 mr-2 text-cyber-400" />
                 {safeGetString(section, 'title', 'Exercise')}
               </CardTitle>
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
-                  <p className="text-sm font-medium">{safeGetString(section, 'instruction', '')}</p>
+                  <p 
+                    className="text-sm font-medium"
+                    onDoubleClick={handleDoubleClick}
+                  >
+                    {safeGetString(section, 'instruction', '')}
+                  </p>
                 </div>
               )}
             </CardHeader>
             <CardContent>
-              {renderExerciseContent(section, lessonIndex)}
+              {renderExerciseContent(section, lessonIndex, handleDoubleClick)}
             </CardContent>
           </Card>
         );
@@ -415,7 +493,11 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
     }
   };
 
-  const renderExerciseContent = (section: TemplateSection, lessonIndex: number) => {
+  const renderExerciseContent = (
+    section: TemplateSection, 
+    lessonIndex: number,
+    handleDoubleClick: (e: React.MouseEvent<HTMLElement>) => void
+  ) => {
     const currentLesson = generatedLessons[lessonIndex];
     const contentType = safeGetString(section, 'content_type', 'unknown');
 
@@ -434,7 +516,11 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         return (
           <div className="space-y-3">
             {items.map((item: string, index: number) => (
-              <div key={index} className="p-3 bg-gray-50 rounded-lg">
+              <div 
+                key={index} 
+                className="p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20"
+                onDoubleClick={handleDoubleClick}
+              >
                 <span className="font-medium">{safeStringify(item)}</span>
               </div>
             ))}
@@ -444,7 +530,9 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
       case 'text':
         return (
           <div className="prose max-w-none">
-            <p>{safeGetString(section, 'content', 'Content will be displayed here.')}</p>
+            <p onDoubleClick={handleDoubleClick}>
+              {safeGetString(section, 'content', 'Content will be displayed here.')}
+            </p>
           </div>
         );
 
@@ -454,7 +542,10 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         return (
           <div className="prose max-w-none">
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="whitespace-pre-wrap text-sm leading-relaxed">
+              <div 
+                className="whitespace-pre-wrap text-sm leading-relaxed"
+                onDoubleClick={handleDoubleClick}
+              >
                 {explanationContent}
               </div>
             </div>
@@ -480,7 +571,12 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                   <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">
                     {index + 1}
                   </span>
-                  <span className="text-sm">{safeStringify(sentence)}</span>
+                  <span 
+                    className="text-sm"
+                    onDoubleClick={handleDoubleClick}
+                  >
+                    {safeStringify(sentence)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -501,7 +597,7 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {vocabularyItems.map((item, index) => (
-              <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
+              <div key={index} className="flex items-center space-x-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
                 {item.image_url && (
                   <img 
                     src={safeStringify(item.image_url)} 
@@ -510,11 +606,21 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                   />
                 )}
                 <div className="flex-1">
-                  <h4 className="font-semibold">{safeStringify(item.word || item.name)}</h4>
-                  <p className="text-sm text-gray-600">{safeStringify(item.definition || item.prompt)}</p>
+                  <h4 
+                    className="font-semibold"
+                    onDoubleClick={handleDoubleClick}
+                  >
+                    {safeStringify(item.word || item.name)}
+                  </h4>
+                  <p 
+                    className="text-sm text-gray-600 dark:text-gray-300"
+                    onDoubleClick={handleDoubleClick}
+                  >
+                    {safeStringify(item.definition || item.prompt)}
+                  </p>
                 </div>
-                <Button size="sm" variant="outline">
-                  <Volume2 className="w-4 h-4" />
+                <Button size="sm" variant="outline" className="border-cyber-400/30 hover:bg-cyber-400/10">
+                  <Volume2 className="w-4 h-4 text-cyber-400" />
                 </Button>
               </div>
             ))}
@@ -550,26 +656,30 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                 text = parsed.text;
               }
               
+              const isTeacher = character.toLowerCase().includes('teacher') || 
+                               character.toLowerCase().includes('tutor');
+              
               return (
                 <div key={index} className="flex items-start space-x-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    character.toLowerCase().includes('teacher') || character.toLowerCase().includes('tutor') ? 'bg-green-100' : 'bg-blue-100'
+                    isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
                   }`}>
                     <span className={`text-xs font-bold ${
-                      character.toLowerCase().includes('teacher') || character.toLowerCase().includes('tutor') ? 'text-green-600' : 'text-blue-600'
+                      isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
                     }`}>
                       {character ? character[0] : '?'}
                     </span>
                   </div>
                   <div className={`flex-1 p-3 rounded-lg ${
-                    character.toLowerCase().includes('teacher') || character.toLowerCase().includes('tutor') ? 'bg-green-50' : 'bg-blue-50'
+                    isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 
+                    'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                   }`}>
                     <p className={`font-medium ${
-                      character.toLowerCase().includes('teacher') || character.toLowerCase().includes('tutor') ? 'text-green-800' : 'text-blue-800'
+                      isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
                     }`}>
                       {character}:
                     </p>
-                    <p>{text}</p>
+                    <p onDoubleClick={handleDoubleClick}>{text}</p>
                   </div>
                 </div>
               );
@@ -606,27 +716,29 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
               if (elementType === 'dialogue') {
                 const character = safeGetString(element, 'character', 'Speaker');
                 const text = safeGetString(element, 'text', 'No text available');
+                const isTeacher = character === 'Tutor' || character.toLowerCase().includes('teacher');
                 
                 return (
                   <div key={index} className="flex items-start space-x-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      character === 'Tutor' ? 'bg-green-100' : 'bg-blue-100'
+                      isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
                     }`}>
                       <span className={`text-xs font-bold ${
-                        character === 'Tutor' ? 'text-green-600' : 'text-blue-600'
+                        isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
                       }`}>
                         {character[0] || '?'}
                       </span>
                     </div>
                     <div className={`flex-1 p-3 rounded-lg ${
-                      character === 'Tutor' ? 'bg-green-50' : 'bg-blue-50'
+                      isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 
+                      'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                     }`}>
                       <p className={`font-medium ${
-                        character === 'Tutor' ? 'text-green-800' : 'text-blue-800'
+                        isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
                       }`}>
                         {character}:
                       </p>
-                      <p>{text}</p>
+                      <p onDoubleClick={handleDoubleClick}>{text}</p>
                     </div>
                   </div>
                 );
@@ -636,15 +748,25 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                 const correctAnswer = safeGetString(element, 'correct_answer', '');
                 
                 return (
-                  <div key={index} className="border rounded-lg p-4 bg-yellow-50">
-                    <p className="font-medium mb-3">{question}</p>
+                  <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-yellow-50/50 to-amber-50/50 dark:from-yellow-900/20 dark:to-amber-900/20">
+                    <p 
+                      className="font-medium mb-3"
+                      onDoubleClick={handleDoubleClick}
+                    >
+                      {question}
+                    </p>
                     <RadioGroup 
                       onValueChange={(value) => handleAnswerChange(`${section.id}_mc_${index}`, value)}
                     >
                       {options.length > 0 ? options.map((option: any, optIndex: number) => (
                         <div key={optIndex} className="flex items-center space-x-2">
                           <RadioGroupItem value={safeStringify(option)} id={`${section.id}_${index}_${optIndex}`} />
-                          <Label htmlFor={`${section.id}_${index}_${optIndex}`}>{safeStringify(option)}</Label>
+                          <Label 
+                            htmlFor={`${section.id}_${index}_${optIndex}`}
+                            onDoubleClick={handleDoubleClick}
+                          >
+                            {safeStringify(option)}
+                          </Label>
                         </div>
                       )) : (
                         <p className="text-sm text-gray-500">No answer options available</p>
@@ -687,13 +809,23 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
               const answer = safeGetString(pair, 'answer', 'No answer available');
               
               return (
-                <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
                   <div className="space-y-3">
                     <div>
-                      <p className="font-medium text-gray-800">{question}</p>
+                      <p 
+                        className="font-medium text-gray-800 dark:text-gray-200"
+                        onDoubleClick={handleDoubleClick}
+                      >
+                        {question}
+                      </p>
                     </div>
-                    <div className="pl-4 border-l-2 border-blue-200">
-                      <p className="text-sm text-blue-700 font-medium">Answer: {answer}</p>
+                    <div className="pl-4 border-l-2 border-cyber-400/30">
+                      <p 
+                        className="text-sm text-cyber-600 dark:text-cyber-400 font-medium"
+                        onDoubleClick={handleDoubleClick}
+                      >
+                        Answer: {answer}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -711,11 +843,28 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
     }
   };
 
+  const handleTranslationRequest = async () => {
+    if (!studentNativeLanguage) {
+      toast.info("No native language set for this student. Please add it in the student profile.");
+      return;
+    }
+
+    const selection = window.getSelection();
+    const selectedText = selection?.toString().trim();
+    
+    if (!selectedText || selectedText.length === 0) {
+      toast.info("Please select text to translate by double-clicking on it.");
+      return;
+    }
+    
+    await handleTranslateText(selectedText);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <Loader2 className="h-8 w-8 animate-spin text-cyber-400 mx-auto mb-4" />
           <p className="text-muted-foreground">Loading lesson material...</p>
         </div>
       </div>
@@ -731,7 +880,10 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
           </div>
           <h3 className="text-lg font-semibold mb-2">Failed to Load Lesson</h3>
           <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>
+          <Button 
+            onClick={() => window.location.reload()}
+            className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
+          >
             Try Again
           </Button>
         </div>
@@ -774,17 +926,38 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
 
     return (
       <div className="space-y-6 max-w-4xl mx-auto">
-        <div className="mb-6 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <div className="flex items-center">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mr-2" />
-            <div>
-              <h3 className="font-semibold text-green-800 dark:text-green-200">
-                Interactive Lesson Material Ready
-              </h3>
-              <p className="text-sm text-green-700 dark:text-green-300">
-                This lesson has been personalized for {lesson.student.name} using the {template.name} template.
-              </p>
+        <div className="mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mr-2" />
+              <div>
+                <h3 className="font-semibold text-green-800 dark:text-green-200">
+                  Interactive Lesson Material Ready
+                </h3>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  This lesson has been personalized for {lesson.student.name} using the {template.name} template.
+                </p>
+              </div>
             </div>
+            
+            {studentNativeLanguage && (
+              <div className="flex items-center">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
+                  onClick={handleTranslationRequest}
+                  disabled={isTranslating}
+                >
+                  {isTranslating ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Globe className="w-4 h-4 mr-2" />
+                  )}
+                  <span>Double-click text to translate</span>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -793,7 +966,10 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
         )}
         
         <div className="flex justify-center pt-8">
-          <Button size="lg" className="px-8">
+          <Button 
+            size="lg" 
+            className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+          >
             <CheckCircle2 className="w-5 h-5 mr-2" />
             Complete Lesson
           </Button>
@@ -806,21 +982,29 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">
+        <h1 className="text-3xl font-bold mb-2 gradient-text">
           Lesson for {lesson.student.name}
         </h1>
-        <Badge variant="outline" className="capitalize">
-          {lesson.student.level} Level {lesson.student.target_language}
-        </Badge>
+        <div className="flex items-center justify-center space-x-2">
+          <Badge variant="outline" className="capitalize border-cyber-400/30">
+            {lesson.student.level} Level {lesson.student.target_language}
+          </Badge>
+          {lesson.student.native_language && (
+            <Badge variant="secondary" className="flex items-center">
+              <Globe className="w-3 h-3 mr-1" />
+              Native: {getLanguageInfo(lesson.student.native_language).name}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {generatedLessons.length > 0 ? (
         <div className="space-y-6">
           {generatedLessons.map((lessonPlan, index) => (
-            <Card key={index}>
+            <Card key={index} className="floating-card glass-effect border-cyber-400/20">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <BookOpen className="w-5 h-5 mr-2 text-primary" />
+                  <BookOpen className="w-5 h-5 mr-2 text-cyber-400" />
                   {safeStringify(lessonPlan.title)}
                 </CardTitle>
               </CardHeader>
@@ -834,13 +1018,15 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                     {Array.isArray(lessonPlan.objectives) && lessonPlan.objectives.map((objective, objIndex) => (
                       <li key={objIndex} className="flex items-start">
                         <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                        <span>{safeStringify(objective)}</span>
+                        <span onDoubleClick={(e) => studentNativeLanguage && handleDoubleClick(e)}>
+                          {safeStringify(objective)}
+                        </span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <Separator />
+                <Separator className="bg-cyber-400/20" />
 
                 <div>
                   <h4 className="font-semibold mb-3 flex items-center">
@@ -851,13 +1037,15 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                     {Array.isArray(lessonPlan.activities) && lessonPlan.activities.map((activity, actIndex) => (
                       <li key={actIndex} className="flex items-start">
                         <ArrowRight className="w-4 h-4 mr-2 mt-0.5 text-purple-500 flex-shrink-0" />
-                        <span>{safeStringify(activity)}</span>
+                        <span onDoubleClick={(e) => studentNativeLanguage && handleDoubleClick(e)}>
+                          {safeStringify(activity)}
+                        </span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <Separator />
+                <Separator className="bg-cyber-400/20" />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -869,7 +1057,9 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                       {Array.isArray(lessonPlan.materials) && lessonPlan.materials.map((material, matIndex) => (
                         <li key={matIndex} className="flex items-start">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          <span>{safeStringify(material)}</span>
+                          <span onDoubleClick={(e) => studentNativeLanguage && handleDoubleClick(e)}>
+                            {safeStringify(material)}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -884,7 +1074,9 @@ export default function LessonMaterialDisplay({ lessonId }: LessonMaterialDispla
                       {Array.isArray(lessonPlan.assessment) && lessonPlan.assessment.map((item, assIndex) => (
                         <li key={assIndex} className="flex items-start">
                           <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          <span>{safeStringify(item)}</span>
+                          <span onDoubleClick={(e) => studentNativeLanguage && handleDoubleClick(e)}>
+                            {safeStringify(item)}
+                          </span>
                         </li>
                       ))}
                     </ul>
