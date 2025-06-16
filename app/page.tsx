@@ -28,6 +28,7 @@ import {
   BarChart3,
   Lightbulb,
   Loader2,
+  GraduationCap,
 } from "lucide-react";
 
 export default function HomePage() {
