@@ -1,106 +1,100 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import MainLayout from "@/components/main-layout";
+import { useRouter } from "next/navigation";
 import { Student, SubTopic } from "@/types";
 import { languages } from "@/lib/sample-data";
-import {
-  Book,
-  Calendar,
-  Edit,
-  GraduationCap,
-  Languages as LanguagesIcon,
-  Loader2,
-  MessageSquare,
-  Sparkles,
-  Target,
-  RefreshCw,
-  User,
-  Brain,
-  History,
-  Copy,
-  FileText,
-  CheckCircle,
-  Play,
-  Clock,
-  Lightbulb,
-  X,
-  BookOpen,
-  Globe,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import StudentForm from "@/components/students/StudentForm";
-import LessonMaterialDisplay from "@/components/lessons/LessonMaterialDisplay";
-import SubTopicSelectionDialog from "@/components/students/SubTopicSelectionDialog";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
+import MainLayout from "@/components/main-layout";
+import { 
+  ArrowLeft, 
+  Calendar, 
+  Clock, 
+  Edit, 
+  GraduationCap, 
+  Languages as LanguagesIcon, 
+  MapPin, 
+  Plus, 
+  Target, 
+  User,
+  BookOpen,
+  Sparkles,
+  Play,
+  Loader2,
+  CheckCircle2,
+  Globe
+} from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import StudentForm from "@/components/students/StudentForm";
+import SubTopicSelectionDialog from "@/components/students/SubTopicSelectionDialog";
+import LessonMaterialDisplay from "@/components/lessons/LessonMaterialDisplay";
+import TranslationPopup from "@/components/ui/translation-popup";
+import { useTranslationPopup } from "@/hooks/use-translation-popup";
 
-interface LessonPlan {
-  title: string;
-  objectives: string[];
-  activities: string[];
-  materials: string[];
-  assessment: string[];
-  sub_topics?: SubTopic[];
+interface StudentProfileClientProps {
+  student: Student;
 }
 
-interface UpcomingLesson {
+interface Lesson {
   id: string;
   date: string;
   status: string;
+  materials: string[];
+  notes: string | null;
   generated_lessons: string[] | null;
   sub_topics: SubTopic[] | null;
   lesson_template_id: string | null;
   interactive_lesson_content: any | null;
 }
 
-interface StudentProfileClientProps {
-  student: Student;
-}
-
-export default function StudentProfileClient({ student }: StudentProfileClientProps) {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
-  const [upcomingLesson, setUpcomingLesson] = useState<UpcomingLesson | null>(null);
-  const [loadingUpcomingLesson, setLoadingUpcomingLesson] = useState(true);
-  const [generationProgress, setGenerationProgress] = useState("");
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [hasGeneratedBefore, setHasGeneratedBefore] = useState(false);
-  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("ai-architect");
-  const [isGeneratingInteractive, setIsGeneratingInteractive] = useState(false);
-  const [interactiveGenerationProgress, setInteractiveGenerationProgress] = useState("");
+export default function StudentProfileClient({ student: initialStudent }: StudentProfileClientProps) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [student, setStudent] = useState<Student>(initialStudent);
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [loadingLessons, setLoadingLessons] = useState(true);
+  const [isGeneratingLessons, setIsGeneratingLessons] = useState(false);
   const [isSubTopicDialogOpen, setIsSubTopicDialogOpen] = useState(false);
+  const [selectedLessonSubTopics, setSelectedLessonSubTopics] = useState<SubTopic[]>([]);
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [isGeneratingInteractive, setIsGeneratingInteractive] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState("");
+  const [selectedLessonForViewing, setSelectedLessonForViewing] = useState<string | null>(null);
+
+  // Use the translation popup hook
+  const { translationState, handleDoubleClick, hideTranslation } = useTranslationPopup(student.native_language);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchLessons = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('lessons')
+          .select('*')
+          .eq('student_id', student.id)
+          .eq('tutor_id', user.id)
+          .order('date', { ascending: false });
+
+        if (error) throw error;
+        setLessons(data || []);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to fetch lessons');
+      } finally {
+        setLoadingLessons(false);
+      }
+    };
+
+    fetchLessons();
+  }, [user, student.id]);
 
   const getInitials = (name: string) => {
     return name
@@ -114,401 +108,192 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     return languages.find(lang => lang.code === code) || { code, name: code, flag: '🌐' };
   };
 
-  // Load upcoming lesson and any existing generated lessons
-  const loadUpcomingLesson = async () => {
-    console.log('🔄 loadUpcomingLesson called');
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('❌ No user found in loadUpcomingLesson');
-        return;
-      }
-
-      console.log('🔍 Searching for upcoming lessons for student:', student.id);
-
-      // Find the most recent upcoming lesson for this student
-      const { data: lessons, error } = await supabase
-        .from('lessons')
-        .select('id, date, status, generated_lessons, sub_topics, lesson_template_id, interactive_lesson_content')
-        .eq('student_id', student.id)
-        .eq('tutor_id', user.id)
-        .eq('status', 'upcoming')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (error) {
-        console.error('❌ Error loading upcoming lesson:', error);
-        return;
-      }
-
-      console.log('📊 Raw query results from database:', lessons);
-
-      if (lessons && lessons.length > 0) {
-        const lesson = lessons[0];
-        console.log('✅ Found upcoming lesson:', lesson);
-        console.log('🔍 DEBUG: Raw lesson.sub_topics from database:', lesson.sub_topics);
-        console.log('🔍 DEBUG: Type of lesson.sub_topics:', typeof lesson.sub_topics);
-        console.log('🔍 DEBUG: Is lesson.sub_topics an array?', Array.isArray(lesson.sub_topics));
-        
-        setUpcomingLesson(lesson);
-        console.log('🔍 DEBUG: Set upcomingLesson state to:', lesson);
-
-        // If the lesson has generated content, parse and display it
-        if (lesson.generated_lessons && lesson.generated_lessons.length > 0) {
-          try {
-            const parsedLessons = lesson.generated_lessons.map((lessonStr: string) => 
-              JSON.parse(lessonStr)
-            );
-            setGeneratedLessons(parsedLessons);
-            setHasGeneratedBefore(true);
-            console.log('✅ Parsed generated lessons:', parsedLessons.length);
-          } catch (parseError) {
-            console.error('❌ Error parsing generated lessons:', parseError);
-          }
-        }
-
-        // Log sub-topics for debugging
-        if (lesson.sub_topics && Array.isArray(lesson.sub_topics)) {
-          console.log('✅ Loaded sub-topics from lesson:', lesson.sub_topics.length, lesson.sub_topics);
-        } else {
-          console.log('⚠️ No sub-topics found in lesson or invalid format:', lesson.sub_topics);
-        }
-      } else {
-        console.log('ℹ️ No upcoming lessons found');
-        setUpcomingLesson(null);
-      }
-
-      // Check if user has generated lessons before (for onboarding)
-      const { data: allLessons } = await supabase
-        .from('lessons')
-        .select('generated_lessons')
-        .eq('tutor_id', user.id)
-        .not('generated_lessons', 'is', null);
-
-      if (!allLessons || allLessons.length === 0) {
-        setShowOnboarding(true);
-      }
-    } catch (error) {
-      console.error('❌ Error in loadUpcomingLesson:', error);
-    } finally {
-      setLoadingUpcomingLesson(false);
-      console.log('✅ loadUpcomingLesson completed');
-    }
-  };
-
-  useEffect(() => {
-    loadUpcomingLesson();
-  }, [student.id]);
+  const targetLanguageInfo = getLanguageInfo(student.target_language);
+  const nativeLanguageInfo = student.native_language ? getLanguageInfo(student.native_language) : null;
 
   const handleGenerateLessons = async () => {
-    setIsGenerating(true);
-    setGenerationProgress("Analyzing learning profile...");
-    
+    if (!user) return;
+
+    setIsGeneratingLessons(true);
     try {
-      console.log('🚀 Starting lesson generation for student:', student.id);
-      
+      // Create a new lesson first
+      const { data: lessonData, error: lessonError } = await supabase
+        .from('lessons')
+        .insert([{
+          student_id: student.id,
+          tutor_id: user.id,
+          date: new Date().toISOString(),
+          status: 'upcoming',
+          materials: ['AI Generated Lesson Plans'],
+          notes: `AI-generated lesson plans created on ${new Date().toLocaleDateString()}`
+        }])
+        .select()
+        .single();
+
+      if (lessonError) throw lessonError;
+
+      // Generate lesson plans for the new lesson
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Not authenticated');
       }
 
-      console.log('✅ Session found, making request to edge function...');
-
-      // Update progress message
-      setTimeout(() => setGenerationProgress(`Crafting personalized lesson ideas for ${student.name}...`), 1000);
-      setTimeout(() => setGenerationProgress("Creating engaging activities and materials..."), 2000);
-      setTimeout(() => setGenerationProgress("Generating focused sub-topics..."), 3000);
-
-      const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-lesson-plan`;
-      console.log('📡 Function URL:', functionUrl);
-
-      let requestBody;
-      
-      if (upcomingLesson) {
-        // Update existing lesson
-        requestBody = {
-          lesson_id: upcomingLesson.id
-        };
-        console.log('🔄 Updating existing lesson:', upcomingLesson.id);
-      } else {
-        // Create new lesson (legacy mode)
-        requestBody = {
-          student_id: student.id
-        };
-        console.log('➕ Creating new lesson for student:', student.id);
-      }
-
-      console.log('📦 Request body:', requestBody);
-
-      const response = await fetch(functionUrl, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-lesson-plan`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          lesson_id: lessonData.id
+        }),
       });
 
-      console.log('📨 Response status:', response.status);
-      console.log('📨 Response ok:', response.ok);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Response error text:', errorText);
-        
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { error: errorText };
-        }
-        
-        throw new Error(errorData.error || `HTTP ${response.status}: ${errorText}`);
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to generate lesson plans');
       }
 
       const result = await response.json();
-      console.log('✅ Response data:', result);
       
-      if (result.success && result.lessons) {
-        setGeneratedLessons(result.lessons);
-        setHasGeneratedBefore(true);
-        setShowOnboarding(false);
+      if (result.success) {
+        toast.success('Lesson plans generated successfully!');
         
-        // If we updated an existing lesson, refresh the upcoming lesson data
-        if (result.updated && upcomingLesson) {
-          setUpcomingLesson({
-            ...upcomingLesson,
-            generated_lessons: result.lessons.map((lesson: LessonPlan) => JSON.stringify(lesson)),
-            sub_topics: result.sub_topics || null,
-            lesson_template_id: result.lesson_template_id || upcomingLesson.lesson_template_id
-          });
-          console.log('✅ Updated upcomingLesson state with sub-topics:', result.sub_topics?.length || 0);
+        // Refresh lessons list
+        const { data: updatedLessons, error: fetchError } = await supabase
+          .from('lessons')
+          .select('*')
+          .eq('student_id', student.id)
+          .eq('tutor_id', user.id)
+          .order('date', { ascending: false });
+
+        if (!fetchError && updatedLessons) {
+          setLessons(updatedLessons);
         }
-        
-        // If we created a new lesson, we might want to refresh the upcoming lesson
-        if (result.created) {
-          console.log('🔄 Reloading upcoming lesson data after creation...');
-          await loadUpcomingLesson();
-        }
-        
-        const actionText = result.updated ? 'regenerated' : 'generated';
-        toast.success(`AI lesson plans ${actionText} successfully with ${result.sub_topics?.length || 0} sub-topics!`);
       } else {
-        throw new Error(result.error || 'Invalid response format');
+        throw new Error(result.error || 'Failed to generate lesson plans');
       }
     } catch (error: any) {
-      console.error('❌ Error generating lessons:', error);
-      
-      // Provide more specific error messages
-      if (error.message.includes('Failed to fetch')) {
-        toast.error('Network error: Unable to connect to the lesson generation service. Please check your internet connection and try again.');
-      } else if (error.message.includes('Not authenticated')) {
-        toast.error('Authentication error: Please log out and log back in.');
-      } else {
-        toast.error(error.message || 'Failed to generate lesson plans. Please try again.');
-      }
+      toast.error(error.message || 'Failed to generate lesson plans');
     } finally {
-      setIsGenerating(false);
-      setGenerationProgress("");
+      setIsGeneratingLessons(false);
     }
   };
 
-  const copyToClipboard = async (content: string, type: string) => {
-    try {
-      await navigator.clipboard.writeText(content);
-      toast.success(`${type} copied to clipboard!`);
-    } catch (error) {
-      toast.error('Failed to copy to clipboard');
-    }
-  };
-
-  const copyLessonPlan = async (lesson: LessonPlan) => {
-    const content = `
-${lesson.title}
-
-OBJECTIVES:
-${lesson.objectives.map(obj => `• ${obj}`).join('\n')}
-
-ACTIVITIES:
-${lesson.activities.map(act => `• ${act}`).join('\n')}
-
-MATERIALS:
-${lesson.materials.map(mat => `• ${mat}`).join('\n')}
-
-ASSESSMENT:
-${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
-    `.trim();
-    
-    await copyToClipboard(content, 'Lesson plan');
-  };
-
-  const handleUseLessonPlan = async (lessonIndex: number) => {
-    console.log('🎯 handleUseLessonPlan called with index:', lessonIndex);
-    
-    if (!upcomingLesson) {
-      console.log('❌ No upcoming lesson available');
-      toast.error('No lesson available to generate interactive material for');
+  const handleCreateInteractiveMaterial = (lesson: Lesson) => {
+    if (!lesson.sub_topics || lesson.sub_topics.length === 0) {
+      toast.error('No sub-topics available for this lesson. Generate lesson plans first.');
       return;
     }
 
-    // Get sub-topics directly from upcomingLesson
-    const subTopics = upcomingLesson.sub_topics || [];
-    console.log('🔍 Sub-topics from upcomingLesson:', subTopics.length, subTopics);
-    console.log('🔍 DEBUG: Type of subTopics:', typeof subTopics);
-    console.log('🔍 DEBUG: Is subTopics an array?', Array.isArray(subTopics));
-    console.log('🔍 DEBUG: Raw subTopics value:', subTopics);
-
-    if (!subTopics || subTopics.length === 0) {
-      console.log('❌ No sub-topics available in upcomingLesson');
-      toast.error('No sub-topics available. Please regenerate lesson plans.');
-      return;
-    }
-
-    console.log('🔍 DEBUG: About to pass availableSubTopics to dialog:', subTopics);
-
-    // Open the sub-topic selection dialog
+    setSelectedLessonSubTopics(lesson.sub_topics);
+    setSelectedLessonId(lesson.id);
     setIsSubTopicDialogOpen(true);
   };
 
-  const handleSelectSubTopic = async (subTopic: SubTopic) => {
-    console.log('🎯 handleSelectSubTopic called with:', subTopic);
-    
-    if (!upcomingLesson) {
-      console.log('❌ No upcoming lesson available');
-      toast.error('No lesson available to generate interactive material for');
-      return;
-    }
+  const handleSubTopicSelection = async (subTopic: SubTopic) => {
+    if (!selectedLessonId) return;
 
     setIsGeneratingInteractive(true);
-    setInteractiveGenerationProgress("Preparing interactive lesson material...");
-    setIsSubTopicDialogOpen(false);
+    setGenerationProgress("Analyzing student profile and sub-topic...");
 
     try {
-      console.log('🎯 Generating interactive material for sub-topic:', subTopic.title);
-      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Not authenticated');
       }
 
-      // Update progress messages
-      setTimeout(() => setInteractiveGenerationProgress("Selecting appropriate lesson template..."), 1000);
-      setTimeout(() => setInteractiveGenerationProgress("Creating interactive exercises and activities..."), 2000);
-      setTimeout(() => setInteractiveGenerationProgress("Personalizing content for " + student.name + "..."), 3000);
+      setGenerationProgress("Creating personalized interactive material...");
 
-      const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-interactive-material`;
-      
-      const requestBody = {
-        lesson_id: upcomingLesson.id,
-        selected_sub_topic: subTopic
-      };
-
-      console.log('📦 Interactive material request:', requestBody);
-
-      const response = await fetch(functionUrl, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-interactive-material`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          lesson_id: selectedLessonId,
+          selected_sub_topic: subTopic
+        }),
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Interactive material generation error:', errorText);
-        
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { error: errorText };
-        }
-        
-        throw new Error(errorData.error || `Failed to generate interactive material: ${errorText}`);
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to generate interactive material');
       }
 
       const result = await response.json();
-      console.log('✅ Interactive material generated:', result);
       
       if (result.success) {
-        // Update the upcoming lesson state with the new interactive content
-        setUpcomingLesson({
-          ...upcomingLesson,
-          interactive_lesson_content: result.interactive_content,
-          lesson_template_id: result.lesson_template_id
-        });
-
-        // Refresh the upcoming lesson data to ensure state consistency
-        await loadUpcomingLesson();
-
-        // Set the selected lesson ID and switch to the lesson material tab
-        setSelectedLessonId(upcomingLesson.id);
-        setActiveTab("lesson-material");
+        setGenerationProgress("Interactive material created successfully!");
+        toast.success('Interactive lesson material created successfully!');
         
-        toast.success(`Interactive lesson material created successfully for "${subTopic.title}" using ${result.template_name}!`);
+        // Refresh lessons list
+        const { data: updatedLessons, error: fetchError } = await supabase
+          .from('lessons')
+          .select('*')
+          .eq('student_id', student.id)
+          .eq('tutor_id', user.id)
+          .order('date', { ascending: false });
+
+        if (!fetchError && updatedLessons) {
+          setLessons(updatedLessons);
+        }
+
+        // Close dialog and show the lesson material
+        setIsSubTopicDialogOpen(false);
+        setSelectedLessonForViewing(selectedLessonId);
       } else {
         throw new Error(result.error || 'Failed to generate interactive material');
       }
     } catch (error: any) {
-      console.error('❌ Error generating interactive material:', error);
-      toast.error(error.message || 'Failed to generate interactive lesson material. Please try again.');
+      toast.error(error.message || 'Failed to generate interactive material');
     } finally {
       setIsGeneratingInteractive(false);
-      setInteractiveGenerationProgress("");
+      setGenerationProgress("");
     }
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+  const handleViewLessonMaterial = (lessonId: string) => {
+    setSelectedLessonForViewing(lessonId);
   };
 
-  const getDisplayName = () => {
-    return student.name.split(' ')[0]; // First name only
+  const handleBackToProfile = () => {
+    setSelectedLessonForViewing(null);
   };
 
-  const languageInfo = getLanguageInfo(student.target_language);
-  const nativeLanguageInfo = student.native_language ? getLanguageInfo(student.native_language) : null;
-
-  const getButtonText = () => {
-    if (isGenerating) {
-      return upcomingLesson?.generated_lessons ? 'Regenerating...' : 'Generating...';
-    }
-    
-    if (upcomingLesson) {
-      const lessonDate = new Date(upcomingLesson.date).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric'
-      });
-      return upcomingLesson.generated_lessons ? 
-        `Regenerate Ideas for Next Lesson (${lessonDate})` : 
-        `Generate Ideas for Next Lesson (${lessonDate})`;
-    }
-    
-    return hasGeneratedBefore ? 'Generate New Lesson Ideas' : 'Generate Lesson Ideas';
-  };
-
-  const getButtonIcon = () => {
-    if (isGenerating) {
-      return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
-    }
-    return upcomingLesson?.generated_lessons ? 
-      <RefreshCw className="mr-2 h-4 w-4" /> : 
-      <Target className="mr-2 h-4 w-4" />;
-  };
-
-  const getProgressMessage = () => {
-    if (generationProgress) return generationProgress;
-    if (isGenerating) return "This may take a moment...";
-    return "";
-  };
-
-  // Get sub-topics directly from upcomingLesson
-  const availableSubTopics = upcomingLesson?.sub_topics || [];
-  console.log('🔍 DEBUG: availableSubTopics in render:', availableSubTopics);
+  // If viewing lesson material, show that component
+  if (selectedLessonForViewing) {
+    return (
+      <MainLayout>
+        <div className="space-y-6">
+          <div className="flex items-center space-x-4">
+            <Button 
+              variant="outline" 
+              onClick={handleBackToProfile}
+              className="border-cyber-400/30 hover:bg-cyber-400/10"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Profile
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">
+                Lesson Material for <span className="gradient-text">{student.name}</span>
+              </h1>
+              <p className="text-muted-foreground">
+                Interactive lesson content
+              </p>
+            </div>
+          </div>
+          
+          <LessonMaterialDisplay 
+            lessonId={selectedLessonForViewing} 
+            studentNativeLanguage={student.native_language}
+          />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -516,649 +301,431 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
           <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16 ring-4 ring-cyber-400/20">
-              <AvatarImage src={student.avatar_url || undefined} alt={student.name} />
-              <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 text-lg">
-                {getInitials(student.name)}
-              </AvatarFallback>
-            </Avatar>
+            <Button 
+              variant="outline" 
+              onClick={() => router.back()}
+              className="border-cyber-400/30 hover:bg-cyber-400/10"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                <span className="gradient-text">{student.name}</span>
+              <h1 className="text-3xl font-bold">
+                <span className="gradient-text">{student.name}</span>'s Profile
               </h1>
-              <div className="flex items-center space-x-2 text-muted-foreground">
-                <LanguagesIcon className="h-4 w-4" />
-                <span>{languageInfo.name}</span>
-                <span>•</span>
-                <Badge variant="outline" className="capitalize border-cyber-400/30">
-                  {student.level}
-                </Badge>
-                {nativeLanguageInfo && (
-                  <>
-                    <span>•</span>
-                    <span className="text-xs">Native: {nativeLanguageInfo.flag} {nativeLanguageInfo.name}</span>
-                  </>
-                )}
-              </div>
+              <p className="text-muted-foreground">
+                Language learning journey and progress
+              </p>
             </div>
           </div>
           <Button 
-            onClick={() => setIsFormOpen(true)}
-            className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+            onClick={() => setIsEditFormOpen(true)}
+            className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
           >
-            <Edit className="mr-2 h-4 w-4" />
+            <Edit className="w-4 h-4 mr-2" />
             Edit Profile
           </Button>
         </div>
 
-        {/* Tabbed Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          
-          <TabsList className="grid w-full grid-cols-4 glass-effect border-cyber-400/20">
-            <TabsTrigger value="ai-architect" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
-              <Brain className="h-4 w-4" />
-              <span className="hidden sm:inline">AI Lesson Architect</span>
-              <span className="sm:hidden">AI Plans</span>
-            </TabsTrigger>
-            <TabsTrigger value="lesson-material" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Lesson Material</span>
-              <span className="sm:hidden">Material</span>
-            </TabsTrigger>            
-            <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
-              <History className="h-4 w-4" />
-              <span className="hidden sm:inline">Lesson History</span>
-              <span className="sm:hidden">History</span>
-            </TabsTrigger>            
-            <TabsTrigger value="profile" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Learning Profile</span>
-              <span className="sm:hidden">Profile</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* AI Lesson Architect Tab */}
-          <TabsContent value="ai-architect" className="space-y-6 animate-scale-in">
-            <Card className="floating-card glass-effect border-cyber-400/20 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Sparkles className="mr-2 h-5 w-5 text-cyber-400" />
-                  AI Lesson Architect
-                  {showOnboarding && (
-                    <Badge variant="secondary" className="ml-2 animate-pulse">
-                      <Lightbulb className="w-3 h-3 mr-1" />
-                      New!
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Student Info Card */}
+          <div className="lg:col-span-1">
+            <Card className="floating-card glass-effect border-cyber-400/20 sticky top-6">
+              <CardHeader className="text-center">
+                <Avatar className="w-24 h-24 mx-auto mb-4 ring-4 ring-cyber-400/20">
+                  <AvatarImage src={student.avatar_url || undefined} alt={student.name} />
+                  <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 text-xl">
+                    {getInitials(student.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <CardTitle 
+                  className="text-xl cursor-pointer select-text"
+                  onDoubleClick={handleDoubleClick}
+                >
+                  {student.name}
+                </CardTitle>
+                <CardDescription className="flex items-center justify-center space-x-2">
+                  <span className="text-2xl">{targetLanguageInfo.flag}</span>
+                  <span 
+                    className="cursor-pointer select-text"
+                    onDoubleClick={handleDoubleClick}
+                  >
+                    Learning {targetLanguageInfo.name}
+                  </span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="text-center">
+                    <p className="font-medium text-muted-foreground">Level</p>
+                    <Badge variant="outline" className="capitalize border-cyber-400/30">
+                      {student.level}
                     </Badge>
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  Generate personalized lesson plans with focused sub-topics based on {student.name}'s profile and learning history
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Onboarding Alert for First-Time Users */}
-                {showOnboarding && !hasGeneratedBefore && (
-                  <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-                    <Lightbulb className="h-4 w-4 text-blue-600" />
-                    <AlertDescription className="text-blue-800 dark:text-blue-200">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <strong>Welcome to AI Lesson Architect!</strong>
-                          <p className="mt-1 text-sm">
-                            Instantly create tailored lesson plans with focused sub-topics for {student.name}! Our AI analyzes their profile to suggest objectives, activities, materials, and specific sub-topics you can turn into interactive lessons.
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowOnboarding(false)}
-                          className="ml-2 h-6 w-6 p-0 text-blue-600 hover:text-blue-800"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-cyber-400/20">
-                  <div className="space-y-2 flex-1">
-                    <p className="font-medium">
-                      {upcomingLesson ? 
-                        `Generate lesson ideas with focused sub-topics for ${student.name}'s upcoming lesson` :
-                        `Generate new lesson ideas with sub-topics tailored to ${student.name}'s learning style and goals`
-                      }
-                    </p>
-                    {upcomingLesson && (
-                      <p className="text-sm text-muted-foreground flex items-center">
-                        <Clock className="w-4 h-4 mr-1" />
-                        Scheduled for {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
-                          weekday: 'long',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Generate 3 personalized lesson plans with focused sub-topics based on {student.name}'s profile
-                    </p>
-                    {isGenerating && (
-                      <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                        <span>{getProgressMessage()}</span>
-                      </div>
-                    )}
                   </div>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={handleGenerateLessons}
-                          disabled={isGenerating}
-                          size="lg"
-                          className="ml-4 min-w-[200px] bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-                        >
-                          {getButtonIcon()}
-                          {getButtonText()}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>
-                          {upcomingLesson?.generated_lessons ? 
-                            'Create new lesson ideas with sub-topics for this student' :
-                            'Generate AI-powered lesson plans with focused sub-topics tailored to this student'
-                          }
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <div className="text-center">
+                    <p className="font-medium text-muted-foreground">Lessons</p>
+                    <p className="font-bold text-lg">{lessons.length}</p>
+                  </div>
                 </div>
 
-                {generatedLessons.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-lg flex items-center">
-                        <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
-                        {generatedLessons.length} Lesson Plans Ready!
-                      </h3>
-                      <div className="flex items-center space-x-2">
-                        {upcomingLesson?.generated_lessons && (
-                          <Badge variant="outline" className="text-xs border-cyber-400/30">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            AI Generated
-                          </Badge>
-                        )}
-                        {availableSubTopics.length > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Target className="w-3 h-3 mr-1" />
-                            {availableSubTopics.length} Sub-topics
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <Accordion type="single" collapsible className="w-full">
-                      {generatedLessons.map((lesson, index) => {
-                        return (
-                          <AccordionItem key={index} value={`lesson-${index}`}>
-                            <AccordionTrigger className="text-left hover:no-underline">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-gradient-to-br from-cyber-400/20 to-neon-400/20 rounded-full flex items-center justify-center">
-                                  <span className="text-sm font-bold text-cyber-600 dark:text-cyber-400">{index + 1}</span>
-                                </div>
-                                <span className="font-medium">{lesson.title}</span>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="space-y-6 pt-4">
-                              {/* Action Buttons */}
-                              <div className="flex flex-wrap gap-2 p-4 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20">
-                                <Button 
-                                  size="sm" 
-                                  className="flex-1 min-w-[120px] bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
-                                  onClick={() => handleUseLessonPlan(index)}
-                                  disabled={!upcomingLesson || isGeneratingInteractive || !availableSubTopics.length}
-                                >
-                                  {isGeneratingInteractive ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      Creating...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Play className="w-4 h-4 mr-2" />
-                                      Choose Sub-topic
-                                    </>
-                                  )}
-                                </Button>
-                                <Button variant="outline" size="sm" className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10">
-                                  <Edit className="w-4 h-4 mr-2" />
-                                  Edit Plan
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => copyLessonPlan(lesson)}
-                                  className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
-                                >
-                                  <Copy className="w-4 h-4 mr-2" />
-                                  Copy to Clipboard
-                                </Button>
-                                <Button variant="outline" size="sm" className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10">
-                                  <FileText className="w-4 h-4 mr-2" />
-                                  Export
-                                </Button>
-                              </div>
+                <Separator className="bg-cyber-400/20" />
 
-                              {/* Interactive Generation Progress */}
-                              {isGeneratingInteractive && (
-                                <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                                  <span>{interactiveGenerationProgress}</span>
-                                </div>
-                              )}
-
-                              <div className="grid gap-6 md:grid-cols-2">
-                                <div>
-                                  <h4 className="font-medium mb-3 flex items-center">
-                                    <Target className="w-4 h-4 mr-2 text-blue-600" />
-                                    Lesson Objectives
-                                  </h4>
-                                  <ul className="space-y-2">
-                                    {lesson.objectives.map((objective: string, objIndex: number) => (
-                                      <li key={objIndex} className="text-sm flex items-start">
-                                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                        {objective}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-
-                                <div>
-                                  <h4 className="font-medium mb-3 flex items-center">
-                                    <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
-                                    Activities
-                                  </h4>
-                                  <ul className="space-y-2">
-                                    {lesson.activities.map((activity: string, actIndex: number) => (
-                                      <li key={actIndex} className="text-sm flex items-start">
-                                        <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                        {activity}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-
-                                <div>
-                                  <h4 className="font-medium mb-3 flex items-center">
-                                    <Book className="w-4 h-4 mr-2 text-green-600" />
-                                    Materials Needed
-                                  </h4>
-                                  <ul className="space-y-2">
-                                    {lesson.materials.map((material: string, matIndex: number) => (
-                                      <li key={matIndex} className="text-sm flex items-start">
-                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                        {material}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-
-                                <div>
-                                  <h4 className="font-medium mb-3 flex items-center">
-                                    <GraduationCap className="w-4 h-4 mr-2 text-orange-600" />
-                                    Assessment Ideas
-                                  </h4>
-                                  <ul className="space-y-2">
-                                    {lesson.assessment.map((item: string, assIndex: number) => (
-                                      <li key={assIndex} className="text-sm flex items-start">
-                                        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                        {item}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        );
-                      })}
-                    </Accordion>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <LanguagesIcon className="w-4 h-4 text-cyber-400" />
+                    <span className="text-sm font-medium">Target Language</span>
                   </div>
-                )}
-
-                {generatedLessons.length === 0 && !isGenerating && (
-                  <div className="text-center py-12 border-2 border-dashed border-cyber-400/20 rounded-lg">
-                    <Brain className="h-12 w-12 text-cyber-400 mx-auto mb-4" />
-                    <h3 className="font-medium text-lg mb-2">Ready to Create Amazing Lessons?</h3>
-                    <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                      Our AI will analyze {student.name}'s learning profile and create personalized lesson plans with focused sub-topics, objectives, activities, materials, and assessment ideas.
-                    </p>
-                    <div className="flex items-center justify-center space-x-4 text-xs text-muted-foreground">
-                      <div className="flex items-center">
-                        <Target className="w-4 h-4 mr-1" />
-                        Tailored Objectives
-                      </div>
-                      <div className="flex items-center">
-                        <Sparkles className="w-4 h-4 mr-1" />
-                        Engaging Activities
-                      </div>
-                      <div className="flex items-center">
-                        <Book className="w-4 h-4 mr-1" />
-                        Resource Lists
-                      </div>
-                      <div className="flex items-center">
-                        <Target className="w-4 h-4 mr-1" />
-                        Focused Sub-topics
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Lesson Material Tab */}
-          <TabsContent value="lesson-material" className="space-y-6 animate-scale-in">
-            <Card className="floating-card glass-effect border-cyber-400/20">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BookOpen className="mr-2 h-5 w-5 text-cyber-400" />
-                  Interactive Lesson Material
-                </CardTitle>
-                <CardDescription>
-                  Personalized lesson content for {student.name} with interactive exercises
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {selectedLessonId ? (
-                  <LessonMaterialDisplay 
-                    lessonId={selectedLessonId} 
-                    studentNativeLanguage={student.native_language}
-                  />
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-cyber-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <BookOpen className="w-8 h-8 text-cyber-400" />
-                    </div>
-                    <h3 className="font-medium text-lg mb-2">No Lesson Selected</h3>
-                    <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                      Generate lesson plans in the AI Lesson Architect tab, then choose a sub-topic to create interactive lesson material here.
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setActiveTab("ai-architect")}
-                      className="border-cyber-400/30 hover:bg-cyber-400/10"
+                  <div className="flex items-center space-x-2 ml-6">
+                    <span className="text-lg">{targetLanguageInfo.flag}</span>
+                    <span 
+                      className="cursor-pointer select-text"
+                      onDoubleClick={handleDoubleClick}
                     >
-                      Go to AI Lesson Architect
-                    </Button>
+                      {targetLanguageInfo.name}
+                    </span>
+                  </div>
+                </div>
+
+                {nativeLanguageInfo && (
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Globe className="w-4 h-4 text-neon-400" />
+                      <span className="text-sm font-medium">Native Language</span>
+                    </div>
+                    <div className="flex items-center space-x-2 ml-6">
+                      <span className="text-lg">{nativeLanguageInfo.flag}</span>
+                      <span 
+                        className="cursor-pointer select-text"
+                        onDoubleClick={handleDoubleClick}
+                      >
+                        {nativeLanguageInfo.name}
+                      </span>
+                    </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Lesson History Tab */}
-          <TabsContent value="history" className="space-y-6 animate-scale-in">
-            <Card className="floating-card glass-effect border-cyber-400/20">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Book className="mr-2 h-5 w-5 text-cyber-400" />
-                  Lesson History
-                </CardTitle>
-                <CardDescription>Recent lessons and upcoming sessions with {student.name}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-lg">Next Lesson</h3>
-                      <Calendar className="h-5 w-5 text-cyber-400" />
-                    </div>
-                    {loadingUpcomingLesson ? (
-                      <div className="flex items-center space-x-2 p-4 border border-cyber-400/20 rounded-lg">
-                        <Loader2 className="h-4 w-4 animate-spin text-cyber-400" />
-                        <span className="text-sm text-muted-foreground">Loading...</span>
-                      </div>
-                    ) : upcomingLesson ? (
-                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
-                        <div className="space-y-2">
-                          <p className="font-medium">
-                            {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(upcomingLesson.date).toLocaleTimeString(undefined, {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                          {upcomingLesson.generated_lessons && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Sparkles className="w-3 h-3 mr-1" />
-                              AI Plans Ready
-                            </Badge>
-                          )}
-                          {upcomingLesson.sub_topics && upcomingLesson.sub_topics.length > 0 && (
-                            <Badge variant="outline" className="text-xs border-cyber-400/30">
-                              <Target className="w-3 h-3 mr-1" />
-                              {upcomingLesson.sub_topics.length} Sub-topics
-                            </Badge>
-                          )}
-                          {upcomingLesson.interactive_lesson_content && (
-                            <Badge variant="outline" className="text-xs border-cyber-400/30">
-                              <BookOpen className="w-3 h-3 mr-1" />
-                              Interactive Material Ready
-                            </Badge>
-                          )}
-                          {upcomingLesson.lesson_template_id && (
-                            <Badge variant="outline" className="text-xs border-cyber-400/30">
-                              <BookOpen className="w-3 h-3 mr-1" />
-                              Template Applied
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <GraduationCap className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm font-medium">Proficiency Level</span>
+                  </div>
+                  <div className="ml-6">
+                    <Badge variant="outline" className="capitalize border-purple-400/30">
+                      {student.level}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Target className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm font-medium">Learning Styles</span>
+                  </div>
+                  <div className="ml-6 flex flex-wrap gap-1">
+                    {student.learning_styles && student.learning_styles.length > 0 ? (
+                      student.learning_styles.map((style, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {style}
+                        </Badge>
+                      ))
                     ) : (
-                      <div className="p-4 border border-cyber-400/20 rounded-lg text-center">
-                        <p className="text-sm text-muted-foreground">
-                          No upcoming lessons scheduled
-                        </p>
-                      </div>
+                      <span className="text-sm text-muted-foreground">Not specified</span>
                     )}
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            <Tabs defaultValue="overview" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="lessons">Lessons</TabsTrigger>
+                <TabsTrigger value="progress">Progress</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="space-y-6">
+                {/* Goals */}
+                <Card className="floating-card glass-effect border-cyber-400/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Target className="w-5 h-5 mr-2 text-cyber-400" />
+                      Learning Goals
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p 
+                      className="text-muted-foreground cursor-pointer select-text"
+                      onDoubleClick={handleDoubleClick}
+                    >
+                      {student.end_goals || "No specific goals set yet."}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Challenges */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card className="floating-card glass-effect border-cyber-400/20">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Grammar Challenges</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p 
+                        className="text-sm text-muted-foreground cursor-pointer select-text"
+                        onDoubleClick={handleDoubleClick}
+                      >
+                        {student.grammar_weaknesses || "No specific challenges noted."}
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="floating-card glass-effect border-cyber-400/20">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Vocabulary Gaps</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p 
+                        className="text-sm text-muted-foreground cursor-pointer select-text"
+                        onDoubleClick={handleDoubleClick}
+                      >
+                        {student.vocabulary_gaps || "No specific gaps identified."}
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="floating-card glass-effect border-cyber-400/20">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Pronunciation</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p 
+                        className="text-sm text-muted-foreground cursor-pointer select-text"
+                        onDoubleClick={handleDoubleClick}
+                      >
+                        {student.pronunciation_challenges || "No specific challenges noted."}
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="floating-card glass-effect border-cyber-400/20">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Conversation</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p 
+                        className="text-sm text-muted-foreground cursor-pointer select-text"
+                        onDoubleClick={handleDoubleClick}
+                      >
+                        {student.conversational_fluency_barriers || "No specific barriers noted."}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Notes */}
+                {student.notes && (
+                  <Card className="floating-card glass-effect border-cyber-400/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <User className="w-5 h-5 mr-2 text-cyber-400" />
+                        Additional Notes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p 
+                        className="text-muted-foreground whitespace-pre-wrap cursor-pointer select-text"
+                        onDoubleClick={handleDoubleClick}
+                      >
+                        {student.notes}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="lessons" className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold">Lesson History</h3>
+                  <Button 
+                    onClick={handleGenerateLessons}
+                    disabled={isGeneratingLessons}
+                    className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
+                  >
+                    {isGeneratingLessons ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Generate AI Lessons
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {loadingLessons ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-cyber-400" />
+                  </div>
+                ) : lessons.length === 0 ? (
+                  <Card className="floating-card glass-effect border-cyber-400/20">
+                    <CardContent className="text-center py-12">
+                      <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No lessons yet</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Generate AI-powered lesson plans to get started
+                      </p>
+                      <Button 
+                        onClick={handleGenerateLessons}
+                        disabled={isGeneratingLessons}
+                        className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
+                      >
+                        {isGeneratingLessons ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate First Lesson
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-lg">Last Lesson</h3>
-                      <MessageSquare className="h-5 w-5 text-cyber-400" />
-                    </div>
-                    <div className="p-4 border border-cyber-400/20 rounded-lg text-center">
-                      <p className="text-sm text-muted-foreground">
-                        No previous lessons recorded
+                    {lessons.map((lesson) => (
+                      <Card key={lesson.id} className="floating-card glass-effect border-cyber-400/20">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-12 h-12 bg-gradient-to-br from-cyber-400/20 to-neon-400/20 rounded-lg flex items-center justify-center">
+                                <BookOpen className="w-6 h-6 text-cyber-400" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold">
+                                  Lesson - {new Date(lesson.date).toLocaleDateString()}
+                                </h4>
+                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                  <span className="flex items-center">
+                                    <Calendar className="w-4 h-4 mr-1" />
+                                    {new Date(lesson.date).toLocaleDateString()}
+                                  </span>
+                                  <Badge variant="outline" className="capitalize">
+                                    {lesson.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {lesson.interactive_lesson_content ? (
+                                <Button 
+                                  onClick={() => handleViewLessonMaterial(lesson.id)}
+                                  className="bg-gradient-to-r from-green-400 to-emerald-400 hover:from-green-500 hover:to-emerald-500 text-white border-0"
+                                >
+                                  <Play className="w-4 h-4 mr-2" />
+                                  View Material
+                                </Button>
+                              ) : lesson.sub_topics && lesson.sub_topics.length > 0 ? (
+                                <Button 
+                                  onClick={() => handleCreateInteractiveMaterial(lesson)}
+                                  variant="outline"
+                                  className="border-cyber-400/30 hover:bg-cyber-400/10"
+                                >
+                                  <Sparkles className="w-4 h-4 mr-2" />
+                                  Create Interactive
+                                </Button>
+                              ) : lesson.generated_lessons && lesson.generated_lessons.length > 0 ? (
+                                <Badge variant="secondary" className="flex items-center">
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                                  Plans Ready
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline">
+                                  No Content
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {lesson.notes && (
+                            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                              <p 
+                                className="text-sm text-muted-foreground cursor-pointer select-text"
+                                onDoubleClick={handleDoubleClick}
+                              >
+                                {lesson.notes}
+                              </p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="progress" className="space-y-6">
+                <Card className="floating-card glass-effect border-cyber-400/20">
+                  <CardHeader>
+                    <CardTitle>Learning Progress</CardTitle>
+                    <CardDescription>
+                      Track {student.name}'s language learning journey
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gradient-to-br from-cyber-400/20 to-neon-400/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <BarChart3 className="w-8 h-8 text-cyber-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">Progress Tracking Coming Soon</h3>
+                      <p className="text-muted-foreground">
+                        Detailed progress analytics and insights will be available here
                       </p>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
 
-                <Separator className="bg-cyber-400/20" />
-
-                <div>
-                  <h3 className="font-medium mb-4 text-lg">Lesson Statistics</h3>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
-                      <div className="text-2xl font-bold gradient-text">0</div>
-                      <div className="text-sm text-muted-foreground">Total Lessons</div>
-                    </div>
-                    <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20">
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">0</div>
-                      <div className="text-sm text-muted-foreground">Completed</div>
-                    </div>
-                    <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-orange-50/50 to-amber-50/50 dark:from-orange-950/20 dark:to-amber-950/20">
-                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                        {upcomingLesson ? '1' : '0'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Upcoming</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-                    
-          {/* Learning Profile Tab */}
-          <TabsContent value="profile" className="space-y-6 animate-scale-in">
-            <Card className="floating-card glass-effect border-cyber-400/20">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <GraduationCap className="mr-2 h-5 w-5 text-cyber-400" />
-                  Learning Profile
-                </CardTitle>
-                <CardDescription>
-                  Comprehensive overview of {student.name}'s learning journey and preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div>
-                    <h3 className="font-medium mb-3 text-lg">Learning Goals</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium mb-2">End Goals</h4>
-                        <p className="text-sm text-muted-foreground bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 p-3 rounded-md border border-cyber-400/20">
-                          {student.end_goals || "No end goals specified"}
-                        </p>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium mb-2">Learning Styles</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {student.learning_styles?.map((style) => (
-                            <Badge key={style} variant="secondary" className="bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30">
-                              {style}
-                            </Badge>
-                          )) || <span className="text-sm text-muted-foreground">No learning styles specified</span>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium mb-3 text-lg">Language Details</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-md border border-cyber-400/20">
-                        <span className="text-2xl">{languageInfo.flag}</span>
-                        <div>
-                          <p className="font-medium">Target: {languageInfo.name}</p>
-                          <p className="text-sm text-muted-foreground capitalize">
-                            {student.level} Level
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {nativeLanguageInfo && (
-                        <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md border border-purple-400/20">
-                          <span className="text-2xl">{nativeLanguageInfo.flag}</span>
-                          <div>
-                            <p className="font-medium">Native: {nativeLanguageInfo.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              <Globe className="w-4 h-4 inline mr-1" />
-                              Used for translation assistance
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <Separator className="bg-cyber-400/20" />
-
-                <div className="space-y-4">
-                  <h3 className="font-medium text-lg">Areas for Improvement</h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-3">
-                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-red-50/50 to-pink-50/50 dark:from-red-950/20 dark:to-pink-950/20">
-                        <h4 className="font-medium text-red-600 dark:text-red-400 mb-2 flex items-center">
-                          <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                          Grammar Weaknesses
-                        </h4>
-                        <p className="text-sm">
-                          {student.grammar_weaknesses || "None specified"}
-                        </p>
-                      </div>
-                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-orange-50/50 to-amber-50/50 dark:from-orange-950/20 dark:to-amber-950/20">
-                        <h4 className="font-medium text-orange-600 dark:text-orange-400 mb-2 flex items-center">
-                          <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                          Vocabulary Gaps
-                        </h4>
-                        <p className="text-sm">
-                          {student.vocabulary_gaps || "None specified"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-blue-50/50 to-cyan-50/50 dark:from-blue-950/20 dark:to-cyan-950/20">
-                        <h4 className="font-medium text-blue-600 dark:text-blue-400 mb-2 flex items-center">
-                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                          Pronunciation Challenges
-                        </h4>
-                        <p className="text-sm">
-                          {student.pronunciation_challenges || "None specified"}
-                        </p>
-                      </div>
-                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-purple-50/50 to-violet-50/50 dark:from-purple-950/20 dark:to-violet-950/20">
-                        <h4 className="font-medium text-purple-600 dark:text-purple-400 mb-2 flex items-center">
-                          <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                          Conversational Fluency Barriers
-                        </h4>
-                        <p className="text-sm">
-                          {student.conversational_fluency_barriers || "None specified"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator className="bg-cyber-400/20" />
-
-                <div>
-                  <h3 className="font-medium mb-2">Additional Notes</h3>
-                  <div className="bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 p-4 rounded-md border border-cyber-400/20">
-                    <p className="text-sm text-muted-foreground">
-                      {student.notes || "No additional notes"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-        </Tabs>
-
-        <StudentForm
-          open={isFormOpen}
-          onOpenChange={setIsFormOpen}
+        {/* Edit Student Form */}
+        <StudentForm 
+          open={isEditFormOpen} 
+          onOpenChange={setIsEditFormOpen}
           student={student}
           onSuccess={() => {
-            setIsFormOpen(false);
-            // Refresh the page to get updated student data
+            setIsEditFormOpen(false);
+            // Refresh student data
             window.location.reload();
           }}
         />
 
+        {/* Sub-topic Selection Dialog */}
         <SubTopicSelectionDialog
           open={isSubTopicDialogOpen}
           onOpenChange={setIsSubTopicDialogOpen}
-          subTopics={availableSubTopics}
-          onSelectSubTopic={handleSelectSubTopic}
+          subTopics={selectedLessonSubTopics}
+          onSelectSubTopic={handleSubTopicSelection}
           isGenerating={isGeneratingInteractive}
-          generationProgress={interactiveGenerationProgress}
+          generationProgress={generationProgress}
+        />
+
+        {/* Translation Popup */}
+        <TranslationPopup
+          isVisible={translationState.isVisible}
+          position={translationState.position}
+          originalText={translationState.originalText}
+          translatedText={translationState.translatedText}
+          isLoading={translationState.isLoading}
+          onClose={hideTranslation}
         />
       </div>
     </MainLayout>

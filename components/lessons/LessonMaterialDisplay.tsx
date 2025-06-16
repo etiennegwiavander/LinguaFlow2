@@ -32,6 +32,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import TranslationPopup from "@/components/ui/translation-popup";
+import { useTranslationPopup } from "@/hooks/use-translation-popup";
 
 interface LessonTemplate {
   id: string;
@@ -176,8 +178,9 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
   const [error, setError] = useState<string | null>(null);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [isPlaying, setIsPlaying] = useState<Record<string, boolean>>({});
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translatedText, setTranslatedText] = useState<string | null>(null);
+
+  // Use the translation popup hook
+  const { translationState, handleDoubleClick, hideTranslation } = useTranslationPopup(studentNativeLanguage);
 
   useEffect(() => {
     if (!user || !lessonId) return;
@@ -306,65 +309,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     }, 3000);
   };
 
-  const handleTranslateText = async (text: string) => {
-    if (!studentNativeLanguage) {
-      toast.info("No native language set for this student. Please add it in the student profile.");
-      return;
-    }
-
-    if (isTranslating) return;
-    
-    setIsTranslating(true);
-    setTranslatedText(null);
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
-
-      const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/translate-text`;
-      
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text_to_translate: text,
-          target_language_code: studentNativeLanguage
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || 'Translation failed');
-      }
-
-      const result = await response.json();
-      
-      if (result.success && result.translated_text) {
-        setTranslatedText(result.translated_text);
-        toast.success("Translation successful", {
-          description: result.translated_text,
-          duration: 5000,
-          action: {
-            label: "Close",
-            onClick: () => setTranslatedText(null)
-          }
-        });
-      } else {
-        throw new Error(result.error || 'Translation failed');
-      }
-    } catch (error: any) {
-      console.error('Translation error:', error);
-      toast.error(error.message || 'Failed to translate text');
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
   const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
     if (!template) return null;
 
@@ -390,33 +334,19 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     const sectionId = safeGetString(section, 'id', 'unknown-section');
     const sectionType = safeGetString(section, 'type', 'unknown');
 
-    // Add double-click handler for translation
-    const handleDoubleClick = (e: React.MouseEvent<HTMLElement>) => {
-      if (!studentNativeLanguage) return;
-      
-      // Get the selected text
-      const selection = window.getSelection();
-      const selectedText = selection?.toString().trim();
-      
-      if (selectedText && selectedText.length > 0) {
-        e.preventDefault();
-        handleTranslateText(selectedText);
-      }
-    };
-
     switch (sectionType) {
       case 'title':
         return (
           <div key={sectionId} className="text-center mb-8">
             <h1 
-              className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2 gradient-text"
+              className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2 gradient-text cursor-pointer select-text"
               onDoubleClick={handleDoubleClick}
             >
               {safeGetString(section, 'title', 'Lesson Title')}
             </h1>
             {section.subtitle && (
               <p 
-                className="text-xl text-gray-600 dark:text-gray-300"
+                className="text-xl text-gray-600 dark:text-gray-300 cursor-pointer select-text"
                 onDoubleClick={handleDoubleClick}
               >
                 {safeGetString(section, 'subtitle', '')}
@@ -433,13 +363,18 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Target className="w-5 h-5 mr-2 text-cyber-400" />
-                {safeGetString(section, 'title', 'Information')}
+                <span 
+                  className="cursor-pointer select-text"
+                  onDoubleClick={handleDoubleClick}
+                >
+                  {safeGetString(section, 'title', 'Information')}
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {typeof section.content === 'string' ? (
                 <p 
-                  className="text-sm"
+                  className="text-sm cursor-pointer select-text"
                   onDoubleClick={handleDoubleClick}
                 >
                   {safeStringify(section.content)}
@@ -449,7 +384,12 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                   {objectives.map((item, index) => (
                     <li key={index} className="flex items-start">
                       <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                      <span onDoubleClick={handleDoubleClick}>{safeStringify(item)}</span>
+                      <span 
+                        className="cursor-pointer select-text"
+                        onDoubleClick={handleDoubleClick}
+                      >
+                        {safeStringify(item)}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -464,12 +404,17 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
             <CardHeader>
               <CardTitle className="flex items-center">
                 <BookOpen className="w-5 h-5 mr-2 text-cyber-400" />
-                {safeGetString(section, 'title', 'Exercise')}
+                <span 
+                  className="cursor-pointer select-text"
+                  onDoubleClick={handleDoubleClick}
+                >
+                  {safeGetString(section, 'title', 'Exercise')}
+                </span>
               </CardTitle>
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
                   <p 
-                    className="text-sm font-medium"
+                    className="text-sm font-medium cursor-pointer select-text"
                     onDoubleClick={handleDoubleClick}
                   >
                     {safeGetString(section, 'instruction', '')}
@@ -478,7 +423,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               )}
             </CardHeader>
             <CardContent>
-              {renderExerciseContent(section, lessonIndex, handleDoubleClick)}
+              {renderExerciseContent(section, lessonIndex)}
             </CardContent>
           </Card>
         );
@@ -495,8 +440,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
   const renderExerciseContent = (
     section: TemplateSection, 
-    lessonIndex: number,
-    handleDoubleClick: (e: React.MouseEvent<HTMLElement>) => void
+    lessonIndex: number
   ) => {
     const currentLesson = generatedLessons[lessonIndex];
     const contentType = safeGetString(section, 'content_type', 'unknown');
@@ -519,9 +463,13 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               <div 
                 key={index} 
                 className="p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20"
-                onDoubleClick={handleDoubleClick}
               >
-                <span className="font-medium">{safeStringify(item)}</span>
+                <span 
+                  className="font-medium cursor-pointer select-text"
+                  onDoubleClick={handleDoubleClick}
+                >
+                  {safeStringify(item)}
+                </span>
               </div>
             ))}
           </div>
@@ -530,7 +478,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
       case 'text':
         return (
           <div className="prose max-w-none">
-            <p onDoubleClick={handleDoubleClick}>
+            <p 
+              className="cursor-pointer select-text"
+              onDoubleClick={handleDoubleClick}
+            >
               {safeGetString(section, 'content', 'Content will be displayed here.')}
             </p>
           </div>
@@ -543,7 +494,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
           <div className="prose max-w-none">
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <div 
-                className="whitespace-pre-wrap text-sm leading-relaxed"
+                className="whitespace-pre-wrap text-sm leading-relaxed cursor-pointer select-text"
                 onDoubleClick={handleDoubleClick}
               >
                 {explanationContent}
@@ -572,7 +523,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                     {index + 1}
                   </span>
                   <span 
-                    className="text-sm"
+                    className="text-sm cursor-pointer select-text"
                     onDoubleClick={handleDoubleClick}
                   >
                     {safeStringify(sentence)}
@@ -607,13 +558,13 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                 )}
                 <div className="flex-1">
                   <h4 
-                    className="font-semibold"
+                    className="font-semibold cursor-pointer select-text"
                     onDoubleClick={handleDoubleClick}
                   >
                     {safeStringify(item.word || item.name)}
                   </h4>
                   <p 
-                    className="text-sm text-gray-600 dark:text-gray-300"
+                    className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer select-text"
                     onDoubleClick={handleDoubleClick}
                   >
                     {safeStringify(item.definition || item.prompt)}
@@ -679,7 +630,12 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                     }`}>
                       {character}:
                     </p>
-                    <p onDoubleClick={handleDoubleClick}>{text}</p>
+                    <p 
+                      className="cursor-pointer select-text"
+                      onDoubleClick={handleDoubleClick}
+                    >
+                      {text}
+                    </p>
                   </div>
                 </div>
               );
@@ -738,7 +694,12 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                       }`}>
                         {character}:
                       </p>
-                      <p onDoubleClick={handleDoubleClick}>{text}</p>
+                      <p 
+                        className="cursor-pointer select-text"
+                        onDoubleClick={handleDoubleClick}
+                      >
+                        {text}
+                      </p>
                     </div>
                   </div>
                 );
@@ -750,7 +711,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                 return (
                   <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-yellow-50/50 to-amber-50/50 dark:from-yellow-900/20 dark:to-amber-900/20">
                     <p 
-                      className="font-medium mb-3"
+                      className="font-medium mb-3 cursor-pointer select-text"
                       onDoubleClick={handleDoubleClick}
                     >
                       {question}
@@ -763,6 +724,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                           <RadioGroupItem value={safeStringify(option)} id={`${section.id}_${index}_${optIndex}`} />
                           <Label 
                             htmlFor={`${section.id}_${index}_${optIndex}`}
+                            className="cursor-pointer select-text"
                             onDoubleClick={handleDoubleClick}
                           >
                             {safeStringify(option)}
@@ -813,7 +775,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                   <div className="space-y-3">
                     <div>
                       <p 
-                        className="font-medium text-gray-800 dark:text-gray-200"
+                        className="font-medium text-gray-800 dark:text-gray-200 cursor-pointer select-text"
                         onDoubleClick={handleDoubleClick}
                       >
                         {question}
@@ -821,7 +783,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                     </div>
                     <div className="pl-4 border-l-2 border-cyber-400/30">
                       <p 
-                        className="text-sm text-cyber-600 dark:text-cyber-400 font-medium"
+                        className="text-sm text-cyber-600 dark:text-cyber-400 font-medium cursor-pointer select-text"
                         onDoubleClick={handleDoubleClick}
                       >
                         Answer: {answer}
@@ -841,23 +803,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
           </div>
         );
     }
-  };
-
-  const handleTranslationRequest = async () => {
-    if (!studentNativeLanguage) {
-      toast.info("No native language set for this student. Please add it in the student profile.");
-      return;
-    }
-
-    const selection = window.getSelection();
-    const selectedText = selection?.toString().trim();
-    
-    if (!selectedText || selectedText.length === 0) {
-      toast.info("Please select text to translate by double-clicking on it.");
-      return;
-    }
-    
-    await handleTranslateText(selectedText);
   };
 
   if (loading) {
@@ -946,14 +891,9 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                   variant="outline" 
                   size="sm" 
                   className="flex items-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
-                  onClick={handleTranslationRequest}
-                  disabled={isTranslating}
+                  disabled
                 >
-                  {isTranslating ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Globe className="w-4 h-4 mr-2" />
-                  )}
+                  <Globe className="w-4 h-4" />
                   <span>Double-click text to translate</span>
                 </Button>
               </div>
@@ -974,6 +914,16 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
             Complete Lesson
           </Button>
         </div>
+
+        {/* Translation Popup */}
+        <TranslationPopup
+          isVisible={translationState.isVisible}
+          position={translationState.position}
+          originalText={translationState.originalText}
+          translatedText={translationState.translatedText}
+          isLoading={translationState.isLoading}
+          onClose={hideTranslation}
+        />
       </div>
     );
   }
@@ -992,7 +942,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
           {lesson.student.native_language && (
             <Badge variant="secondary" className="flex items-center">
               <Globe className="w-3 h-3 mr-1" />
-              Native: {getLanguageInfo(lesson.student.native_language).name}
+              Native: {lesson.student.native_language}
             </Badge>
           )}
         </div>
@@ -1005,7 +955,12 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <BookOpen className="w-5 h-5 mr-2 text-cyber-400" />
-                  {safeStringify(lessonPlan.title)}
+                  <span 
+                    className="cursor-pointer select-text"
+                    onDoubleClick={handleDoubleClick}
+                  >
+                    {safeStringify(lessonPlan.title)}
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1018,7 +973,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                     {Array.isArray(lessonPlan.objectives) && lessonPlan.objectives.map((objective, objIndex) => (
                       <li key={objIndex} className="flex items-start">
                         <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                        <span onDoubleClick={(e) => studentNativeLanguage && handleDoubleClick(e)}>
+                        <span 
+                          className="cursor-pointer select-text"
+                          onDoubleClick={handleDoubleClick}
+                        >
                           {safeStringify(objective)}
                         </span>
                       </li>
@@ -1037,7 +995,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                     {Array.isArray(lessonPlan.activities) && lessonPlan.activities.map((activity, actIndex) => (
                       <li key={actIndex} className="flex items-start">
                         <ArrowRight className="w-4 h-4 mr-2 mt-0.5 text-purple-500 flex-shrink-0" />
-                        <span onDoubleClick={(e) => studentNativeLanguage && handleDoubleClick(e)}>
+                        <span 
+                          className="cursor-pointer select-text"
+                          onDoubleClick={handleDoubleClick}
+                        >
                           {safeStringify(activity)}
                         </span>
                       </li>
@@ -1057,7 +1018,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                       {Array.isArray(lessonPlan.materials) && lessonPlan.materials.map((material, matIndex) => (
                         <li key={matIndex} className="flex items-start">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          <span onDoubleClick={(e) => studentNativeLanguage && handleDoubleClick(e)}>
+                          <span 
+                            className="cursor-pointer select-text"
+                            onDoubleClick={handleDoubleClick}
+                          >
                             {safeStringify(material)}
                           </span>
                         </li>
@@ -1074,7 +1038,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                       {Array.isArray(lessonPlan.assessment) && lessonPlan.assessment.map((item, assIndex) => (
                         <li key={assIndex} className="flex items-start">
                           <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          <span onDoubleClick={(e) => studentNativeLanguage && handleDoubleClick(e)}>
+                          <span 
+                            className="cursor-pointer select-text"
+                            onDoubleClick={handleDoubleClick}
+                          >
                             {safeStringify(item)}
                           </span>
                         </li>
@@ -1097,6 +1064,16 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
           </p>
         </div>
       )}
+
+      {/* Translation Popup */}
+      <TranslationPopup
+        isVisible={translationState.isVisible}
+        position={translationState.position}
+        originalText={translationState.originalText}
+        translatedText={translationState.translatedText}
+        isLoading={translationState.isLoading}
+        onClose={hideTranslation}
+      />
     </div>
   );
 }
