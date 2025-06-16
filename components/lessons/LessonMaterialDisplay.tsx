@@ -733,8 +733,8 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               // Handle both object format and string format
               if (typeof line === 'object' && line !== null) {
                 // Object format: { speaker: "Person A", line: "Hello!" }
-                character = safeGetString(line, 'speaker', 'Speaker');
-                text = safeGetString(line, 'line', 'No text available');
+                character = safeGetString(line, 'character', 'Speaker');
+                text = safeGetString(line, 'text', 'No text available');
               } else {
                 // String format: "A: Hello! I am Maria."
                 const parsed = parseDialogueLine(line);
