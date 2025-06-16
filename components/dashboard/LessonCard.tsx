@@ -10,7 +10,8 @@ import {
   ChevronRight,
   ClipboardList,
   Clock,
-  X
+  X,
+  Sparkles
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,13 +37,13 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "upcoming":
-        return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+        return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200";
       case "completed":
-        return "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+        return "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-200";
       case "cancelled":
-        return "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+        return "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200";
       default:
-        return "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+        return "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200";
     }
   };
 
@@ -64,24 +65,31 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
     <>
       <Card 
         className={cn(
-          "overflow-hidden transition-all duration-200 hover:shadow-md h-full", 
+          "floating-card glass-effect border-cyber-400/20 hover:border-cyber-400/50 transition-all duration-300 h-full group overflow-hidden relative", 
           className
         )}
       >
-        <CardContent className="p-4 sm:p-6">
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-cyber-400/5 to-neon-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        
+        <CardContent className="p-4 sm:p-6 relative z-10">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center">
-              <Avatar className="h-8 w-8 sm:h-10 sm:w-10 mr-3">
+              <Avatar className="h-8 w-8 sm:h-10 sm:w-10 mr-3 ring-2 ring-cyber-400/20 group-hover:ring-cyber-400/50 transition-all duration-300">
                 <AvatarImage src={lesson.student.avatar_url || undefined} alt={lesson.student.name} />
-                <AvatarFallback>{getInitials(lesson.student.name)}</AvatarFallback>
+                <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400">
+                  {getInitials(lesson.student.name)}
+                </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold">{lesson.student.name}</h3>
+                <h3 className="text-sm sm:text-base font-semibold group-hover:text-cyber-400 transition-colors duration-300">
+                  {lesson.student.name}
+                </h3>
                 <div className="flex items-center text-xs sm:text-sm text-muted-foreground mt-1">
                   <span className="mr-1.5 text-base sm:text-lg">{languageInfo.flag}</span>
                   <span>{languageInfo.name}</span>
                   <span className="mx-2">•</span>
-                  <Badge variant="outline" className="capitalize text-xs font-normal">
+                  <Badge variant="outline" className="capitalize text-xs font-normal border-cyber-400/30">
                     {lesson.student.level}
                   </Badge>
                 </div>
@@ -94,47 +102,55 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
           
           <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center text-xs sm:text-sm">
-              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-muted-foreground" />
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-cyber-400" />
               <span>{format(new Date(lesson.date), "EEEE, MMMM d, yyyy")}</span>
             </div>
             <div className="flex items-center text-xs sm:text-sm">
-              <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-muted-foreground" />
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-neon-400" />
               <span>{format(new Date(lesson.date), "h:mm a")}</span>
             </div>
             <div className="flex items-center text-xs sm:text-sm">
-              <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-muted-foreground" />
+              <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-purple-400" />
               <span className="truncate">{lesson.materials.join(", ")}</span>
             </div>
+            {lesson.generated_lessons && lesson.generated_lessons.length > 0 && (
+              <div className="flex items-center text-xs sm:text-sm">
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-emerald-400" />
+                <span className="text-emerald-600 dark:text-emerald-400">AI Plans Ready</span>
+              </div>
+            )}
           </div>
         </CardContent>
         
-        <CardFooter className="bg-muted/50 px-4 sm:px-6 py-2 sm:py-3">
+        <CardFooter className="bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 px-4 sm:px-6 py-2 sm:py-3 relative z-10">
           <Button 
             variant="ghost" 
-            className="ml-auto flex items-center text-xs sm:text-sm hover:bg-background"
+            className="ml-auto flex items-center text-xs sm:text-sm hover:bg-cyber-400/10 hover:text-cyber-400 transition-all duration-300 group"
             onClick={() => setIsDialogOpen(true)}
           >
             <span>View Lesson</span>
-            <ChevronRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
+            <ChevronRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4 group-hover:translate-x-1 transition-transform duration-300" />
           </Button>
         </CardFooter>
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto glass-effect border-cyber-400/30">
           <DialogHeader>
             <DialogTitle className="flex items-center text-lg sm:text-xl">
               <span className="mr-2 text-xl">{languageInfo.flag}</span>
-              Lesson with {lesson.student.name}
+              Lesson with <span className="gradient-text ml-1">{lesson.student.name}</span>
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-6 my-2">
             <div className="flex justify-between items-center flex-wrap gap-4">
               <div className="flex items-center">
-                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 mr-4">
+                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 mr-4 ring-2 ring-cyber-400/20">
                   <AvatarImage src={lesson.student.avatar_url || undefined} alt={lesson.student.name} />
-                  <AvatarFallback>{getInitials(lesson.student.name)}</AvatarFallback>
+                  <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400">
+                    {getInitials(lesson.student.name)}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="font-semibold text-base sm:text-lg">{lesson.student.name}</h3>
@@ -161,7 +177,9 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
             
             <div className="space-y-2">
               <h4 className="font-medium">Lesson Notes</h4>
-              <p className="text-xs sm:text-sm">{lesson.notes || "No notes available"}</p>
+              <div className="p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20">
+                <p className="text-xs sm:text-sm">{lesson.notes || "No notes available"}</p>
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -186,14 +204,17 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
             
             {lesson.generated_lessons && lesson.generated_lessons.length > 0 && (
               <div className="space-y-2">
-                <h4 className="font-medium">AI-Generated Lesson Ideas</h4>
+                <h4 className="font-medium flex items-center">
+                  <Sparkles className="w-4 h-4 mr-2 text-emerald-400" />
+                  AI-Generated Lesson Ideas
+                </h4>
                 <div className="grid gap-2">
                   {lesson.generated_lessons.map((genLesson, index) => (
                     <div 
                       key={index} 
-                      className="bg-secondary/50 p-2 sm:p-3 rounded-md text-xs sm:text-sm flex items-start"
+                      className="bg-gradient-to-r from-emerald-50/50 to-cyan-50/50 dark:from-emerald-900/20 dark:to-cyan-900/20 p-2 sm:p-3 rounded-md text-xs sm:text-sm flex items-start border border-emerald-200/50 dark:border-emerald-800/50"
                     >
-                      <span className="mr-2 font-medium">{index + 1}.</span>
+                      <span className="mr-2 font-medium text-emerald-600 dark:text-emerald-400">{index + 1}.</span>
                       <span>{genLesson}</span>
                     </div>
                   ))}
@@ -204,9 +225,13 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
           
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Close</Button>
+              <Button variant="outline" className="border-cyber-400/30 hover:bg-cyber-400/10">
+                Close
+              </Button>
             </DialogClose>
-            <Button>Select Lesson</Button>
+            <Button className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0">
+              Select Lesson
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
