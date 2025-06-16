@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import MainLayout from "@/components/main-layout";
 import { 
   ArrowLeft, 
+  BarChart3,
   Calendar, 
   Clock, 
   Edit, 
