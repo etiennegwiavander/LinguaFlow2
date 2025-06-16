@@ -251,7 +251,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="glass-effect border-cyber-400/30">
-                        <SelectItem value="">
+                        <SelectItem value="none">
                           <span className="text-muted-foreground">Not specified</span>
                         </SelectItem>
                         {languages.map((language) => (
