@@ -11,12 +11,6 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     // Ignore optional dependencies that are not needed for client-side builds
     if (!isServer) {
-      config.externals = config.externals || [];
-      config.externals.push({
-        'bufferutil': 'bufferutil',
-        'utf-8-validate': 'utf-8-validate',
-      });
-
       // Add resolve.alias to completely exclude problematic modules from client bundle
       config.resolve = config.resolve || {};
       config.resolve.alias = config.resolve.alias || {};
