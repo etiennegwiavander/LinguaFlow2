@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -20,6 +21,22 @@ const nextConfig = {
     // Suppress warnings for dynamic requires in Supabase realtime
     config.module = config.module || {};
     config.module.exprContextCritical = false;
+    
+    // Add IgnorePlugin to completely ignore Deno-specific imports in supabase/functions
+    config.plugins = config.plugins || [];
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        // Ignore any module that starts with 'jsr:' or 'npm:' when requested from supabase/functions
+        checkResource(resource, context) {
+          // Check if the request is coming from supabase/functions directory
+          if (context && context.includes('supabase/functions')) {
+            // Ignore jsr: and npm: imports which are Deno-specific
+            return resource.startsWith('jsr:') || resource.startsWith('npm:');
+          }
+          return false;
+        }
+      })
+    );
     
     // Exclude supabase/functions from TypeScript compilation
     const rules = config.module.rules;
