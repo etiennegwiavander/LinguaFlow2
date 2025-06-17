@@ -26,6 +26,14 @@ export interface GoogleTokens {
   updated_at: string;
 }
 
+export interface TokenData {
+  access_token: string;
+  refresh_token: string;
+  expires_at: string;
+  scope: string;
+  email?: string;
+}
+
 export class GoogleCalendarService {
   private static instance: GoogleCalendarService;
   private popupWindow: Window | null = null;
@@ -35,6 +43,34 @@ export class GoogleCalendarService {
       GoogleCalendarService.instance = new GoogleCalendarService();
     }
     return GoogleCalendarService.instance;
+  }
+
+  /**
+   * Store Google OAuth tokens in the database
+   */
+  public async storeTokens(tokenData: TokenData): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { error } = await supabase
+      .from('google_tokens')
+      .upsert({
+        tutor_id: user.id,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expires_at: tokenData.expires_at,
+        scope: tokenData.scope,
+        email: tokenData.email || null,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'tutor_id'
+      });
+
+    if (error) {
+      throw new Error(`Failed to store tokens: ${error.message}`);
+    }
   }
 
   /**
