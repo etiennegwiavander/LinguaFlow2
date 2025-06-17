@@ -5,6 +5,7 @@ const nextConfig = {
   },
   images: { unoptimized: true },
   optimizeFonts: false,
+  transpilePackages: ['@supabase/supabase-js', '@supabase/functions-js'],
   webpack: (config, { isServer }) => {
     // Ignore optional dependencies that are not needed for client-side builds
     if (!isServer) {
