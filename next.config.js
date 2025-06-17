@@ -16,6 +16,32 @@ const nextConfig = {
         'bufferutil': 'bufferutil',
         'utf-8-validate': 'utf-8-validate',
       });
+
+      // Add resolve.alias to completely exclude problematic modules from client bundle
+      config.resolve = config.resolve || {};
+      config.resolve.alias = config.resolve.alias || {};
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'bufferutil': false,
+        'utf-8-validate': false,
+      };
+
+      // Ensure fallbacks for Node.js modules
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        stream: false,
+        url: false,
+        zlib: false,
+        http: false,
+        https: false,
+        assert: false,
+        os: false,
+        path: false,
+      };
     }
     
     // Suppress warnings for dynamic requires in Supabase realtime
