@@ -20,10 +20,6 @@ const nextConfig = {
     config.module = config.module || {};
     config.module.exprContextCritical = false;
     
-    // Ignore Supabase Edge Functions directory to prevent parsing Deno-specific syntax
-    config.module.noParse = config.module.noParse || [];
-    config.module.noParse.push(/supabase\/functions/);
-    
     return config;
   },
 };
