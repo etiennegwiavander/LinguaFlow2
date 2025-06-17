@@ -91,7 +91,7 @@ export default function SignUpPage() {
     setIsLoading(true);
     try {
       await signUp(values.email, values.password);
-      toast.success('Account created successfully!');
+      toast.success("Account created successfully!");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
