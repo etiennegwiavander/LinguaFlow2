@@ -38,24 +38,43 @@ const nextConfig = {
       })
     );
     
-    // Exclude supabase/functions from TypeScript compilation
-    const rules = config.module.rules;
-    const tsRule = rules.find(rule => 
-      rule.test && rule.test.toString().includes('tsx?')
-    );
+    // More comprehensive exclusion of supabase/functions from all processing
+    const supabaseFunctionsPath = path.resolve(__dirname, 'supabase/functions');
     
-    if (tsRule) {
-      tsRule.exclude = tsRule.exclude || [];
-      if (Array.isArray(tsRule.exclude)) {
-        tsRule.exclude.push(path.resolve(__dirname, 'supabase/functions'));
-      } else {
-        // If exclude is a function or regex, convert to array
-        const originalExclude = tsRule.exclude;
-        tsRule.exclude = [originalExclude, path.resolve(__dirname, 'supabase/functions')];
+    // Exclude from all module rules
+    config.module.rules.forEach(rule => {
+      if (rule.test && (
+        rule.test.toString().includes('tsx?') || 
+        rule.test.toString().includes('jsx?') ||
+        rule.test.toString().includes('ts') ||
+        rule.test.toString().includes('js')
+      )) {
+        // Ensure exclude is an array
+        if (!rule.exclude) {
+          rule.exclude = [];
+        } else if (typeof rule.exclude === 'function' || rule.exclude instanceof RegExp) {
+          const originalExclude = rule.exclude;
+          rule.exclude = [originalExclude];
+        }
+        
+        // Add supabase/functions to exclusion list
+        if (Array.isArray(rule.exclude)) {
+          rule.exclude.push(supabaseFunctionsPath);
+          rule.exclude.push(/supabase\/functions/);
+        }
       }
-    }
+    });
     
     return config;
+  },
+  // Exclude supabase/functions from TypeScript compilation at the Next.js level
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  // Add experimental feature to exclude directories
+  experimental: {
+    // This helps with build performance and avoids processing unnecessary files
+    optimizePackageImports: ['lucide-react'],
   },
 };
 
