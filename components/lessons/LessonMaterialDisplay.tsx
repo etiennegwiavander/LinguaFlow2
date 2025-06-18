@@ -72,6 +72,7 @@ interface TemplateSection {
   ordering_items?: string[];
   ai_placeholder?: string;
   content?: string;
+  text?: string;
   explanation_content?: string;
   sentences?: string[];
 }
@@ -170,7 +171,14 @@ const getInfoCardContent = (section: TemplateSection): string => {
     fullSection: section
   });
 
-  // First, try to get content from the 'content' field
+  // First, check for the 'text' field which is used in some templates
+  if (section.text && typeof section.text === 'string' && section.text.trim()) {
+    console.log('✅ Found content in section.text:', section.text);
+    return section.text;
+  }
+  console.log('❌ No content found in section.text:', section.text);
+
+  // Then, try to get content from the 'content' field
   if (section.content && typeof section.content === 'string' && section.content.trim()) {
     console.log('✅ Found content in section.content:', section.content);
     return section.content;
