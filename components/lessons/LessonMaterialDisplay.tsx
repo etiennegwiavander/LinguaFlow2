@@ -514,6 +514,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
       case 'info_card':
         const objectives = safeGetArray(section, 'items');
+        const cardContent = safeGetString(section, 'content', '');
 
         return (
           <Card key={sectionId} className={`mb-6 floating-card glass-effect border-cyber-400/20 ${getBgColor(section.background_color_var)}`}>
@@ -524,14 +525,17 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {typeof section.content === 'string' ? (
-                <p 
-                  className="text-sm"
+              {/* Check if we have content as a string */}
+              {cardContent ? (
+                <div 
+                  className="prose max-w-none"
                   onDoubleClick={handleTextDoubleClick}
                 >
-                  {safeStringify(section.content)}
-                </p>
-              ) : (
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {cardContent}
+                  </p>
+                </div>
+              ) : objectives.length > 0 ? (
                 <ul className="space-y-2">
                   {objectives.map((item, index) => (
                     <li key={index} className="flex items-start">
@@ -540,6 +544,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                     </li>
                   ))}
                 </ul>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  <p>No content available for this section.</p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -614,11 +622,16 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
         );
 
       case 'text':
+        const textContent = safeGetString(section, 'content', 'Content will be displayed here.');
+        
         return (
           <div className="prose max-w-none">
-            <p onDoubleClick={handleTextDoubleClick}>
-              {safeGetString(section, 'content', 'Content will be displayed here.')}
-            </p>
+            <div 
+              className="whitespace-pre-wrap text-sm leading-relaxed"
+              onDoubleClick={handleTextDoubleClick}
+            >
+              {textContent}
+            </div>
           </div>
         );
 
