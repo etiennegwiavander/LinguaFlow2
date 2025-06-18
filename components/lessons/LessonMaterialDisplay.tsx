@@ -26,6 +26,18 @@ export default function LessonMaterialDisplay({
   const [isTranslating, setIsTranslating] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Debug logging for content prop
+  console.log("🔍 LessonMaterialDisplay received content:", {
+    content,
+    contentType: typeof content,
+    isNull: content === null,
+    isUndefined: content === undefined,
+    hasContent: !!content,
+    hasSections: content?.sections,
+    sectionsLength: content?.sections?.length,
+    contentKeys: content ? Object.keys(content) : null
+  });
+
   const toggleAnswer = (questionId: string) => {
     setRevealedAnswers(prev => {
       const newSet = new Set(prev);
@@ -403,13 +415,56 @@ export default function LessonMaterialDisplay({
     }
   };
 
-  if (!content || !content.sections) {
+  // Enhanced debugging for the content check
+  console.log("🔍 Content validation check:", {
+    contentExists: !!content,
+    contentType: typeof content,
+    sectionsExists: !!content?.sections,
+    sectionsType: typeof content?.sections,
+    sectionsIsArray: Array.isArray(content?.sections),
+    sectionsLength: content?.sections?.length,
+    fullContent: JSON.stringify(content, null, 2)
+  });
+
+  if (!content) {
+    console.log("❌ No content provided to LessonMaterialDisplay");
     return (
       <div className="text-center py-8">
         <p className="text-gray-500">No lesson content available.</p>
+        <p className="text-xs text-gray-400 mt-2">Debug: content is null or undefined</p>
       </div>
     );
   }
+
+  if (!content.sections) {
+    console.log("❌ Content exists but no sections found:", content);
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">No lesson content available.</p>
+        <p className="text-xs text-gray-400 mt-2">Debug: content.sections is missing</p>
+        <details className="mt-4 text-left">
+          <summary className="text-xs text-gray-400 cursor-pointer">Show content structure</summary>
+          <pre className="text-xs text-gray-400 mt-2 overflow-auto max-h-40">
+            {JSON.stringify(content, null, 2)}
+          </pre>
+        </details>
+      </div>
+    );
+  }
+
+  if (!Array.isArray(content.sections) || content.sections.length === 0) {
+    console.log("❌ Sections exists but is not a valid array:", content.sections);
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">No lesson content available.</p>
+        <p className="text-xs text-gray-400 mt-2">
+          Debug: sections is not an array or is empty (length: {content.sections?.length})
+        </p>
+      </div>
+    );
+  }
+
+  console.log("✅ Content validation passed, rendering sections:", content.sections.length);
 
   return (
     <div className="max-w-4xl mx-auto p-6 relative">
