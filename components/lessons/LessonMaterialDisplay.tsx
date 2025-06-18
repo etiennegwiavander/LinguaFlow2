@@ -160,38 +160,67 @@ const safeGetArray = (obj: any, key: string): any[] => {
 
 // Helper function to get content for info_card sections
 const getInfoCardContent = (section: TemplateSection): string => {
+  console.log('🔍 DEBUG: getInfoCardContent called with section:', {
+    id: section.id,
+    type: section.type,
+    title: section.title,
+    ai_placeholder: section.ai_placeholder,
+    content_type: section.content_type,
+    allKeys: Object.keys(section),
+    fullSection: section
+  });
+
   // First, try to get content from the 'content' field
   if (section.content && typeof section.content === 'string' && section.content.trim()) {
+    console.log('✅ Found content in section.content:', section.content);
     return section.content;
   }
+  console.log('❌ No content found in section.content:', section.content);
   
   // If no content, try to get it from the ai_placeholder field
   if (section.ai_placeholder && section[section.ai_placeholder as keyof TemplateSection]) {
     const placeholderContent = section[section.ai_placeholder as keyof TemplateSection];
+    console.log('🔍 Checking ai_placeholder field:', section.ai_placeholder, 'value:', placeholderContent);
     if (typeof placeholderContent === 'string' && placeholderContent.trim()) {
+      console.log('✅ Found content in ai_placeholder field:', placeholderContent);
       return placeholderContent;
     }
   }
+  console.log('❌ No content found in ai_placeholder field');
   
   // If content_type is 'list', try to concatenate items
   if (section.content_type === 'list' && section.items && Array.isArray(section.items) && section.items.length > 0) {
+    console.log('✅ Found content in items array:', section.items);
     return section.items.map(item => `• ${safeStringify(item)}`).join('\n');
   }
+  console.log('❌ No content found in items array');
   
   // Try common field names that might contain the content
   const commonFields = ['wrap_up_reflection', 'introduction_overview', 'objectives', 'summary'];
   for (const field of commonFields) {
     if (section[field as keyof TemplateSection]) {
       const fieldContent = section[field as keyof TemplateSection];
+      console.log(`🔍 Checking common field '${field}':`, fieldContent);
       if (typeof fieldContent === 'string' && fieldContent.trim()) {
+        console.log(`✅ Found content in common field '${field}':`, fieldContent);
         return fieldContent;
       }
       if (Array.isArray(fieldContent) && fieldContent.length > 0) {
+        console.log(`✅ Found array content in common field '${field}':`, fieldContent);
         return fieldContent.map(item => `• ${safeStringify(item)}`).join('\n');
       }
     }
   }
+  console.log('❌ No content found in any common fields');
   
+  // Log all available fields for debugging
+  console.log('🔍 All available fields in section:', Object.keys(section).map(key => ({
+    key,
+    value: section[key as keyof TemplateSection],
+    type: typeof section[key as keyof TemplateSection]
+  })));
+  
+  console.log('❌ No content found anywhere in section');
   return '';
 };
 
@@ -261,8 +290,17 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
         setLesson(lessonData as Lesson);
 
+        console.log('🔍 DEBUG: Lesson data fetched:', {
+          id: lessonData.id,
+          hasInteractiveContent: !!lessonData.interactive_lesson_content,
+          interactiveContentType: typeof lessonData.interactive_lesson_content,
+          interactiveContent: lessonData.interactive_lesson_content
+        });
+
         // Check if we have interactive lesson content
         if (lessonData.interactive_lesson_content) {
+          console.log('🔍 DEBUG: Interactive lesson content found:', lessonData.interactive_lesson_content);
+          
           // If we have a lesson template ID, fetch the template structure
           if (lessonData.lesson_template_id) {
             const { data: templateData, error: templateError } = await supabase
@@ -280,6 +318,13 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                 template_json: lessonData.interactive_lesson_content
               } as LessonTemplate;
               
+              console.log('🔍 DEBUG: Final template created:', {
+                templateId: templateData.id,
+                templateName: templateData.name,
+                sectionsCount: finalTemplate.template_json.sections?.length,
+                sections: finalTemplate.template_json.sections?.map(s => ({ id: s.id, type: s.type, title: s.title }))
+              });
+              
               setTemplate(finalTemplate);
             }
           } else {
@@ -292,6 +337,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               template_json: lessonData.interactive_lesson_content
             } as LessonTemplate;
             
+            console.log('🔍 DEBUG: Mock template created:', mockTemplate);
             setTemplate(mockTemplate);
           }
         } else {
@@ -528,6 +574,12 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     const sectionId = safeGetString(section, 'id', 'unknown-section');
     const sectionType = safeGetString(section, 'type', 'unknown');
 
+    console.log('🔍 DEBUG: Rendering section:', {
+      id: sectionId,
+      type: sectionType,
+      title: section.title
+    });
+
     switch (sectionType) {
       case 'title':
         return (
@@ -552,6 +604,15 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
       case 'info_card':
         const objectives = safeGetArray(section, 'items');
         const cardContent = getInfoCardContent(section);
+
+        console.log('🔍 DEBUG: info_card section processing:', {
+          sectionId,
+          title: section.title,
+          cardContent,
+          cardContentLength: cardContent.length,
+          objectives,
+          objectivesLength: objectives.length
+        });
 
         return (
           <Card key={sectionId} className={`mb-6 floating-card glass-effect border-cyber-400/20 ${getBgColor(section.background_color_var)}`}>
@@ -584,6 +645,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               ) : (
                 <div className="text-center py-4 text-gray-500">
                   <p>No content available for this section.</p>
+                  <p className="text-xs mt-2 text-red-500">DEBUG: Section ID: {sectionId}, Type: {sectionType}</p>
                 </div>
               )}
             </CardContent>
@@ -1059,6 +1121,11 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     }
 
     const sections = safeGetArray(template.template_json, 'sections');
+
+    console.log('🔍 DEBUG: About to render sections:', {
+      sectionsCount: sections.length,
+      sections: sections.map(s => ({ id: s.id, type: s.type, title: s.title }))
+    });
 
     return (
       <div className="space-y-6 max-w-4xl mx-auto">
