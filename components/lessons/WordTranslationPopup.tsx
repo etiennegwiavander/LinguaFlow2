@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useLayoutEffect, useState, useRef } from "react";
 import { X } from "lucide-react";
 
 interface WordTranslationPopupProps {
@@ -20,27 +20,54 @@ export default function WordTranslationPopup({
   const [isVisible, setIsVisible] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // Log the received wordRect for debugging
+    console.log('📍 WordTranslationPopup received wordRect:', {
+      top: wordRect.top,
+      left: wordRect.left,
+      right: wordRect.right,
+      bottom: wordRect.bottom,
+      width: wordRect.width,
+      height: wordRect.height
+    });
+
     // Calculate optimal position using actual popup dimensions
     const calculatePosition = () => {
-      if (!popupRef.current) return;
+      if (!popupRef.current) {
+        console.log('⚠️ PopupRef not available yet');
+        return;
+      }
       
       const popupWidth = popupRef.current.offsetWidth;
       const popupHeight = popupRef.current.offsetHeight;
-      const offset = 10;
+      const offset = 8; // Reduced offset for closer positioning
+      
+      console.log('📏 Popup dimensions:', { popupWidth, popupHeight });
       
       // Get viewport dimensions
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
+      const scrollX = window.scrollX;
+      const scrollY = window.scrollY;
       
-      // Calculate horizontal center position
+      console.log('🖥️ Viewport info:', { 
+        viewportWidth, 
+        viewportHeight, 
+        scrollX, 
+        scrollY 
+      });
+      
+      // Calculate horizontal center position relative to the word
       let left = wordRect.left + (wordRect.width / 2) - (popupWidth / 2);
       
       // Ensure popup stays within horizontal viewport bounds
-      if (left < 8) {
-        left = 8; // 8px margin from left edge
-      } else if (left + popupWidth > viewportWidth - 8) {
-        left = viewportWidth - popupWidth - 8; // 8px margin from right edge
+      const minLeft = 8;
+      const maxLeft = viewportWidth - popupWidth - 8;
+      
+      if (left < minLeft) {
+        left = minLeft;
+      } else if (left > maxLeft) {
+        left = maxLeft;
       }
       
       // Calculate vertical position (prefer above the word)
@@ -49,31 +76,54 @@ export default function WordTranslationPopup({
       // If not enough space above, position below the word
       if (top < 8) {
         top = wordRect.bottom + offset;
+        console.log('🔄 Positioning below word due to insufficient space above');
       }
       
       // Ensure popup doesn't go below viewport
       if (top + popupHeight > viewportHeight - 8) {
         top = viewportHeight - popupHeight - 8;
+        console.log('🔄 Adjusting position to stay within viewport bottom');
       }
+      
+      console.log('🎯 Final calculated position:', { top, left });
       
       setPosition({ top, left });
     };
 
-    // Initial calculation after render
+    // Force a reflow to ensure popup is rendered before measuring
+    if (popupRef.current) {
+      popupRef.current.offsetHeight; // Force reflow
+    }
+    
+    // Calculate position immediately
     calculatePosition();
     
-    // Add resize listener to recalculate position if viewport changes
-    const handleResize = () => calculatePosition();
-    window.addEventListener('resize', handleResize);
+    // Add resize and scroll listeners to recalculate position
+    const handleResize = () => {
+      console.log('🔄 Window resized, recalculating position');
+      calculatePosition();
+    };
     
-    // Trigger fade-in animation
-    const timer = setTimeout(() => setIsVisible(true), 10);
+    const handleScroll = () => {
+      console.log('🔄 Window scrolled, recalculating position');
+      calculatePosition();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll);
+    
+    // Trigger fade-in animation after position is calculated
+    const timer = setTimeout(() => {
+      console.log('✨ Making popup visible');
+      setIsVisible(true);
+    }, 10);
     
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll);
       clearTimeout(timer);
     };
-  }, [wordRect, word, translation]); // Recalculate when content changes
+  }, [wordRect, word, translation]); // Recalculate when content or wordRect changes
 
   // Stop propagation on popup click to prevent it from closing when clicking inside
   const handlePopupClick = (e: React.MouseEvent) => {
@@ -83,8 +133,8 @@ export default function WordTranslationPopup({
   return (
     <div
       ref={popupRef}
-      className={`fixed z-50 max-w-[250px] px-3 py-2 bg-black/80 text-white text-sm rounded-lg shadow-lg transition-opacity duration-200 ${
-        isVisible ? 'opacity-100' : 'opacity-0'
+      className={`fixed z-50 max-w-[280px] px-4 py-3 bg-gray-900/95 backdrop-blur-sm text-white text-sm rounded-lg shadow-xl border border-gray-700 transition-all duration-200 ${
+        isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
       }`}
       style={{
         top: `${position.top}px`,
@@ -93,12 +143,12 @@ export default function WordTranslationPopup({
       }}
       onClick={handlePopupClick}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="font-medium text-cyan-300 truncate">
+          <div className="font-semibold text-cyan-300 truncate mb-1">
             {word}
           </div>
-          <div className="text-white/90 break-words leading-tight">
+          <div className="text-gray-100 break-words leading-relaxed">
             {translation}
           </div>
         </div>
@@ -107,20 +157,20 @@ export default function WordTranslationPopup({
             e.stopPropagation();
             onClose();
           }}
-          className="flex-shrink-0 p-0.5 hover:bg-white/20 rounded transition-colors duration-150"
+          className="flex-shrink-0 p-1 hover:bg-white/20 rounded transition-colors duration-150 ml-2"
           aria-label="Close translation"
         >
-          <X className="w-3 h-3" />
+          <X className="w-4 h-4" />
         </button>
       </div>
       
-      {/* Small arrow pointing to the word */}
+      {/* Arrow pointing to the word */}
       <div 
-        className="absolute w-2 h-2 bg-black/80 rotate-45"
+        className="absolute w-3 h-3 bg-gray-900/95 border-l border-t border-gray-700 rotate-45"
         style={{
           left: '50%',
           transform: 'translateX(-50%)',
-          [position.top < wordRect.top ? 'bottom' : 'top']: '-4px'
+          [position.top < wordRect.top ? 'bottom' : 'top']: '-6px'
         }}
       />
     </div>
