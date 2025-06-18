@@ -158,6 +158,43 @@ const safeGetArray = (obj: any, key: string): any[] => {
   return Array.isArray(value) ? value : [];
 };
 
+// Helper function to get content for info_card sections
+const getInfoCardContent = (section: TemplateSection): string => {
+  // First, try to get content from the 'content' field
+  if (section.content && typeof section.content === 'string' && section.content.trim()) {
+    return section.content;
+  }
+  
+  // If no content, try to get it from the ai_placeholder field
+  if (section.ai_placeholder && section[section.ai_placeholder as keyof TemplateSection]) {
+    const placeholderContent = section[section.ai_placeholder as keyof TemplateSection];
+    if (typeof placeholderContent === 'string' && placeholderContent.trim()) {
+      return placeholderContent;
+    }
+  }
+  
+  // If content_type is 'list', try to concatenate items
+  if (section.content_type === 'list' && section.items && Array.isArray(section.items) && section.items.length > 0) {
+    return section.items.map(item => `• ${safeStringify(item)}`).join('\n');
+  }
+  
+  // Try common field names that might contain the content
+  const commonFields = ['wrap_up_reflection', 'introduction_overview', 'objectives', 'summary'];
+  for (const field of commonFields) {
+    if (section[field as keyof TemplateSection]) {
+      const fieldContent = section[field as keyof TemplateSection];
+      if (typeof fieldContent === 'string' && fieldContent.trim()) {
+        return fieldContent;
+      }
+      if (Array.isArray(fieldContent) && fieldContent.length > 0) {
+        return fieldContent.map(item => `• ${safeStringify(item)}`).join('\n');
+      }
+    }
+  }
+  
+  return '';
+};
+
 // Helper function to parse dialogue strings like "A: Hello! I am Maria."
 const parseDialogueLine = (line: string): { character: string; text: string } => {
   if (typeof line !== 'string') {
@@ -514,7 +551,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
       case 'info_card':
         const objectives = safeGetArray(section, 'items');
-        const cardContent = safeGetString(section, 'content', '');
+        const cardContent = getInfoCardContent(section);
 
         return (
           <Card key={sectionId} className={`mb-6 floating-card glass-effect border-cyber-400/20 ${getBgColor(section.background_color_var)}`}>
@@ -525,7 +562,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Check if we have content as a string */}
+              {/* Check if we have content */}
               {cardContent ? (
                 <div 
                   className="prose max-w-none"
