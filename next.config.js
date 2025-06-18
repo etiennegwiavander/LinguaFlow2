@@ -6,8 +6,15 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  images: { unoptimized: true },
+  images: { 
+    unoptimized: true,
+    domains: ['images.pexels.com']
+  },
   optimizeFonts: false,
+  // Configure for static export to work with Netlify
+  trailingSlash: true,
+  // Remove standalone output as it's not needed for static export
+  // output: 'export', // Uncomment this if you want static export
   webpack: (config, { isServer, dev }) => {
     // Only apply these optimizations in production builds
     if (!dev) {
@@ -107,14 +114,14 @@ const nextConfig = {
     // This helps with build performance and avoids processing unnecessary files
     optimizePackageImports: ['lucide-react'],
   },
-  // Add output configuration to help with static builds
-  output: 'standalone',
   // Disable SWC minification which might be causing the syntax errors
   swcMinify: false,
   // Add compiler options to help with build stability
   compiler: {
     removeConsole: false,
   },
+  // Add distDir to ensure proper build output
+  distDir: '.next',
 };
 
 module.exports = nextConfig;
