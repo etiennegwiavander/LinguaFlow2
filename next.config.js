@@ -11,10 +11,8 @@ const nextConfig = {
     domains: ['images.pexels.com']
   },
   optimizeFonts: false,
-  // Configure for static export to work with Netlify
+  // Configure for Netlify deployment
   trailingSlash: true,
-  // Remove standalone output as it's not needed for static export
-  // output: 'export', // Uncomment this if you want static export
   webpack: (config, { isServer, dev }) => {
     // Only apply these optimizations in production builds
     if (!dev) {
