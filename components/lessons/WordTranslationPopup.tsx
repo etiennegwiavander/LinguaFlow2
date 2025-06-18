@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useLayoutEffect, useState, useRef } from "react";
 import { X } from "lucide-react";
 
 interface WordTranslationPopupProps {
@@ -20,7 +20,7 @@ export default function WordTranslationPopup({
   const [isVisible, setIsVisible] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Calculate optimal position using actual popup dimensions
     const calculatePosition = () => {
       if (!popupRef.current) return;
@@ -66,7 +66,7 @@ export default function WordTranslationPopup({
     const handleResize = () => calculatePosition();
     window.addEventListener('resize', handleResize);
     
-    // Trigger fade-in animation
+    // Trigger fade-in animation after position is calculated
     const timer = setTimeout(() => setIsVisible(true), 10);
     
     return () => {
