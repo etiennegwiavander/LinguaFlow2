@@ -8,74 +8,64 @@ const nextConfig = {
   },
   images: { unoptimized: true },
   optimizeFonts: false,
-  webpack: (config, { isServer }) => {
-    // Ignore optional dependencies that are not needed for client-side builds
-    if (!isServer) {
-      // Add resolve.alias to completely exclude problematic modules from client bundle
-      config.resolve = config.resolve || {};
-      config.resolve.alias = config.resolve.alias || {};
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'bufferutil': false,
-        'utf-8-validate': false,
-      };
+  webpack: (config, { isServer, dev }) => {
+    // Only apply these optimizations in production builds
+    if (!dev) {
+      // Ignore optional dependencies that are not needed for client-side builds
+      if (!isServer) {
+        // Add resolve.alias to completely exclude problematic modules from client bundle
+        config.resolve = config.resolve || {};
+        config.resolve.alias = config.resolve.alias || {};
+        config.resolve.alias = {
+          ...config.resolve.alias,
+          'bufferutil': false,
+          'utf-8-validate': false,
+        };
 
-      // Ensure fallbacks for Node.js modules
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-        crypto: false,
-        stream: false,
-        url: false,
-        zlib: false,
-        http: false,
-        https: false,
-        assert: false,
-        os: false,
-        path: false,
-      };
+        // Ensure fallbacks for Node.js modules
+        config.resolve.fallback = {
+          ...config.resolve.fallback,
+          fs: false,
+          net: false,
+          tls: false,
+          crypto: false,
+          stream: false,
+          url: false,
+          zlib: false,
+          http: false,
+          https: false,
+          assert: false,
+          os: false,
+          path: false,
+          buffer: false,
+          util: false,
+        };
+      }
     }
     
     // Suppress warnings for dynamic requires in Supabase realtime
     config.module = config.module || {};
     config.module.exprContextCritical = false;
     
-    // Add IgnorePlugin to completely ignore Deno-specific imports in supabase/functions
+    // Initialize plugins array if it doesn't exist
     config.plugins = config.plugins || [];
+    
+    // Add comprehensive IgnorePlugin to handle optional dependencies
     config.plugins.push(
       new webpack.IgnorePlugin({
-        // Ignore any module that starts with 'jsr:' or 'npm:' when requested from supabase/functions
         checkResource(resource, context) {
-          // Check if the request is coming from supabase/functions directory
+          // Ignore Deno-specific imports when requested from supabase/functions
           if (context && context.includes('supabase/functions')) {
-            // Ignore jsr: and npm: imports which are Deno-specific
             return resource.startsWith('jsr:') || resource.startsWith('npm:');
           }
-          return false;
-        }
-      })
-    );
-
-    // Add targeted IgnorePlugin for ws module optional dependencies
-    config.plugins.push(
-      new webpack.IgnorePlugin({
-        checkResource(resource, context) {
-          // Ignore bufferutil and utf-8-validate when they're required by ws module
-          if (context && context.includes('node_modules/ws/lib')) {
+          
+          // Ignore optional ws dependencies
+          if (context && (context.includes('node_modules/ws') || context.includes('node_modules/@supabase'))) {
             return resource === 'bufferutil' || resource === 'utf-8-validate';
           }
+          
           return false;
         }
-      })
-    );
-
-    // Add another IgnorePlugin for any other potential ws-related issues
-    config.plugins.push(
-      new webpack.IgnorePlugin({
-        resourceRegExp: /^(bufferutil|utf-8-validate)$/,
-        contextRegExp: /node_modules\/ws/,
       })
     );
     
@@ -116,6 +106,14 @@ const nextConfig = {
   experimental: {
     // This helps with build performance and avoids processing unnecessary files
     optimizePackageImports: ['lucide-react'],
+  },
+  // Add output configuration to help with static builds
+  output: 'standalone',
+  // Disable SWC minification which might be causing the syntax errors
+  swcMinify: false,
+  // Add compiler options to help with build stability
+  compiler: {
+    removeConsole: false,
   },
 };
 
