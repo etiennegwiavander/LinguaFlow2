@@ -13,7 +13,7 @@
 [functions]
   node_bundler = "esbuild"
 
-# Handle Next.js routing
+# Handle Next.js routing - removed problematic catch-all redirect
 [[redirects]]
   from = "/_next/static/*"
   to = "/_next/static/:splat"
@@ -22,11 +22,6 @@
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
   status = 200
 
 [[headers]]
