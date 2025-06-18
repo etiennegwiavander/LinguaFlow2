@@ -22,7 +22,8 @@ import {
   PenTool,
   Eye,
   MessageCircle,
-  Globe
+  Globe,
+  EyeOff
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -266,6 +267,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     translation: '',
     wordRect: null
   });
+  const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!user || !lessonId) return;
@@ -301,7 +303,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
         console.log('🔍 DEBUG: Lesson data fetched:', {
           id: lessonData.id,
           hasInteractiveContent: !!lessonData.interactive_lesson_content,
-          interactiveContentType: typeof lessonData.interactive_lesson_content,
           interactiveContent: lessonData.interactive_lesson_content
         });
 
@@ -421,6 +422,13 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
         [audioId]: false
       }));
     }, 3000);
+  };
+
+  const toggleAnswerReveal = (pairId: string) => {
+    setRevealedAnswers(prev => ({
+      ...prev,
+      [pairId]: !prev[pairId]
+    }));
   };
 
   const translateWord = async (word: string, wordRect: DOMRect) => {
@@ -1013,6 +1021,9 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
             {matchingPairs.map((pair, index) => {
               const question = safeGetString(pair, 'question', 'Question not available');
               const answer = safeGetString(pair, 'answer', 'No answer available');
+              const answers = Array.isArray(pair.answers) ? pair.answers : [answer];
+              const pairId = `${section.id}_pair_${index}`;
+              const isRevealed = revealedAnswers[pairId] || false;
               
               return (
                 <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
@@ -1025,14 +1036,41 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                         {question}
                       </p>
                     </div>
-                    <div className="pl-4 border-l-2 border-cyber-400/30">
-                      <p 
-                        className="text-sm text-cyber-600 dark:text-cyber-400 font-medium"
-                        onDoubleClick={handleTextDoubleClick}
+                    
+                    <div className="flex justify-between items-center">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => toggleAnswerReveal(pairId)}
+                        className="flex items-center space-x-1 text-xs"
                       >
-                        Answer: {answer}
-                      </p>
+                        {isRevealed ? (
+                          <>
+                            <EyeOff className="h-3 w-3 mr-1" />
+                            Hide Answer
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="h-3 w-3 mr-1" />
+                            Reveal Answer
+                          </>
+                        )}
+                      </Button>
                     </div>
+                    
+                    {isRevealed && (
+                      <div className="pl-4 border-l-2 border-cyber-400/30 mt-2">
+                        {answers.map((ans, ansIndex) => (
+                          <p 
+                            key={ansIndex}
+                            className="text-sm text-cyber-600 dark:text-cyber-400 font-medium my-1"
+                            onDoubleClick={handleTextDoubleClick}
+                          >
+                            {typeof ans === 'string' ? ans : safeStringify(ans)}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
