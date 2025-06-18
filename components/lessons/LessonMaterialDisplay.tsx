@@ -22,8 +22,7 @@ import {
   PenTool,
   Eye,
   MessageCircle,
-  Globe,
-  EyeOff
+  Globe
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,7 +72,6 @@ interface TemplateSection {
   ordering_items?: string[];
   ai_placeholder?: string;
   content?: string;
-  text?: string;
   explanation_content?: string;
   sentences?: string[];
 }
@@ -160,79 +158,6 @@ const safeGetArray = (obj: any, key: string): any[] => {
   return Array.isArray(value) ? value : [];
 };
 
-// Helper function to get content for info_card sections
-const getInfoCardContent = (section: TemplateSection): string => {
-  console.log('🔍 DEBUG: getInfoCardContent called with section:', {
-    id: section.id,
-    type: section.type,
-    title: section.title,
-    ai_placeholder: section.ai_placeholder,
-    content_type: section.content_type,
-    allKeys: Object.keys(section),
-    fullSection: section
-  });
-
-  // First, check for the 'text' field which is used in some templates
-  if (section.text && typeof section.text === 'string' && section.text.trim()) {
-    console.log('✅ Found content in section.text:', section.text);
-    return section.text;
-  }
-  console.log('❌ No content found in section.text:', section.text);
-
-  // Then, try to get content from the 'content' field
-  if (section.content && typeof section.content === 'string' && section.content.trim()) {
-    console.log('✅ Found content in section.content:', section.content);
-    return section.content;
-  }
-  console.log('❌ No content found in section.content:', section.content);
-  
-  // If no content, try to get it from the ai_placeholder field
-  if (section.ai_placeholder && section[section.ai_placeholder as keyof TemplateSection]) {
-    const placeholderContent = section[section.ai_placeholder as keyof TemplateSection];
-    console.log('🔍 Checking ai_placeholder field:', section.ai_placeholder, 'value:', placeholderContent);
-    if (typeof placeholderContent === 'string' && placeholderContent.trim()) {
-      console.log('✅ Found content in ai_placeholder field:', placeholderContent);
-      return placeholderContent;
-    }
-  }
-  console.log('❌ No content found in ai_placeholder field');
-  
-  // If content_type is 'list', try to concatenate items
-  if (section.content_type === 'list' && section.items && Array.isArray(section.items) && section.items.length > 0) {
-    console.log('✅ Found content in items array:', section.items);
-    return section.items.map(item => `• ${safeStringify(item)}`).join('\n');
-  }
-  console.log('❌ No content found in items array');
-  
-  // Try common field names that might contain the content
-  const commonFields = ['wrap_up_reflection', 'introduction_overview', 'objectives', 'summary'];
-  for (const field of commonFields) {
-    if (section[field as keyof TemplateSection]) {
-      const fieldContent = section[field as keyof TemplateSection];
-      console.log(`🔍 Checking common field '${field}':`, fieldContent);
-      if (typeof fieldContent === 'string' && fieldContent.trim()) {
-        console.log(`✅ Found content in common field '${field}':`, fieldContent);
-        return fieldContent;
-      }
-      if (Array.isArray(fieldContent) && fieldContent.length > 0) {
-        console.log(`✅ Found array content in common field '${field}':`, fieldContent);
-        return fieldContent.map(item => `• ${safeStringify(item)}`).join('\n');
-      }
-    }
-  }
-  console.log('❌ No content found in any common fields');
-  
-  // Log all available fields for debugging
-  console.log('🔍 All available fields in section:', Object.keys(section).map(key => ({
-    key,
-    value: section[key as keyof TemplateSection],
-    type: typeof section[key as keyof TemplateSection]
-  })));
-  
-  console.log('❌ No content found anywhere in section');
-  return '';
-};
-
 // Helper function to parse dialogue strings like "A: Hello! I am Maria."
 const parseDialogueLine = (line: string): { character: string; text: string } => {
   if (typeof line !== 'string') {
@@ -249,6 +174,73 @@ const parseDialogueLine = (line: string): { character: string; text: string } =>
   
   // Fallback if no colon found
   return { character: 'Speaker', text: line };
+};
+
+// Helper function to get content from info_card sections
+const getInfoCardContent = (section: TemplateSection): string => {
+  console.log('🔍 DEBUG: getInfoCardContent called with section:', {
+    id: safeGetString(section, 'id'),
+    type: safeGetString(section, 'type'),
+    title: safeGetString(section, 'title'),
+    ai_placeholder: safeGetString(section, 'ai_placeholder'),
+    content_type: safeGetString(section, 'content_type'),
+    fullSection: section,
+    allKeys: Object.keys(section)
+  });
+
+  // Check for content in section.content
+  const directContent = safeGetString(section, 'content');
+  if (directContent) {
+    console.log('✅ Found content in section.content:', directContent.substring(0, 100) + '...');
+    return directContent;
+  } else {
+    console.log('❌ No content found in section.content:', directContent);
+  }
+
+  // Check for content in the ai_placeholder field (this should contain the actual content)
+  const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+  if (aiPlaceholderKey && section[aiPlaceholderKey]) {
+    console.log('✅ Found content in ai_placeholder field:', section[aiPlaceholderKey]);
+    return safeStringify(section[aiPlaceholderKey]);
+  } else {
+    console.log('❌ No content found in ai_placeholder field');
+  }
+
+  // Check for content in items array
+  const items = safeGetArray(section, 'items');
+  if (items.length > 0) {
+    console.log('✅ Found content in items array:', items);
+    return items.map(item => `• ${safeStringify(item)}`).join('\n');
+  } else {
+    console.log('❌ No content found in items array');
+  }
+
+  // Check for content in other common fields
+  const commonContentFields = ['text', 'description', 'summary', 'overview'];
+  for (const field of commonContentFields) {
+    const fieldContent = safeGetString(section, field);
+    if (fieldContent) {
+      console.log(`✅ Found content in ${field} field:`, fieldContent);
+      return fieldContent;
+    }
+  }
+  console.log('❌ No content found in any common fields');
+
+  // Debug: Log all available fields
+  console.log('🔍 All available fields in section:', Object.keys(section).map(key => ({
+    key,
+    value: section[key],
+    type: typeof section[key]
+  })));
+
+  // Check if there's a 'text' field specifically (this might be where the AI content is stored)
+  if (section.text) {
+    console.log('✅ Found content in text field:', section.text);
+    return safeStringify(section.text);
+  }
+
+  console.log('❌ No content found anywhere in section');
+  return '';
 };
 
 export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage }: LessonMaterialDisplayProps) {
@@ -298,13 +290,14 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
           throw new Error('Lesson not found');
         }
 
-        setLesson(lessonData as Lesson);
-
         console.log('🔍 DEBUG: Lesson data fetched:', {
           id: lessonData.id,
           hasInteractiveContent: !!lessonData.interactive_lesson_content,
+          interactiveContentType: typeof lessonData.interactive_lesson_content,
           interactiveContent: lessonData.interactive_lesson_content
         });
+
+        setLesson(lessonData as Lesson);
 
         // Check if we have interactive lesson content
         if (lessonData.interactive_lesson_content) {
@@ -328,10 +321,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               } as LessonTemplate;
               
               console.log('🔍 DEBUG: Final template created:', {
-                templateId: templateData.id,
-                templateName: templateData.name,
+                templateId: finalTemplate.id,
+                templateName: finalTemplate.name,
                 sectionsCount: finalTemplate.template_json.sections?.length,
-                sections: finalTemplate.template_json.sections?.map(s => ({ id: s.id, type: s.type, title: s.title }))
+                sections: finalTemplate.template_json.sections
               });
               
               setTemplate(finalTemplate);
@@ -346,7 +339,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               template_json: lessonData.interactive_lesson_content
             } as LessonTemplate;
             
-            console.log('🔍 DEBUG: Mock template created:', mockTemplate);
             setTemplate(mockTemplate);
           }
         } else {
@@ -402,6 +394,32 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     return () => document.removeEventListener('click', handleGlobalClick);
   }, [translationPopup.isVisible]);
 
+  // Add scroll event listener to dismiss translation popup
+  useEffect(() => {
+    const handleScroll = () => {
+      if (translationPopup.isVisible) {
+        setTranslationPopup(prev => ({ ...prev, isVisible: false }));
+      }
+    };
+
+    // Add scroll event listener to window
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Also listen for scroll events on any scrollable containers within the lesson content
+    const scrollableElements = document.querySelectorAll('[data-lesson-content]');
+    scrollableElements.forEach(element => {
+      element.addEventListener('scroll', handleScroll, { passive: true });
+    });
+
+    // Cleanup function to remove event listeners
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      scrollableElements.forEach(element => {
+        element.removeEventListener('scroll', handleScroll);
+      });
+    };
+  }, [translationPopup.isVisible]);
+
   const handleAnswerChange = (questionId: string, answer: string) => {
     setUserAnswers(prev => ({
       ...prev,
@@ -424,10 +442,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     }, 3000);
   };
 
-  const toggleAnswerReveal = (pairId: string) => {
+  const toggleAnswerReveal = (questionId: string) => {
     setRevealedAnswers(prev => ({
       ...prev,
-      [pairId]: !prev[pairId]
+      [questionId]: !prev[questionId]
     }));
   };
 
@@ -593,7 +611,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     console.log('🔍 DEBUG: Rendering section:', {
       id: sectionId,
       type: sectionType,
-      title: section.title
+      title: safeGetString(section, 'title', '')
     });
 
     switch (sectionType) {
@@ -623,10 +641,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
         console.log('🔍 DEBUG: info_card section processing:', {
           sectionId,
-          title: section.title,
-          cardContent,
+          title: safeGetString(section, 'title', 'Information'),
+          cardContent: cardContent.length > 50 ? cardContent.substring(0, 50) + '...' : cardContent,
           cardContentLength: cardContent.length,
-          objectives,
+          objectives: objectives,
           objectivesLength: objectives.length
         });
 
@@ -639,7 +657,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Check if we have content */}
+              {/* Check if we have content as a string */}
               {cardContent ? (
                 <div 
                   className="prose max-w-none"
@@ -661,7 +679,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               ) : (
                 <div className="text-center py-4 text-gray-500">
                   <p>No content available for this section.</p>
-                  <p className="text-xs mt-2 text-red-500">DEBUG: Section ID: {sectionId}, Type: {sectionType}</p>
                 </div>
               )}
             </CardContent>
@@ -987,9 +1004,22 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                       )}
                     </RadioGroup>
                     {correctAnswer && (
-                      <p className="text-xs text-gray-500 mt-2">
-                        Correct answer: {correctAnswer}
-                      </p>
+                      <div className="mt-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => toggleAnswerReveal(`${section.id}_mc_${index}`)}
+                          className="text-xs"
+                        >
+                          {revealedAnswers[`${section.id}_mc_${index}`] ? 'Hide Answer' : 'Show Answer'}
+                        </Button>
+                        
+                        {revealedAnswers[`${section.id}_mc_${index}`] && (
+                          <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm">
+                            <span className="font-medium text-green-700 dark:text-green-300">Correct answer:</span> {correctAnswer}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 );
@@ -1021,9 +1051,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
             {matchingPairs.map((pair, index) => {
               const question = safeGetString(pair, 'question', 'Question not available');
               const answer = safeGetString(pair, 'answer', 'No answer available');
-              const answers = Array.isArray(pair.answers) ? pair.answers : [answer];
-              const pairId = `${section.id}_pair_${index}`;
-              const isRevealed = revealedAnswers[pairId] || false;
+              const pairId = `${section.id}_match_${index}`;
               
               return (
                 <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
@@ -1037,38 +1065,25 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
                       </p>
                     </div>
                     
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-end">
                       <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={() => toggleAnswerReveal(pairId)}
-                        className="flex items-center space-x-1 text-xs"
+                        className="text-xs"
                       >
-                        {isRevealed ? (
-                          <>
-                            <EyeOff className="h-3 w-3 mr-1" />
-                            Hide Answer
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="h-3 w-3 mr-1" />
-                            Reveal Answer
-                          </>
-                        )}
+                        {revealedAnswers[pairId] ? 'Hide Answer' : 'Show Answer'}
                       </Button>
                     </div>
                     
-                    {isRevealed && (
+                    {revealedAnswers[pairId] && (
                       <div className="pl-4 border-l-2 border-cyber-400/30 mt-2">
-                        {answers.map((ans, ansIndex) => (
-                          <p 
-                            key={ansIndex}
-                            className="text-sm text-cyber-600 dark:text-cyber-400 font-medium my-1"
-                            onDoubleClick={handleTextDoubleClick}
-                          >
-                            {typeof ans === 'string' ? ans : safeStringify(ans)}
-                          </p>
-                        ))}
+                        <p 
+                          className="text-sm text-cyber-600 dark:text-cyber-400 font-medium"
+                          onDoubleClick={handleTextDoubleClick}
+                        >
+                          Answer: {answer}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -1168,13 +1183,8 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
     const sections = safeGetArray(template.template_json, 'sections');
 
-    console.log('🔍 DEBUG: About to render sections:', {
-      sectionsCount: sections.length,
-      sections: sections.map(s => ({ id: s.id, type: s.type, title: s.title }))
-    });
-
     return (
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="space-y-6 max-w-4xl mx-auto" data-lesson-content>
         <div className="mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -1239,7 +1249,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
   // Fall back to basic lesson plan view if no interactive content
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-lesson-content>
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2 gradient-text">
           Lesson for {lesson.student.name}

@@ -75,10 +75,15 @@ export default function WordTranslationPopup({
     };
   }, [wordRect, word, translation]); // Recalculate when content changes
 
+  // Stop propagation on popup click to prevent it from closing when clicking inside
+  const handlePopupClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <div
       ref={popupRef}
-      className={`fixed z-50 max-w-[200px] px-3 py-2 bg-black/80 text-white text-sm rounded-lg shadow-lg transition-opacity duration-200 ${
+      className={`fixed z-50 max-w-[250px] px-3 py-2 bg-black/80 text-white text-sm rounded-lg shadow-lg transition-opacity duration-200 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
       style={{
@@ -86,7 +91,7 @@ export default function WordTranslationPopup({
         left: `${position.left}px`,
         pointerEvents: 'auto'
       }}
-      onClick={(e) => e.stopPropagation()}
+      onClick={handlePopupClick}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
@@ -98,7 +103,10 @@ export default function WordTranslationPopup({
           </div>
         </div>
         <button
-          onClick={onClose}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
           className="flex-shrink-0 p-0.5 hover:bg-white/20 rounded transition-colors duration-150"
           aria-label="Close translation"
         >
