@@ -57,6 +57,27 @@ const nextConfig = {
         }
       })
     );
+
+    // Add targeted IgnorePlugin for ws module optional dependencies
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        checkResource(resource, context) {
+          // Ignore bufferutil and utf-8-validate when they're required by ws module
+          if (context && context.includes('node_modules/ws/lib')) {
+            return resource === 'bufferutil' || resource === 'utf-8-validate';
+          }
+          return false;
+        }
+      })
+    );
+
+    // Add another IgnorePlugin for any other potential ws-related issues
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^(bufferutil|utf-8-validate)$/,
+        contextRegExp: /node_modules\/ws/,
+      })
+    );
     
     // More comprehensive exclusion of supabase/functions from all processing
     const supabaseFunctionsPath = path.resolve(__dirname, 'supabase/functions');
