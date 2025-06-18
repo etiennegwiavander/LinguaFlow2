@@ -41,9 +41,6 @@ export default function WordTranslationPopup({
     placement,
     middlewareData,
   } = useFloating({
-    elements: {
-      reference: virtualReference,
-    },
     placement: "top",
     whileElementsMounted: autoUpdate,
     middleware: [
@@ -60,6 +57,11 @@ export default function WordTranslationPopup({
       }),
     ],
   });
+
+  // Set the virtual reference using refs.setPositionReference
+  useEffect(() => {
+    refs.setPositionReference(virtualReference);
+  }, [refs, wordRect]);
 
   // Trigger fade-in animation after mounting
   useEffect(() => {
