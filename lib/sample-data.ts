@@ -11,6 +11,8 @@ export const languages = [
   { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
   { code: 'ru', name: 'Russian', flag: '🇷🇺' },
   { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
+  { code: 'pl', name: 'Polish', flag: '🇵🇱' },
+  { code: 'sk', name: 'Slovak', flag: '🇸🇰' },
 ];
 
 export const navItems: NavItem[] = [
