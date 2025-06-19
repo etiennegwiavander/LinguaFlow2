@@ -161,6 +161,7 @@ const config: Config = {
         'glow-lg': '0 0 40px rgba(100, 255, 218, 0.4)',
         'neon': '0 0 5px theme(colors.neon.400), 0 0 20px theme(colors.neon.400), 0 0 35px theme(colors.neon.400)',
         'cyber': '0 0 5px theme(colors.cyber.400), 0 0 5px theme(colors.cyber.400), 0 0 15px theme(colors.cyber.400)',
+        'white-glow': '0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.3), 0 0 30px rgba(255, 255, 255, 0.2)',
       },
     },
   },

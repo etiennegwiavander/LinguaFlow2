@@ -144,6 +144,21 @@ export default function HomePage() {
 
   return (
     <LandingLayout>
+      {/* Bolt Button */}
+      <a 
+        id="bolt-button" 
+        href="https://bolt.new" 
+        target="_blank" 
+        title="Powered By Bolt"
+        className="fixed top-20 right-8 z-50 w-16 h-16 rounded-full bg-black border-2 border-white shadow-white-glow transition-transform duration-300 hover:scale-110 flex items-center justify-center"
+      >
+        <img 
+          src="/bolt-logo.png" 
+          alt="Powered by Bolt" 
+          className="w-10 h-10"
+        />
+      </a>
+
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Effects */}
