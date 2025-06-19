@@ -621,7 +621,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </Alert>
                 )}
 
-                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-cyber-400/20">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-cyber-400/20">
                   <div className="space-y-2 flex-1">
                     <p className="font-medium">
                       {upcomingLesson ? 
@@ -651,30 +651,33 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       </div>
                     )}
                   </div>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={handleGenerateLessons}
-                          disabled={isGenerating}
-                          size="lg"
-                          className="ml-4 min-w-[200px] bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-                        >
-                          {getButtonIcon()}
-                          {getButtonText()}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>
-                          {upcomingLesson?.generated_lessons ? 
-                            'Create new lesson ideas with sub-topics for this student' :
-                            'Generate AI-powered lesson plans with focused sub-topics tailored to this student'
-                          }
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <div className="mt-4 lg:mt-0 lg:ml-4 w-full lg:w-auto">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={handleGenerateLessons}
+                            disabled={isGenerating}
+                            size="lg"
+                            className="w-full bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                          >
+                            {getButtonIcon()}
+                            {getButtonText()}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            {upcomingLesson?.generated_lessons ? 
+                              'Create new lesson ideas with sub-topics for this student' :
+                              'Generate AI-powered lesson plans with focused sub-topics tailored to this student'
+                            }
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
+
 
                 {generatedLessons.length > 0 && (
                   <div className="space-y-4">
