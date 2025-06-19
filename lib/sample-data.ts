@@ -4,6 +4,7 @@ export const languages = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
   { code: 'es', name: 'Spanish', flag: '🇪🇸' },
   { code: 'fr', name: 'French', flag: '🇫🇷' },
+  { code: 'pl', name: 'Polish', flag: '🇵🇱' },
   { code: 'de', name: 'German', flag: '🇩🇪' },
   { code: 'it', name: 'Italian', flag: '🇮🇹' },
   { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
@@ -11,7 +12,6 @@ export const languages = [
   { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
   { code: 'ru', name: 'Russian', flag: '🇷🇺' },
   { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-  { code: 'pl', name: 'Polish', flag: '🇵🇱' },
   { code: 'sk', name: 'Slovak', flag: '🇸🇰' },
 ];
 
