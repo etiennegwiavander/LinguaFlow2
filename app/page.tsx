@@ -150,12 +150,12 @@ export default function HomePage() {
         href="https://bolt.new" 
         target="_blank" 
         title="Powered By Bolt"
-        className="fixed top-20 right-8 z-50 w-20 h-20 rounded-full bg-black border-2 border-white shadow-white-glow transition-transform duration-300 hover:scale-110 flex items-center justify-center"
+        className="fixed top-20 right-8 z-50 w-25 h-25 rounded-full bg-black border-2 border-white shadow-white-glow transition-transform duration-300 hover:scale-110 flex items-center justify-center"
       >
         <img 
           src="/bolt-logo.png" 
           alt="Powered by Bolt" 
-          className="w-14 h-14"
+          className="w-16 h-16"
         />
       </a>
 
