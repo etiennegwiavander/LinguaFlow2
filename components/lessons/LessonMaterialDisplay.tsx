@@ -199,9 +199,9 @@ const getInfoCardContent = (section: TemplateSection): string => {
 
   // Check for content in the ai_placeholder field (this should contain the actual content)
   const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
-  if (aiPlaceholderKey && section[aiPlaceholderKey]) {
-    console.log('✅ Found content in ai_placeholder field:', section[aiPlaceholderKey]);
-    return safeStringify(section[aiPlaceholderKey]);
+  if (aiPlaceholderKey && (section as any)[aiPlaceholderKey]) {
+    console.log('✅ Found content in ai_placeholder field:', (section as any)[aiPlaceholderKey]);
+    return safeStringify((section as any)[aiPlaceholderKey]);
   } else {
     console.log('❌ No content found in ai_placeholder field');
   }
@@ -229,14 +229,14 @@ const getInfoCardContent = (section: TemplateSection): string => {
   // Debug: Log all available fields
   console.log('🔍 All available fields in section:', Object.keys(section).map(key => ({
     key,
-    value: section[key],
-    type: typeof section[key]
+    value: (section as any)[key],
+    type: typeof (section as any)[key]
   })));
 
   // Check if there's a 'text' field specifically (this might be where the AI content is stored)
-  if (section.text) {
-    console.log('✅ Found content in text field:', section.text);
-    return safeStringify(section.text);
+  if ((section as any).text) {
+    console.log('✅ Found content in text field:', (section as any).text);
+    return safeStringify((section as any).text);
   }
 
   console.log('❌ No content found anywhere in section');
