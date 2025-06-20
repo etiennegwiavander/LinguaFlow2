@@ -31,6 +31,16 @@ VALUES (
         "ai_placeholder": "introduction_overview"
       },
       {
+        "id": "useful_expressions",
+        "type": "exercise",
+        "title": "Useful Expressions",
+        "instruction": "Practical phrases and sentence structures for conversation.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "items": [],
+        "ai_placeholder": "useful_expressions"
+      },
+      {
         "id": "key_vocabulary",
         "type": "exercise",
         "title": "Key Vocabulary",
@@ -74,16 +84,7 @@ VALUES (
         "items": [],
         "ai_placeholder": "discussion_prompts"
       },
-      {
-        "id": "useful_expressions",
-        "type": "exercise",
-        "title": "Useful Expressions",
-        "instruction": "Practical phrases and sentence structures for conversation.",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "list",
-        "items": [],
-        "ai_placeholder": "useful_expressions"
-      },
+    
       {
         "id": "practice_activities",
         "type": "exercise",
