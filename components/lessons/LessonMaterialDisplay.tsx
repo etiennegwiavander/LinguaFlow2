@@ -1,5 +1,6 @@
 "use client";
-
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
@@ -767,21 +768,32 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
           </div>
         );
 
-      case 'grammar_explanation':
-        const explanationContent = safeGetString(section, 'explanation_content', 'No explanation available.');
-        
-        return (
-          <div className="prose max-w-none">
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div 
-                className="whitespace-pre-wrap text-sm leading-relaxed"
-                onDoubleClick={handleTextDoubleClick}
-              >
-                {explanationContent}
+        case 'grammar_explanation':
+          const explanationContent = safeGetString(section, 'explanation_content', 'No explanation available.');
+          
+          return (
+            <div className="prose max-w-none">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // Apply styling and event handler to the rendered paragraph element
+                    p: ({ node, ...props }) => (
+                      <p
+                        className="text-sm leading-relaxed"
+                        onDoubleClick={handleTextDoubleClick}
+                        {...props}
+                      >
+                        {props.children}
+                      </p>
+                    ),
+                  }}
+                >
+                  {explanationContent}
+                </ReactMarkdown>
               </div>
             </div>
-          </div>
-        );
+          );
 
       case 'example_sentences':
         const sentences = safeGetArray(section, 'sentences');

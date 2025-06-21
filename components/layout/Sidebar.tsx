@@ -117,7 +117,7 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
                         "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all duration-300 group relative overflow-hidden",
                         isActive
                           ? "bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-400 shadow-glow"
-                          : "text-muted-foreground hover:bg-cyber-400/10 hover:text-cyber-400",
+                          : "text-muted-foreground hover:bg-cyber-900/10 hover:text-cyber-400",
                         collapsed ? "justify-center" : "justify-start"
                       )}
                     >
