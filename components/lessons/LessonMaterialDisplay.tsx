@@ -748,33 +748,89 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
           </div>
         );
 
-        case 'grammar_explanation':
-          const explanationContent = safeGetString(section, 'explanation_content', 'No explanation available.');
-          
-          return (
-            <div className="prose max-w-none">
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    // Apply styling and event handler to the rendered paragraph element
-                    p: ({ node, ...props }) => (
-                      <p
-                        className="text-sm leading-relaxed"
-                        onDoubleClick={handleTextDoubleClick}
-                        {...props}
-                      >
-                        {props.children}
-                      </p>
-                    ),
-                  }}
-                >
-                  {explanationContent}
-                </ReactMarkdown>
-              </div>
-            </div>
-          );
+      case 'grammar_explanation':
+        const explanationContent = safeGetString(section, 'explanation_content', '') || safeGetString(section, 'content', '');
+        
+        // Define explicit components for ReactMarkdown
+        const components = {
+          p: ({ children, ...props }: HTMLProps<HTMLParagraphElement>) => (
+            <p className="mb-4 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
+              {children}
+            </p>
+          ),
+          ul: ({ children, ...props }: HTMLProps<HTMLUListElement>) => (
+            <ul className="list-disc list-inside mb-4 space-y-2" {...props}>
+              {children}
+            </ul>
+          ),
+          ol: ({ children, ...props }: HTMLProps<HTMLOListElement>) => (
+            <ol className="list-decimal list-inside mb-4 space-y-2" {...props}>
+              {children}
+            </ol>
+          ),
+          li: ({ children, ...props }: HTMLProps<HTMLLIElement>) => (
+            <li className="mb-1" onDoubleClick={handleTextDoubleClick} {...props}>
+              {children}
+            </li>
+          ),
+          strong: ({ children, ...props }: HTMLProps<HTMLElement>) => (
+            <strong className="font-bold text-gray-900 dark:text-gray-100" {...props}>
+              {children}
+            </strong>
+          ),
+          em: ({ children, ...props }: HTMLProps<HTMLElement>) => (
+            <em className="italic" {...props}>
+              {children}
+            </em>
+          ),
+          h1: ({ children, ...props }: HTMLProps<HTMLHeadingElement>) => (
+            <h1 className="text-2xl font-bold mb-4" {...props}>
+              {children}
+            </h1>
+          ),
+          h2: ({ children, ...props }: HTMLProps<HTMLHeadingElement>) => (
+            <h2 className="text-xl font-bold mb-3" {...props}>
+              {children}
+            </h2>
+          ),
+          h3: ({ children, ...props }: HTMLProps<HTMLHeadingElement>) => (
+            <h3 className="text-lg font-bold mb-2" {...props}>
+              {children}
+            </h3>
+          ),
+        };
 
+        return (
+          <div className="prose prose-sm max-w-none">
+            <ReactMarkdown 
+              key={explanationContent}
+              remarkPlugins={[remarkGfm]}
+              components={components}
+            >
+              {explanationContent}
+            </ReactMarkdown>
+          </div>
+        );
+
+      case 'example_sentences':
+        const sentences = safeGetArray(section, 'sentences');
+        return (
+          <div className="space-y-3">
+            {sentences.map((sentence: any, index: number) => (
+              <div 
+                key={index} 
+                className="p-3 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-900/20 dark:to-emerald-900/20"
+                onDoubleClick={handleTextDoubleClick}
+              >
+                <span className="font-medium text-green-600 dark:text-green-400 mr-2">
+                  {index + 1}.
+                </span>
+                {safeStringify(sentence)}
+              </div>
+            ))}
+          </div>
+        );
+        
       case 'example_sentences':
         const sentences = safeGetArray(section, 'sentences');
         
