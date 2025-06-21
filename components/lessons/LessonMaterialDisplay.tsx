@@ -1,12 +1,11 @@
 "use client";
-import { safeGetString, safeGetArray } from "@/lib/utils";
+import { safeGetString, safeGetArray, debounce } from "@/lib/utils";
 
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { debounce, } from "@/lib/utils";
 import { 
   Loader2, 
   BookOpen, 
@@ -138,27 +137,6 @@ const safeStringify = (value: any): string => {
     }
   }
   return String(value);
-};
-
-// Helper function to safely get a string property from an object
-const safeGetString = (obj: any, key: string, fallback: string = ''): string => {
-  if (!obj || typeof obj !== 'object') {
-    return fallback;
-  }
-  
-  const value = obj[key];
-  const result = safeStringify(value) || fallback;
-  
-  return result;
-};
-
-// Helper function to safely get an array from an object
-const safeGetArray = (obj: any, key: string): any[] => {
-  if (!obj || typeof obj !== 'object') {
-    return [];
-  }
-  const value = obj[key];
-  return Array.isArray(value) ? value : [];
 };
 
 // Helper function to parse dialogue strings like "A: Hello! I am Maria."
@@ -1053,122 +1031,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               })}
             </div>
           );
-  
-        const dialogueElements = safeGetArray(section, 'dialogue_elements');
-
-        if (dialogueElements.length === 0) {
-          return (
-            <div className="text-center py-4 text-gray-500">
-              <p>No dialogue elements available for this exercise.</p>
-            </div>
-          );
-        }
-
-        return (
-          <div className="space-y-4">
-            {dialogueElements.map((element, index) => {
-              // Defensive check for element object
-              if (!element || typeof element !== 'object') {
-                return (
-                  <div key={index} className="p-3 border border-red-200 rounded-lg bg-red-50">
-                    <p className="text-red-600 text-sm">Invalid dialogue element</p>
-                  </div>
-                );
-              }
-
-              const elementType = safeGetString(element, 'type', 'unknown');
-
-              // Handle different element types properly
-              if (elementType === 'dialogue') {
-                const character = safeGetString(element, 'character', 'Speaker');
-                const text = safeGetString(element, 'text', 'No text available');
-                const isTeacher = character === 'Tutor' || character.toLowerCase().includes('teacher');
-                
-                return (
-                  <div key={index} className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
-                    }`}>
-                      <span className={`text-xs font-bold ${
-                        isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
-                      }`}>
-                        {character[0] || '?'}
-                      </span>
-                    </div>
-                    <div className={`flex-1 p-3 rounded-lg ${
-                      isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 
-                      'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                    }`}>
-                      <p className={`font-medium ${
-                        isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
-                      }`}>
-                        {character}:
-                      </p>
-                      <p onDoubleClick={handleTextDoubleClick}>{text}</p>
-                    </div>
-                  </div>
-                );
-              } else if (elementType === 'multiple_choice') {
-                const question = safeGetString(element, 'question', '') || safeGetString(element, 'text', 'Question not available');
-                const options = safeGetArray(element, 'options');
-                const correctAnswer = safeGetString(element, 'correct_answer', '');
-                
-                return (
-                  <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-yellow-50/50 to-amber-50/50 dark:from-yellow-900/20 dark:to-amber-900/20">
-                    <p 
-                      className="font-medium mb-3"
-                      onDoubleClick={handleTextDoubleClick}
-                    >
-                      {question}
-                    </p>
-                    <RadioGroup 
-                      onValueChange={(value) => handleAnswerChange(`${section.id}_mc_${index}`, value)}
-                    >
-                      {options.length > 0 ? options.map((option: any, optIndex: number) => (
-                        <div key={optIndex} className="flex items-center space-x-2">
-                          <RadioGroupItem value={safeStringify(option)} id={`${section.id}_${index}_${optIndex}`} />
-                          <Label 
-                            htmlFor={`${section.id}_${index}_${optIndex}`}
-                            onDoubleClick={handleTextDoubleClick}
-                          >
-                            {safeStringify(option)}
-                          </Label>
-                        </div>
-                      )) : (
-                        <p className="text-sm text-gray-500">No answer options available</p>
-                      )}
-                    </RadioGroup>
-                    {correctAnswer && (
-                      <div className="mt-4">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => toggleAnswerReveal(`${section.id}_mc_${index}`)}
-                          className="text-xs"
-                        >
-                          {revealedAnswers[`${section.id}_mc_${index}`] ? 'Hide Answer' : 'Show Answer'}
-                        </Button>
-                        
-                        {revealedAnswers[`${section.id}_mc_${index}`] && (
-                          <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm">
-                            <span className="font-medium text-green-700 dark:text-green-300">Correct answer:</span> {correctAnswer}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              } else {
-                // Return a warning for unrecognized element types
-                return (
-                  <div key={index} className="p-3 border border-yellow-200 rounded-lg bg-yellow-50">
-                    <p className="text-yellow-600 text-sm">Unknown element type: {elementType}</p>
-                  </div>
-                );
-              }
-            })}
-          </div>
-        );
 
       case 'matching':
         const matchingPairs = safeGetArray(section, 'matching_pairs');
