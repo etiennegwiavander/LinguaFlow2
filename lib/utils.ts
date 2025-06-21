@@ -17,3 +17,17 @@ export function debounce<T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 }
+
+export function safeGetString(obj: any, key: string, defaultValue: string = ''): string {
+  if (obj && typeof obj === 'object' && typeof obj[key] === 'string') {
+    return obj[key];
+  }
+  return defaultValue;
+}
+
+export function safeGetArray(obj: any, key: string, defaultValue: any[] = []): any[] {
+  if (obj && typeof obj === 'object' && Array.isArray(obj[key])) {
+    return obj[key];
+  }
+  return defaultValue;
+}
