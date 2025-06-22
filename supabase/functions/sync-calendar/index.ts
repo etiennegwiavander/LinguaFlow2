@@ -79,12 +79,15 @@ async function fetchCalendarEvents(accessToken: string, timeMin?: string, timeMa
     }
   )
 
+  console.log(`[${new Date().toISOString()}] Google Calendar API response status: ${response.status} ${response.statusText}`);
+  
   if (!response.ok) {
     const errorData = await response.text();
     console.error(`[${new Date().toISOString()}] Failed to fetch calendar events from Google API: Status ${response.status}, Error: ${errorData}`);
     throw new Error(`Failed to fetch calendar events: ${errorData}`);
   }
 
+  console.log(`[${new Date().toISOString()}] Attempting to parse Google Calendar API response as JSON.`);
   const data = await response.json();
   console.log(`[${new Date().toISOString()}] Google Calendar API response received. Number of items: ${data.items ? data.items.length : 0}`);
   // Log the actual items received from Google API for debugging
