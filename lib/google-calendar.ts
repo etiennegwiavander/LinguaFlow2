@@ -74,7 +74,7 @@ export class GoogleCalendarService {
   }
 
   /**
-   * Initiate Google OAuth flow
+   * Initiate Google OAuth flow with improved popup handling
    */
   public async initiateOAuth(email?: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -115,29 +115,90 @@ export class GoogleCalendarService {
 
         console.log('🔗 Opening Google OAuth URL');
 
-        // Open popup window
+        // Try to open popup window with better error handling
         const width = 600;
         const height = 600;
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
 
-        this.popupWindow = window.open(
-          authUrl,
-          'Google Calendar Authorization',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
+        try {
+          this.popupWindow = window.open(
+            authUrl,
+            'GoogleCalendarAuth',
+            `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+          );
 
-        if (!this.popupWindow) {
-          reject(new Error('Failed to open popup window. Please allow popups for this site.'));
-          return;
+          // Check if popup was blocked
+          if (!this.popupWindow || this.popupWindow.closed || typeof this.popupWindow.closed === 'undefined') {
+            // Popup was blocked, provide fallback
+            reject(new Error('POPUP_BLOCKED'));
+            return;
+          }
+
+          console.log('🔗 Popup window opened successfully');
+
+          // Monitor popup window
+          const checkClosed = setInterval(() => {
+            if (this.popupWindow && this.popupWindow.closed) {
+              clearInterval(checkClosed);
+              // Don't reject here as the user might have completed auth
+              console.log('🔗 Popup window was closed');
+            }
+          }, 1000);
+
+          // Clean up after 5 minutes
+          setTimeout(() => {
+            clearInterval(checkClosed);
+            if (this.popupWindow && !this.popupWindow.closed) {
+              this.popupWindow.close();
+            }
+          }, 300000);
+
+          resolve();
+
+        } catch (error) {
+          console.error('❌ Failed to open popup:', error);
+          reject(new Error('POPUP_BLOCKED'));
         }
-
-        console.log('🔗 Popup window opened successfully');
-
-        // Simply resolve when popup opens - the callback will handle the rest
-        resolve();
       }).catch(reject);
     });
+  }
+
+  /**
+   * Get the OAuth URL for manual navigation (fallback when popup is blocked)
+   */
+  public async getOAuthUrl(email?: string): Promise<string> {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new Error('Google Client ID is not configured');
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Use Supabase URL for the redirect URI
+    const redirectUri = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth-callback`;
+    const scope = 'https://www.googleapis.com/auth/calendar.readonly';
+    const state = user.id; // Use user ID as state
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope,
+      access_type: 'offline',
+      prompt: 'consent',
+      state,
+    });
+
+    // Add login hint if email is provided
+    if (email) {
+      params.append('login_hint', email);
+    }
+
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
 
   /**

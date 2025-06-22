@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MainLayout from "@/components/main-layout";
-import { Calendar, RefreshCcw, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { Calendar, RefreshCcw, CheckCircle, XCircle, Clock, AlertCircle, ExternalLink, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { googleCalendarService, CalendarEvent } from "@/lib/google-calendar";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -20,6 +21,7 @@ export default function CalendarPage() {
   const [email, setEmail] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPopupBlockedAlert, setShowPopupBlockedAlert] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<{
     connected: boolean;
     email?: string;
@@ -146,22 +148,38 @@ export default function CalendarPage() {
     }
 
     setIsLoading(true);
+    setShowPopupBlockedAlert(false);
+    
     try {
       console.log('🚀 Starting OAuth flow...');
       
-      // Initiate OAuth without await to maintain synchronous execution
-      googleCalendarService.initiateOAuth(email);
+      // Try to initiate OAuth with popup
+      await googleCalendarService.initiateOAuth(email);
       
       console.log('✅ OAuth popup opened, waiting for callback...');
       
-      // The actual token handling will be done in the useEffect above
-      // when the OAuth callback redirects back to this page
-      
     } catch (error: any) {
       console.error('❌ OAuth flow failed:', error);
-      toast.error(error.message || 'Failed to connect Google Calendar');
+      
+      if (error.message === 'POPUP_BLOCKED') {
+        // Show popup blocked alert with manual option
+        setShowPopupBlockedAlert(true);
+        toast.error('Popup was blocked. Please use the manual connection option below.');
+      } else {
+        toast.error(error.message || 'Failed to connect Google Calendar');
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleManualConnect = async () => {
+    try {
+      const authUrl = await googleCalendarService.getOAuthUrl(email);
+      // Open in same tab
+      window.location.href = authUrl;
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to generate authorization URL');
     }
   };
 
@@ -190,6 +208,7 @@ export default function CalendarPage() {
       setConnectionStatus({ connected: false });
       setEvents([]);
       setEmail("");
+      setShowPopupBlockedAlert(false);
       toast.success('Google Calendar disconnected successfully');
     } catch (error: any) {
       toast.error(error.message || 'Failed to disconnect Google Calendar');
@@ -263,6 +282,35 @@ export default function CalendarPage() {
                     Enter the email address associated with the Google Calendar you want to sync.
                   </p>
                 </div>
+
+                {/* Popup Blocked Alert */}
+                {showPopupBlockedAlert && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription className="space-y-3">
+                      <p>
+                        Your browser blocked the popup window. You can either:
+                      </p>
+                      <div className="space-y-2">
+                        <p className="text-sm">
+                          <strong>Option 1:</strong> Allow popups for this site and try again
+                        </p>
+                        <p className="text-sm">
+                          <strong>Option 2:</strong> Use manual connection (opens in same tab)
+                        </p>
+                      </div>
+                      <Button
+                        onClick={handleManualConnect}
+                        variant="outline"
+                        className="flex items-center"
+                        disabled={!email.trim()}
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Connect Manually
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             )}
 
