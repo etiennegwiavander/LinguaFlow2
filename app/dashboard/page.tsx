@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Lesson, Stat } from "@/types";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { format, addHours, parseISO } from "date-fns";
 
 interface TutorProfile {
   name: string | null;
@@ -17,10 +18,25 @@ interface TutorProfile {
   avatar_url: string | null;
 }
 
+interface CalendarEvent {
+  id: string;
+  tutor_id: string;
+  google_event_id: string;
+  summary: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  location?: string;
+  attendees?: any[];
+  created_at: string;
+  updated_at: string;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [upcomingLessons, setUpcomingLessons] = useState<Lesson[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [stats, setStats] = useState<Stat[]>([]);
   const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
 
@@ -55,6 +71,24 @@ export default function DashboardPage() {
           .limit(6);
 
         if (lessonsError) throw lessonsError;
+
+        // Fetch calendar events for the next 48 hours
+        const now = new Date();
+        const fortyEightHoursFromNow = addHours(now, 48);
+        
+        const { data: calendarData, error: calendarError } = await supabase
+          .from('calendar_events')
+          .select('*')
+          .eq('tutor_id', user.id)
+          .gte('start_time', now.toISOString())
+          .lte('start_time', fortyEightHoursFromNow.toISOString())
+          .order('start_time', { ascending: true });
+
+        if (calendarError) {
+          console.error('Error fetching calendar events:', calendarError);
+        } else {
+          setCalendarEvents(calendarData || []);
+        }
 
         // Fetch total students count
         const { count: studentsCount, error: studentsError } = await supabase
@@ -134,6 +168,31 @@ export default function DashboardPage() {
     return tutorProfile?.email?.split('@')[0] || 'there';
   };
 
+  const formatCalendarEventTime = (startTime: string, endTime: string) => {
+    const start = parseISO(startTime);
+    const end = parseISO(endTime);
+    const now = new Date();
+    
+    const isToday = format(start, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+    const isTomorrow = format(start, 'yyyy-MM-dd') === format(addHours(now, 24), 'yyyy-MM-dd');
+    
+    let dateLabel = '';
+    if (isToday) {
+      dateLabel = 'Today';
+    } else if (isTomorrow) {
+      dateLabel = 'Tomorrow';
+    } else {
+      dateLabel = format(start, 'EEE, MMM d');
+    }
+    
+    return {
+      dateLabel,
+      timeRange: `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`,
+      isToday,
+      isTomorrow
+    };
+  };
+
   if (loading) {
     return (
       <MainLayout>
@@ -204,22 +263,121 @@ export default function DashboardPage() {
               Upcoming Lessons
             </h2>
           </div>
-          {upcomingLessons.length === 0 ? (
+
+          {/* Calendar Events from Next 48 Hours */}
+          {calendarEvents.length > 0 && (
+            <div className="mb-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-base font-medium text-muted-foreground">
+                  Next 48 Hours - Calendar Events ({calendarEvents.length})
+                </h3>
+                <Badge variant="outline" className="text-xs">
+                  From Calendar Sync
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {calendarEvents.map((event, index) => {
+                  const timeInfo = formatCalendarEventTime(event.start_time, event.end_time);
+                  
+                  return (
+                    <div 
+                      key={event.id} 
+                      className={`floating-card glass-effect border-cyber-400/20 hover:border-cyber-400/50 transition-all duration-300 group overflow-hidden relative p-4 rounded-lg ${
+                        timeInfo.isToday ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10' : 
+                        timeInfo.isTomorrow ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10' : ''
+                      }`}
+                      style={{ animationDelay: `${0.6 + index * 0.1}s` }}
+                    >
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-cyber-400/5 to-neon-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      
+                      <div className="relative z-10">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm group-hover:text-cyber-400 transition-colors duration-300 truncate">
+                              {event.summary}
+                            </h4>
+                            {event.description && (
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                {event.description}
+                              </p>
+                            )}
+                          </div>
+                          {(timeInfo.isToday || timeInfo.isTomorrow) && (
+                            <Badge 
+                              variant="secondary" 
+                              className={`text-xs ml-2 ${
+                                timeInfo.isToday ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 
+                                'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                              }`}
+                            >
+                              {timeInfo.dateLabel}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3 mr-2 text-cyber-400" />
+                            <span>{timeInfo.dateLabel}</span>
+                          </div>
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3 mr-2 text-neon-400" />
+                            <span>{timeInfo.timeRange}</span>
+                          </div>
+                          {event.location && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <div className="h-3 w-3 mr-2 flex items-center justify-center">
+                                <div className="h-2 w-2 bg-purple-400 rounded-full"></div>
+                              </div>
+                              <span className="truncate">{event.location}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Regular Lessons */}
+          {upcomingLessons.length === 0 && calendarEvents.length === 0 ? (
             <div className="text-center py-12 floating-card glass-effect border-cyber-400/20 rounded-lg">
               <div className="w-16 h-16 bg-cyber-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="w-8 h-8 text-cyber-400" />
               </div>
               <h3 className="text-lg font-semibold mb-2">No upcoming lessons</h3>
-              <p className="text-muted-foreground">Schedule some lessons to see them here</p>
+              <p className="text-muted-foreground mb-4">Schedule some lessons or sync your calendar to see them here</p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <Badge variant="outline" className="text-xs">
+                  Connect Google Calendar for automatic lesson detection
+                </Badge>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-              {upcomingLessons.map((lesson, index) => (
-                <div key={lesson.id} className="animate-scale-in" style={{ animationDelay: `${0.6 + index * 0.1}s` }}>
-                  <LessonCard lesson={lesson} />
+            <>
+              {upcomingLessons.length > 0 && (
+                <div>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-base font-medium text-muted-foreground">
+                      Scheduled Lessons ({upcomingLessons.length})
+                    </h3>
+                    <Badge variant="outline" className="text-xs">
+                      From Lesson Plans
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                    {upcomingLessons.map((lesson, index) => (
+                      <div key={lesson.id} className="animate-scale-in" style={{ animationDelay: `${0.8 + index * 0.1}s` }}>
+                        <LessonCard lesson={lesson} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </section>
       </div>
