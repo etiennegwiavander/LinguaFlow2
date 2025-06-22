@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import MainLayout from "@/components/main-layout";
 import { Student } from "@/types";
 import { languages } from "@/lib/sample-data";
-import { Plus, Users, MoreVertical, Eye, Pencil, Trash2, Loader2, Sparkles } from "lucide-react";
+import { Plus, Users, MoreVertical, Eye, Pencil, Trash2, Loader2, Sparkles, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { 
   Table, 
@@ -19,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,11 +34,21 @@ import { toast } from "sonner";
 
 export default function StudentsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const { user } = useAuth();
+
+  // Initialize search term from URL parameter
+  useEffect(() => {
+    const searchName = searchParams.get('searchName');
+    if (searchName) {
+      setSearchTerm(searchName);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) return;
@@ -60,6 +72,11 @@ export default function StudentsPage() {
 
     fetchStudents();
   }, [user]);
+
+  // Filter students based on search term
+  const filteredStudents = students.filter(student =>
+    student.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getInitials = (name: string) => {
     return name
@@ -101,6 +118,14 @@ export default function StudentsPage() {
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete student');
     }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    // Clear URL parameter
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete('searchName');
+    router.replace(newUrl.pathname);
   };
 
   const getLanguageInfo = (code: string) => {
@@ -147,14 +172,42 @@ export default function StudentsPage() {
           </Button>
         </div>
 
+        {/* Search Bar */}
+        <div className="flex items-center space-x-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search students by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 border-cyber-400/30 focus:border-cyber-400"
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearSearch}
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 hover:bg-muted"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+          {searchTerm && (
+            <div className="text-sm text-muted-foreground">
+              {filteredStudents.length} of {students.length} students
+            </div>
+          )}
+        </div>
+
         <section aria-labelledby="students-heading" className="animate-scale-in" style={{ animationDelay: '0.2s' }}>
           <div className="mb-6 flex items-center">
             <h2 className="text-xl font-semibold flex items-center" id="students-heading">
               <Users className="mr-2 h-5 w-5 text-cyber-400" />
               Student List
-              {students.length > 0 && (
+              {filteredStudents.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {students.length}
+                  {filteredStudents.length}
                 </Badge>
               )}
             </h2>
@@ -163,7 +216,15 @@ export default function StudentsPage() {
           <div className="floating-card glass-effect border-cyber-400/20 rounded-lg overflow-hidden">
             <Table>
               <TableCaption className="text-muted-foreground py-4">
-                A list of all your language students and their learning progress.
+                {searchTerm ? (
+                  filteredStudents.length === 0 ? (
+                    `No students found matching "${searchTerm}"`
+                  ) : (
+                    `Showing ${filteredStudents.length} student${filteredStudents.length === 1 ? '' : 's'} matching "${searchTerm}"`
+                  )
+                ) : (
+                  "A list of all your language students and their learning progress."
+                )}
               </TableCaption>
               <TableHeader>
                 <TableRow className="border-cyber-400/20 hover:bg-cyber-400/5">
@@ -174,7 +235,7 @@ export default function StudentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.length === 0 ? (
+                {filteredStudents.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-12">
                       <div className="space-y-4">
@@ -182,21 +243,47 @@ export default function StudentsPage() {
                           <Users className="w-8 h-8 text-cyber-400" />
                         </div>
                         <div>
-                          <p className="text-muted-foreground mb-2">No students found</p>
-                          <Button 
-                            variant="outline" 
-                            onClick={handleAddStudent}
-                            className="border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300"
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add your first student
-                          </Button>
+                          {searchTerm ? (
+                            <>
+                              <p className="text-muted-foreground mb-2">
+                                No students found matching "{searchTerm}"
+                              </p>
+                              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                                <Button 
+                                  variant="outline" 
+                                  onClick={handleClearSearch}
+                                  className="border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300"
+                                >
+                                  Clear search
+                                </Button>
+                                <Button 
+                                  onClick={handleAddStudent}
+                                  className="border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300"
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Create "{searchTerm}"
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-muted-foreground mb-2">No students found</p>
+                              <Button 
+                                variant="outline" 
+                                onClick={handleAddStudent}
+                                className="border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300"
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add your first student
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  students.map((student, index) => {
+                  filteredStudents.map((student, index) => {
                     const langInfo = getLanguageInfo(student.target_language);
                     return (
                       <TableRow 
@@ -287,6 +374,7 @@ export default function StudentsPage() {
         open={isFormOpen} 
         onOpenChange={setIsFormOpen}
         student={selectedStudent}
+        initialName={searchTerm}
         onSuccess={() => {
           setIsFormOpen(false);
           // Refresh the students list

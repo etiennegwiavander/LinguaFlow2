@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Lesson } from "@/types";
 import { languages } from "@/lib/sample-data";
 import { cn } from "@/lib/utils";
@@ -11,7 +12,8 @@ import {
   ClipboardList,
   Clock,
   X,
-  Sparkles
+  Sparkles,
+  ExternalLink
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,7 @@ interface LessonCardProps {
 
 export default function LessonCard({ lesson, className }: LessonCardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const router = useRouter();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -59,6 +62,10 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
     return languages.find(lang => lang.code === code) || { code, name: code, flag: '🌐' };
   };
 
+  const handleStudentClick = () => {
+    router.push(`/students/${lesson.student.id}`);
+  };
+
   const languageInfo = getLanguageInfo(lesson.student.target_language);
 
   return (
@@ -75,16 +82,28 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
         <CardContent className="p-4 sm:p-6 relative z-10">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center">
-              <Avatar className="h-8 w-8 sm:h-10 sm:w-10 mr-3 ring-2 ring-cyber-400/20 group-hover:ring-cyber-400/50 transition-all duration-300">
+              <Avatar 
+                className="h-8 w-8 sm:h-10 sm:w-10 mr-3 ring-2 ring-cyber-400/20 group-hover:ring-cyber-400/50 transition-all duration-300 cursor-pointer"
+                onClick={handleStudentClick}
+              >
                 <AvatarImage src={lesson.student.avatar_url || undefined} alt={lesson.student.name} />
                 <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400">
                   {getInitials(lesson.student.name)}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold group-hover:text-cyber-400 transition-colors duration-300">
-                  {lesson.student.name}
-                </h3>
+                <div className="flex items-center space-x-1">
+                  <h3 
+                    className="text-sm sm:text-base font-semibold group-hover:text-cyber-400 transition-colors duration-300 cursor-pointer hover:underline"
+                    onClick={handleStudentClick}
+                  >
+                    {lesson.student.name}
+                  </h3>
+                  <ExternalLink 
+                    className="h-3 w-3 text-muted-foreground group-hover:text-cyber-400 transition-colors duration-300 opacity-0 group-hover:opacity-100 cursor-pointer"
+                    onClick={handleStudentClick}
+                  />
+                </div>
                 <div className="flex items-center text-xs sm:text-sm text-muted-foreground mt-1">
                   <span className="mr-1.5 text-base sm:text-lg">{languageInfo.flag}</span>
                   <span>{languageInfo.name}</span>
@@ -146,14 +165,28 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
           <div className="space-y-6 my-2">
             <div className="flex justify-between items-center flex-wrap gap-4">
               <div className="flex items-center">
-                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 mr-4 ring-2 ring-cyber-400/20">
+                <Avatar 
+                  className="h-10 w-10 sm:h-12 sm:w-12 mr-4 ring-2 ring-cyber-400/20 cursor-pointer"
+                  onClick={handleStudentClick}
+                >
                   <AvatarImage src={lesson.student.avatar_url || undefined} alt={lesson.student.name} />
                   <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400">
                     {getInitials(lesson.student.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold text-base sm:text-lg">{lesson.student.name}</h3>
+                  <div className="flex items-center space-x-1">
+                    <h3 
+                      className="font-semibold text-base sm:text-lg cursor-pointer hover:text-cyber-400 hover:underline transition-colors"
+                      onClick={handleStudentClick}
+                    >
+                      {lesson.student.name}
+                    </h3>
+                    <ExternalLink 
+                      className="h-3 w-3 text-muted-foreground hover:text-cyber-400 transition-colors duration-300 cursor-pointer"
+                      onClick={handleStudentClick}
+                    />
+                  </div>
                   <p className="text-xs sm:text-sm text-muted-foreground">
                     {languageInfo.name} • <span className="capitalize">{lesson.student.level}</span>
                   </p>
@@ -229,8 +262,11 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
                 Close
               </Button>
             </DialogClose>
-            <Button className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0">
-              Select Lesson
+            <Button 
+              className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
+              onClick={handleStudentClick}
+            >
+              View Student Profile
             </Button>
           </DialogFooter>
         </DialogContent>

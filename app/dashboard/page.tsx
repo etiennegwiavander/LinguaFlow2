@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import MainLayout from "@/components/main-layout";
 import LessonCard from "@/components/dashboard/LessonCard";
 import StatsCard from "@/components/dashboard/StatsCard";
-import { Clock, Calendar, Sparkles, Loader2, TrendingUp, Users, BarChart3 } from "lucide-react";
+import { Clock, Calendar, Sparkles, Loader2, TrendingUp, Users, BarChart3, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Lesson, Stat } from "@/types";
@@ -34,6 +35,7 @@ interface CalendarEvent {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [upcomingLessons, setUpcomingLessons] = useState<Lesson[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -193,6 +195,13 @@ export default function DashboardPage() {
     };
   };
 
+  const handleCalendarEventClick = (eventSummary: string) => {
+    // Navigate to students page with the event summary as search parameter
+    const searchParams = new URLSearchParams();
+    searchParams.set('searchName', eventSummary);
+    router.push(`/students?${searchParams.toString()}`);
+  };
+
   if (loading) {
     return (
       <MainLayout>
@@ -282,11 +291,13 @@ export default function DashboardPage() {
                   return (
                     <div 
                       key={event.id} 
-                      className={`floating-card glass-effect border-cyber-400/20 hover:border-cyber-400/50 transition-all duration-300 group overflow-hidden relative p-4 rounded-lg ${
+                      className={`floating-card glass-effect border-cyber-400/20 hover:border-cyber-400/50 transition-all duration-300 group overflow-hidden relative p-4 rounded-lg cursor-pointer ${
                         timeInfo.isToday ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10' : 
                         timeInfo.isTomorrow ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10' : ''
                       }`}
                       style={{ animationDelay: `${0.6 + index * 0.1}s` }}
+                      onClick={() => handleCalendarEventClick(event.summary)}
+                      title="Click to find or create student"
                     >
                       {/* Gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-br from-cyber-400/5 to-neon-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -294,9 +305,12 @@ export default function DashboardPage() {
                       <div className="relative z-10">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm group-hover:text-cyber-400 transition-colors duration-300 truncate">
-                              {event.summary}
-                            </h4>
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-semibold text-sm group-hover:text-cyber-400 transition-colors duration-300 truncate">
+                                {event.summary}
+                              </h4>
+                              <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-cyber-400 transition-colors duration-300 opacity-0 group-hover:opacity-100" />
+                            </div>
                             {event.description && (
                               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                 {event.description}
@@ -333,6 +347,13 @@ export default function DashboardPage() {
                               <span className="truncate">{event.location}</span>
                             </div>
                           )}
+                        </div>
+
+                        {/* Click hint */}
+                        <div className="mt-3 pt-2 border-t border-muted/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <p className="text-xs text-cyber-400 font-medium">
+                            Click to find or create student
+                          </p>
                         </div>
                       </div>
                     </div>

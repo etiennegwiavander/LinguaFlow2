@@ -72,10 +72,11 @@ type StudentFormProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   student: Student | null;
+  initialName?: string;
   onSuccess?: () => void;
 };
 
-export default function StudentForm({ open, onOpenChange, student, onSuccess }: StudentFormProps) {
+export default function StudentForm({ open, onOpenChange, student, initialName, onSuccess }: StudentFormProps) {
   const { user } = useAuth();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -97,6 +98,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
 
   useEffect(() => {
     if (student) {
+      // Editing existing student
       form.reset({
         name: student.name,
         targetLanguage: student.target_language,
@@ -111,8 +113,9 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
         notes: student.notes || "",
       });
     } else {
+      // Creating new student
       form.reset({
-        name: "",
+        name: initialName || "",
         targetLanguage: "",
         nativeLanguage: "",
         proficiencyLevel: "",
@@ -125,7 +128,7 @@ export default function StudentForm({ open, onOpenChange, student, onSuccess }: 
         notes: "",
       });
     }
-  }, [student, form]);
+  }, [student, initialName, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) return;
