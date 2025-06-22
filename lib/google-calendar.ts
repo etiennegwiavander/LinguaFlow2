@@ -176,7 +176,7 @@ export class GoogleCalendarService {
       .from('google_tokens')
       .select('id')
       .eq('tutor_id', user.id)
-      .single();
+      .maybeSingle();
 
     return !error && !!data;
   }
@@ -241,7 +241,7 @@ export class GoogleCalendarService {
       .from('google_tokens')
       .select('expires_at, updated_at, email')
       .eq('tutor_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!tokenData) {
       return { connected: false };
