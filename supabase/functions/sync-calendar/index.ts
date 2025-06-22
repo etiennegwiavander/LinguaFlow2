@@ -49,14 +49,20 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
   return data.access_token
 }
 
-async function fetchCalendarEvents(accessToken: string, timeMin?: string, timeMax?: string): Promise<CalendarEvent[]> {
+async function fetchCalendarEvents(accessToken: string): Promise<CalendarEvent[]> {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000)); // Go back 7 days
+  const ninetyDaysFromNow = new Date(now.getTime() + (90 * 24 * 60 * 60 * 1000)); // Go forward 90 days
+
   const params = new URLSearchParams({
-    timeMin: timeMin || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 7 days ago
-    timeMax: timeMax || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), // Default to 60 days from now
+    timeMin: sevenDaysAgo.toISOString(),
+    timeMax: ninetyDaysFromNow.toISOString(),
     singleEvents: 'true',
     orderBy: 'startTime',
-    maxResults: '100',
+    maxResults: '250', // Increased from 100 to capture more events
   })
+
+  console.log(`📅 Fetching calendar events from ${sevenDaysAgo.toISOString()} to ${ninetyDaysFromNow.toISOString()}`);
 
   const response = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
@@ -70,10 +76,13 @@ async function fetchCalendarEvents(accessToken: string, timeMin?: string, timeMa
 
   if (!response.ok) {
     const errorData = await response.text()
+    console.error('❌ Google Calendar API error:', errorData);
     throw new Error(`Failed to fetch calendar events: ${errorData}`)
   }
 
   const data = await response.json()
+  console.log(`📊 Google Calendar API returned ${data.items?.length || 0} events`);
+  
   return data.items || []
 }
 
@@ -100,6 +109,8 @@ serve(async (req) => {
       throw new Error('Invalid token')
     }
 
+    console.log(`🔍 Syncing calendar for user: ${user.id}`);
+
     // Get stored Google tokens
     const { data: tokenData, error: tokenError } = await supabaseClient
       .from('google_tokens')
@@ -116,6 +127,7 @@ serve(async (req) => {
 
     // Check if token needs refresh
     if (expiresAt <= new Date()) {
+      console.log('🔄 Access token expired, refreshing...');
       try {
         accessToken = await refreshAccessToken(tokenData.refresh_token)
         
@@ -129,7 +141,10 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           })
           .eq('tutor_id', user.id)
+        
+        console.log('✅ Access token refreshed successfully');
       } catch (refreshError) {
+        console.error('❌ Failed to refresh token:', refreshError);
         throw new Error('Failed to refresh access token. Please reconnect your Google Calendar.')
       }
     }
@@ -138,16 +153,28 @@ serve(async (req) => {
     const events = await fetchCalendarEvents(accessToken)
 
     // Process and store events
-    const processedEvents = events.map(event => ({
-      tutor_id: user.id,
-      google_event_id: event.id,
-      summary: event.summary || 'Untitled Event',
-      description: event.description || null,
-      start_time: event.start.dateTime || event.start.date,
-      end_time: event.end.dateTime || event.end.date,
-      location: event.location || null,
-      attendees: event.attendees ? JSON.stringify(event.attendees) : null,
-    }))
+    const processedEvents = events.map(event => {
+      // Handle both dateTime and date formats
+      const startTime = event.start.dateTime || event.start.date;
+      const endTime = event.end.dateTime || event.end.date;
+      
+      // If it's a date-only event, convert to ISO string with time
+      const processedStartTime = startTime.includes('T') ? startTime : `${startTime}T00:00:00Z`;
+      const processedEndTime = endTime.includes('T') ? endTime : `${endTime}T23:59:59Z`;
+      
+      return {
+        tutor_id: user.id,
+        google_event_id: event.id,
+        summary: event.summary || 'Untitled Event',
+        description: event.description || null,
+        start_time: processedStartTime,
+        end_time: processedEndTime,
+        location: event.location || null,
+        attendees: event.attendees ? JSON.stringify(event.attendees) : null,
+      };
+    });
+
+    console.log(`📝 Processing ${processedEvents.length} events for storage`);
 
     // Upsert events to avoid duplicates
     if (processedEvents.length > 0) {
@@ -158,9 +185,20 @@ serve(async (req) => {
         })
 
       if (upsertError) {
+        console.error('❌ Failed to store events:', upsertError);
         throw new Error(`Failed to store calendar events: ${upsertError.message}`)
       }
+      
+      console.log(`✅ Successfully stored ${processedEvents.length} events`);
     }
+
+    // Update the last sync timestamp
+    await supabaseClient
+      .from('google_tokens')
+      .update({
+        updated_at: new Date().toISOString(),
+      })
+      .eq('tutor_id', user.id)
 
     return new Response(
       JSON.stringify({ 
@@ -176,7 +214,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Calendar sync error:', error)
+    console.error('❌ Calendar sync error:', error)
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Internal server error' 
