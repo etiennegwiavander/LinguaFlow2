@@ -51,8 +51,8 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
 
 async function fetchCalendarEvents(accessToken: string, timeMin?: string, timeMax?: string): Promise<CalendarEvent[]> {
   const params = new URLSearchParams({
-    timeMin: timeMin || new Date().toISOString(),
-    timeMax: timeMax || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+    timeMin: timeMin || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 7 days ago
+    timeMax: timeMax || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), // Default to 60 days from now
     singleEvents: 'true',
     orderBy: 'startTime',
     maxResults: '100',
