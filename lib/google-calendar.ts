@@ -298,13 +298,15 @@ export class GoogleCalendarService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { connected: false };
 
-    const { data: tokenData } = await supabase
+    // Use maybeSingle() instead of single() to handle cases where no record exists
+    const { data: tokenData, error } = await supabase
       .from('google_tokens')
       .select('expires_at, updated_at, email')
       .eq('tutor_id', user.id)
       .maybeSingle();
 
-    if (!tokenData) {
+    // If there's an error or no data, return not connected
+    if (error || !tokenData) {
       return { connected: false };
     }
 
