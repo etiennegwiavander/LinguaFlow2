@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { googleCalendarService, CalendarEvent } from "@/lib/google-calendar";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 
 export default function CalendarPage() {
   const router = useRouter();
@@ -163,7 +163,12 @@ export default function CalendarPage() {
 
   const loadCalendarEvents = async () => {
     try {
-      const calendarEvents = await googleCalendarService.getCalendarEvents();
+      // Get events for the current week
+      const now = new Date();
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Start week on Monday
+      const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+      
+      const calendarEvents = await googleCalendarService.getCalendarEvents(weekStart, weekEnd);
       setEvents(calendarEvents);
     } catch (error: any) {
       toast.error(error.message || 'Failed to load calendar events');
@@ -271,6 +276,25 @@ export default function CalendarPage() {
     }
     return "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300";
   };
+
+  // Filter events to current week and sort by start time
+  const getWeeklyEvents = () => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Start week on Monday
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    
+    return events
+      .filter(event => {
+        const eventStart = parseISO(event.start_time);
+        return isWithinInterval(eventStart, { start: weekStart, end: weekEnd });
+      })
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+  };
+
+  const weeklyEvents = getWeeklyEvents();
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
   return (
     <MainLayout>
@@ -429,14 +453,17 @@ export default function CalendarPage() {
             <CardHeader>
               <CardTitle>Synced Calendar Events</CardTitle>
               <CardDescription>
-                Recent events from your Google Calendar ({events.length} events)
+                Events from your Google Calendar for this week ({format(weekStart, "MMM d")} - {format(weekEnd, "MMM d, yyyy")}) • {weeklyEvents.length} events
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {events.length === 0 ? (
+              {weeklyEvents.length === 0 ? (
                 <div className="text-center py-8">
                   <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No calendar events found</p>
+                  <p className="text-muted-foreground mb-2">No calendar events found for this week</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Week of {format(weekStart, "MMMM d")} - {format(weekEnd, "MMMM d, yyyy")}
+                  </p>
                   <Button 
                     variant="outline" 
                     onClick={handleSync}
@@ -449,34 +476,57 @@ export default function CalendarPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {events.slice(0, 10).map((event) => (
-                    <div key={event.id} className="flex items-start space-x-4 p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="font-medium">{event.summary}</h3>
-                        {event.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {event.description}
-                          </p>
-                        )}
-                        <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
-                          <span>
-                            {format(new Date(event.start_time), "PPp")}
-                          </span>
-                          {event.location && (
-                            <>
-                              <Separator orientation="vertical" className="h-4" />
-                              <span>{event.location}</span>
-                            </>
+                  {weeklyEvents.map((event) => {
+                    const eventDate = parseISO(event.start_time);
+                    const isToday = format(eventDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+                    const isPast = eventDate < now;
+                    
+                    return (
+                      <div 
+                        key={event.id} 
+                        className={`flex items-start space-x-4 p-4 border rounded-lg transition-colors ${
+                          isToday ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20' : 
+                          isPast ? 'opacity-60' : ''
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h3 className="font-medium">{event.summary}</h3>
+                            {isToday && (
+                              <Badge variant="secondary" className="text-xs">
+                                Today
+                              </Badge>
+                            )}
+                          </div>
+                          {event.description && (
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                              {event.description}
+                            </p>
                           )}
+                          <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
+                            <span className="flex items-center space-x-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{format(eventDate, "EEE, MMM d")}</span>
+                            </span>
+                            <span>
+                              {format(eventDate, "h:mm a")}
+                            </span>
+                            {event.location && (
+                              <>
+                                <Separator orientation="vertical" className="h-4" />
+                                <span className="truncate max-w-[200px]">{event.location}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   
-                  {events.length > 10 && (
-                    <div className="text-center pt-4">
+                  {events.length > weeklyEvents.length && (
+                    <div className="text-center pt-4 border-t">
                       <p className="text-sm text-muted-foreground">
-                        Showing 10 of {events.length} events
+                        Showing {weeklyEvents.length} events for this week • {events.length} total synced events
                       </p>
                     </div>
                   )}
