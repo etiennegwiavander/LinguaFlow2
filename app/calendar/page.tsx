@@ -31,62 +31,98 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Handle OAuth callback results
+  // Handle postMessage from OAuth popup
   useEffect(() => {
-    const handleOAuthCallback = async () => {
-      const authStatus = searchParams.get('google_auth_status');
-      
-      if (authStatus === 'success') {
-        console.log('✅ OAuth success detected in URL');
+    const handleMessage = async (event: MessageEvent) => {
+      // Verify origin for security
+      const expectedOrigin = window.location.origin;
+      if (event.origin !== expectedOrigin) {
+        console.warn('Received message from unexpected origin:', event.origin);
+        return;
+      }
+
+      // Check if this is our OAuth callback message
+      if (event.data && event.data.type === 'google-oauth-callback') {
+        console.log('📨 Received OAuth callback message:', event.data);
         
-        // Extract token data from URL parameters
-        const accessToken = searchParams.get('access_token');
-        const refreshToken = searchParams.get('refresh_token');
-        const expiresAt = searchParams.get('expires_at');
-        const scope = searchParams.get('scope');
-        const userEmail = searchParams.get('email');
+        const { status, data, message } = event.data;
         
-        if (accessToken && refreshToken && expiresAt) {
+        if (status === 'success') {
+          console.log('✅ OAuth success detected from popup');
+          
           try {
-            console.log('💾 Storing tokens from OAuth callback...');
-            
-            // Store the tokens
-            await googleCalendarService.storeTokens({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-              expires_at: expiresAt,
-              scope: scope || 'https://www.googleapis.com/auth/calendar.readonly',
-              email: userEmail || undefined
-            });
-            
-            console.log('✅ Tokens stored successfully');
-            
-            // Update connection status
-            await checkConnectionStatus();
-            
-            toast.success('Google Calendar connected successfully!');
-            
-            // Auto-sync after connection
-            console.log('🔄 Auto-syncing calendar...');
-            await handleSync();
-            
+            // Store the tokens using the data from the popup
+            if (data && data.access_token && data.refresh_token && data.expires_at) {
+              await googleCalendarService.storeTokens({
+                access_token: data.access_token,
+                refresh_token: data.refresh_token,
+                expires_at: data.expires_at,
+                scope: data.scope || 'https://www.googleapis.com/auth/calendar.readonly',
+                email: data.email || undefined
+              });
+              
+              console.log('✅ Tokens stored successfully from popup data');
+              
+              // Update connection status
+              await checkConnectionStatus();
+              
+              toast.success('Google Calendar connected successfully!');
+              
+              // Auto-sync after connection
+              console.log('🔄 Auto-syncing calendar...');
+              await handleSync();
+              
+            } else {
+              console.error('❌ Missing token data in popup message');
+              toast.error('Incomplete OAuth data received');
+            }
           } catch (error: any) {
-            console.error('❌ Failed to store tokens:', error);
+            console.error('❌ Failed to process OAuth data from popup:', error);
             toast.error(error.message || 'Failed to complete Google Calendar connection');
           }
         } else {
-          console.error('❌ Missing token data in OAuth callback');
-          toast.error('Incomplete OAuth data received');
+          console.error('❌ OAuth error from popup:', message);
+          toast.error(`Google Calendar connection failed: ${message}`);
+        }
+      }
+    };
+
+    // Add event listener for postMessage
+    window.addEventListener('message', handleMessage);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  // Handle URL-based OAuth callback (fallback for manual connection)
+  useEffect(() => {
+    const handleUrlCallback = async () => {
+      const authStatus = searchParams.get('google_auth_status');
+      
+      if (authStatus === 'success') {
+        console.log('✅ OAuth success detected in URL (manual connection)');
+        
+        // For manual connections, we don't have token data in URL
+        // Just check connection status and sync
+        try {
+          await checkConnectionStatus();
+          toast.success('Google Calendar connected successfully!');
+          
+          // Auto-sync after connection
+          console.log('🔄 Auto-syncing calendar...');
+          await handleSync();
+          
+        } catch (error: any) {
+          console.error('❌ Failed to complete manual connection:', error);
+          toast.error(error.message || 'Failed to complete Google Calendar connection');
         }
         
         // Clean up URL parameters
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('google_auth_status');
-        newUrl.searchParams.delete('access_token');
-        newUrl.searchParams.delete('refresh_token');
-        newUrl.searchParams.delete('expires_at');
-        newUrl.searchParams.delete('scope');
-        newUrl.searchParams.delete('email');
+        newUrl.searchParams.delete('message');
         router.replace(newUrl.pathname);
         
       } else if (authStatus === 'error') {
@@ -102,7 +138,7 @@ export default function CalendarPage() {
       }
     };
 
-    handleOAuthCallback();
+    handleUrlCallback();
   }, [searchParams, router]);
 
   useEffect(() => {
