@@ -149,10 +149,10 @@ export default function CalendarPage() {
     try {
       console.log('🚀 Starting OAuth flow...');
       
-      // Initiate OAuth and wait for the popup to close
-      await googleCalendarService.initiateOAuth(email);
+      // Initiate OAuth without await to maintain synchronous execution
+      googleCalendarService.initiateOAuth(email);
       
-      console.log('✅ OAuth popup closed, waiting for callback...');
+      console.log('✅ OAuth popup opened, waiting for callback...');
       
       // The actual token handling will be done in the useEffect above
       // when the OAuth callback redirects back to this page
