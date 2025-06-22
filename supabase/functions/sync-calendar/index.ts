@@ -27,6 +27,12 @@ interface CalendarEvent {
   }>;
 }
 
+interface GoogleCalendar {
+  id: string;
+  summary: string;
+  primary?: boolean;
+}
+
 async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: string, newExpiresAt: string }> {
   console.log(`[${new Date().toISOString()}] Attempting to refresh access token...`);
   const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -57,10 +63,33 @@ async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: 
   };
 }
 
-async function fetchCalendarEvents(accessToken: string, timeMin?: string, timeMax?: string): Promise<CalendarEvent[]> {
+async function fetchCalendarList(accessToken: string): Promise<GoogleCalendar[]> {
+  console.log(`[${new Date().toISOString()}] Fetching calendar list...`);
+  const response = await fetch(
+    `https://www.googleapis.com/calendar/v3/users/me/calendarList`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error(`[${new Date().toISOString()}] Failed to fetch calendar list from Google API: Status ${response.status}, Error: ${errorData}`);
+    throw new Error(`Failed to fetch calendar list: ${errorData}`);
+  }
+
+  const data = await response.json();
+  console.log(`[${new Date().toISOString()}] Google Calendar List API response received. Number of items: ${data.items ? data.items.length : 0}`);
+  return data.items || [];
+}
+
+async function fetchCalendarEvents(accessToken: string, calendarId: string, timeMin?: string, timeMax?: string): Promise<CalendarEvent[]> {
   const minTime = timeMin || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days ago
   const maxTime = timeMax || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(); // 90 days from now
-  console.log(`[${new Date().toISOString()}] Fetching calendar events from ${minTime} to ${maxTime}...`);
+  console.log(`[${new Date().toISOString()}] Fetching events for calendar ID: ${calendarId} from ${minTime} to ${maxTime}...`);
   const params = new URLSearchParams({
     timeMin: minTime,
     timeMax: maxTime,
@@ -70,7 +99,7 @@ async function fetchCalendarEvents(accessToken: string, timeMin?: string, timeMa
   })
 
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?${params}`,
     {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -79,22 +108,23 @@ async function fetchCalendarEvents(accessToken: string, timeMin?: string, timeMa
     }
   )
 
-  console.log(`[${new Date().toISOString()}] Google Calendar API response status: ${response.status} ${response.statusText}`);
+  console.log(`[${new Date().toISOString()}] Google Calendar API response status for ${calendarId}: ${response.status} ${response.statusText}`);
   
   if (!response.ok) {
     const errorData = await response.text();
-    console.error(`[${new Date().toISOString()}] Failed to fetch calendar events from Google API: Status ${response.status}, Error: ${errorData}`);
-    throw new Error(`Failed to fetch calendar events: ${errorData}`);
+    console.error(`[${new Date().toISOString()}] Failed to fetch calendar events from Google API for ${calendarId}: Status ${response.status}, Error: ${errorData}`);
+    // Do not throw error here, just return empty array to continue processing other calendars
+    return [];
   }
 
-  console.log(`[${new Date().toISOString()}] Attempting to parse Google Calendar API response as JSON.`);
+  console.log(`[${new Date().toISOString()}] Attempting to parse Google Calendar API response as JSON for ${calendarId}.`);
   const data = await response.json();
-  console.log(`[${new Date().toISOString()}] Google Calendar API response received. Number of items: ${data.items ? data.items.length : 0}`);
-  // Log the actual items received from Google API for debugging
+  console.log(`[${new Date().toISOString()}] Google Calendar API response received for ${calendarId}. Number of items: ${data.items ? data.items.length : 0}`);
+  
   if (data.items && data.items.length > 0) {
-    console.log(`[${new Date().toISOString()}] First 5 events from Google API:`, JSON.stringify(data.items.slice(0, 5), null, 2));
+    console.log(`[${new Date().toISOString()}] First 5 events from Google API for ${calendarId}:`, JSON.stringify(data.items.slice(0, 5), null, 2));
   } else {
-    console.log(`[${new Date().toISOString()}] No events returned from Google Calendar API for the specified range.`);
+    console.log(`[${new Date().toISOString()}] No events returned from Google Calendar API for ${calendarId} for the specified range.`);
   }
   return data.items || [];
 }
@@ -177,14 +207,25 @@ serve(async (req) => {
       console.log(`[${new Date().toISOString()}] Access token is still valid. Expires: ${expiresAt.toISOString()}`);
     }
 
-    // Fetch calendar events
-    console.log(`[${new Date().toISOString()}] Calling fetchCalendarEvents with current access token.`);
-    const events = await fetchCalendarEvents(accessToken)
-    console.log(`[${new Date().toISOString()}] Received ${events.length} events from Google Calendar.`);
+    // Fetch all user calendars
+    const calendarList = await fetchCalendarList(accessToken);
+    console.log(`[${new Date().toISOString()}] Found ${calendarList.length} calendars.`);
+
+    let allEvents: CalendarEvent[] = [];
+    const minTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days ago
+    const maxTime = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(); // 90 days from now
+
+    for (const calendar of calendarList) {
+      // Fetch events for each calendar
+      const eventsForCalendar = await fetchCalendarEvents(accessToken, calendar.id, minTime, maxTime);
+      allEvents = allEvents.concat(eventsForCalendar);
+    }
+    
+    console.log(`[${new Date().toISOString()}] Received total of ${allEvents.length} events from all calendars.`);
 
     // Process and store events
     console.log(`[${new Date().toISOString()}] Processing events for database upsert.`);
-    const processedEvents = events.map(event => ({
+    const processedEvents = allEvents.map(event => ({
       tutor_id: user.id,
       google_event_id: event.id,
       summary: event.summary || 'Untitled Event',
