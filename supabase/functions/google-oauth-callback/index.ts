@@ -16,43 +16,35 @@ serve(async (req) => {
   console.log('  - Error:', error || 'NONE');
   console.log('  - State (User ID):', state || 'NONE');
 
-  // Get the site URL for redirects
+  // Get the site URL for postMessage origin validation (important for security)
   const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:3000';
 
-  // If there's an OAuth error from Google
-  if (error) {
-    console.error('❌ OAuth error from Google:', error);
-    return new Response(null, {
-      status: 302,
-      headers: {
-        'Location': `${siteUrl}/calendar?google_auth_status=error&message=${encodeURIComponent(error)}`
-      }
-    });
-  }
-
-  // If no code is provided
-  if (!code) {
-    console.error('❌ No authorization code provided');
-    return new Response(null, {
-      status: 302,
-      headers: {
-        'Location': `${siteUrl}/calendar?google_auth_status=error&message=${encodeURIComponent('No authorization code provided')}`
-      }
-    });
-  }
-
-  // If no state (user ID) is provided
-  if (!state) {
-    console.error('❌ No user ID in state parameter');
-    return new Response(null, {
-      status: 302,
-      headers: {
-        'Location': `${siteUrl}/calendar?google_auth_status=error&message=${encodeURIComponent('Invalid authentication state')}`
-      }
-    });
-  }
+  let responseData = {};
+  let status = 'error';
+  let message = '';
 
   try {
+    // If there's an OAuth error from Google
+    if (error) {
+      console.error('❌ OAuth error from Google:', error);
+      message = error;
+      throw new Error(error); // Throw to catch block for consistent error handling
+    }
+
+    // If no code is provided
+    if (!code) {
+      console.error('❌ No authorization code provided');
+      message = 'No authorization code provided';
+      throw new Error('No authorization code provided');
+    }
+
+    // If no state (user ID) is provided
+    if (!state) {
+      console.error('❌ No user ID in state parameter');
+      message = 'Invalid authentication state';
+      throw new Error('Invalid authentication state');
+    }
+
     console.log('🔄 Starting token exchange with Google...');
     
     // Exchange authorization code for tokens
@@ -75,7 +67,8 @@ serve(async (req) => {
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text()
       console.error('❌ Google token exchange failed:', errorData);
-      throw new Error(`Token exchange failed: ${errorData}`)
+      message = `Token exchange failed: ${errorData}`;
+      throw new Error(message);
     }
 
     const tokenData = await tokenResponse.json()
@@ -85,7 +78,8 @@ serve(async (req) => {
 
     if (!access_token || !refresh_token) {
       console.error('❌ Invalid token response from Google - missing tokens');
-      throw new Error('Invalid token response from Google')
+      message = 'Invalid token response from Google - missing tokens';
+      throw new Error(message);
     }
 
     // Get user's email from Google using the access token
@@ -138,34 +132,63 @@ serve(async (req) => {
 
     if (insertError) {
       console.error('❌ Failed to store tokens:', insertError);
-      throw new Error(`Failed to store tokens: ${insertError.message}`);
+      message = `Failed to store tokens: ${insertError.message}`;
+      throw new Error(message);
     }
 
     console.log('✅ Tokens stored successfully in database');
-    console.log('🔄 Redirecting back to calendar page with success status...');
+    status = 'success';
+    responseData = {
+      access_token,
+      refresh_token,
+      expires_at: expiresAt.toISOString(),
+      scope: scope || 'https://www.googleapis.com/auth/calendar.readonly',
+      email: userEmail || null,
+    };
 
-    // Redirect back to calendar with success status only
-    const redirectUrl = new URL(`${siteUrl}/calendar`);
-    redirectUrl.searchParams.set('google_auth_status', 'success');
-    if (userEmail) {
-      redirectUrl.searchParams.set('email', userEmail);
-    }
-
-    return new Response(null, {
-      status: 302,
-      headers: {
-        'Location': redirectUrl.toString()
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ OAuth callback error:', error);
-    
-    return new Response(null, {
-      status: 302,
-      headers: {
-        'Location': `${siteUrl}/calendar?google_auth_status=error&message=${encodeURIComponent(error.message || 'Unknown error')}`
-      }
-    });
+  } catch (err) {
+    console.error('❌ OAuth callback error:', err);
+    status = 'error';
+    message = err.message || 'Unknown error during OAuth callback';
   }
+
+  // Send message to opener and close popup
+  const htmlResponse = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Google OAuth Callback</title>
+      <script>
+        window.onload = function() {
+          if (window.opener) {
+            window.opener.postMessage(
+              {
+                type: 'google-oauth-callback',
+                status: '${status}',
+                data: ${JSON.stringify(responseData)},
+                message: '${message}'
+              },
+              '${siteUrl}' // Specify the origin for security
+            );
+            window.close();
+          } else {
+            // Fallback for cases where window.opener is not available (e.g., direct navigation)
+            window.location.href = '${siteUrl}/calendar?google_auth_status=${status}&message=${encodeURIComponent(message)}';
+          }
+        };
+      </script>
+    </head>
+    <body>
+      <p>Processing Google Calendar connection...</p>
+      <p>Please wait or close this window.</p>
+    </body>
+    </html>
+  `;
+
+  return new Response(htmlResponse, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html',
+    },
+  });
 })
