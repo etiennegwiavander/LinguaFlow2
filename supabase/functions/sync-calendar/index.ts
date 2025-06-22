@@ -27,13 +27,6 @@ interface CalendarEvent {
   }>;
 }
 
-interface CalendarListItem {
-  id: string;
-  summary: string;
-  primary?: boolean;
-  accessRole: string;
-}
-
 async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: string, newExpiresAt: string }> {
   console.log(`[${new Date().toISOString()}] Attempting to refresh access token...`);
   const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -64,64 +57,106 @@ async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: 
   };
 }
 
-async function fetchCalendarList(accessToken: string): Promise<CalendarListItem[]> {
-  console.log(`[${new Date().toISOString()}] Fetching calendar list...`);
+async function fetchCalendarEvents(accessToken: string, timeMin?: string, timeMax?: string): Promise<CalendarEvent[]> {
+  // Set dynamic date range: current time to 2 weeks from now
+  const now = new Date();
+  const twoWeeksFromNow = new Date(now.getTime() + (14 * 24 * 60 * 60 * 1000));
   
-  const response = await fetch(
-    'https://www.googleapis.com/calendar/v3/users/me/calendarList',
-    {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    console.error(`[${new Date().toISOString()}] Failed to fetch calendar list: Status ${response.status}, Error: ${errorData}`);
-    throw new Error(`Failed to fetch calendar list: ${errorData}`);
-  }
-
-  const data = await response.json();
-  console.log(`[${new Date().toISOString()}] Found ${data.items?.length || 0} calendars`);
+  const minTime = timeMin || now.toISOString();
+  const maxTime = timeMax || twoWeeksFromNow.toISOString();
   
-  return data.items || [];
-}
-
-async function fetchCalendarEvents(accessToken: string, calendarId: string, timeMin: string, timeMax: string): Promise<CalendarEvent[]> {
-  console.log(`[${new Date().toISOString()}] Fetching events from calendar "${calendarId}" from ${timeMin} to ${timeMax}...`);
+  console.log(`[${new Date().toISOString()}] Fetching calendar events from ${minTime} to ${maxTime}...`);
   
   const params = new URLSearchParams({
-    timeMin: timeMin,
-    timeMax: timeMax,
+    timeMin: minTime,
+    timeMax: maxTime,
     singleEvents: 'true',
     orderBy: 'startTime',
-    maxResults: '250',
-  });
+    maxResults: '250', // Increased limit
+  })
 
-  const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-
-  console.log(`[${new Date().toISOString()}] Google Calendar API response status for "${calendarId}": ${response.status} ${response.statusText}`);
+  // Fetch from all calendars the user has access to
+  const calendars = ['primary'];
   
-  if (!response.ok) {
-    const errorData = await response.text();
-    console.error(`[${new Date().toISOString()}] Failed to fetch calendar events from "${calendarId}": Status ${response.status}, Error: ${errorData}`);
-    throw new Error(`Failed to fetch calendar events from "${calendarId}": ${errorData}`);
+  // Try to get calendar list to include all calendars
+  try {
+    const calendarListResponse = await fetch(
+      'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    if (calendarListResponse.ok) {
+      const calendarListData = await calendarListResponse.json();
+      console.log(`[${new Date().toISOString()}] Found ${calendarListData.items?.length || 0} calendars`);
+      
+      // Add all accessible calendars to the list
+      if (calendarListData.items) {
+        calendars.length = 0; // Clear the array
+        calendarListData.items.forEach((calendar: any) => {
+          if (calendar.accessRole === 'owner' || calendar.accessRole === 'reader' || calendar.accessRole === 'writer') {
+            calendars.push(calendar.id);
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.log(`[${new Date().toISOString()}] Could not fetch calendar list, using primary calendar only:`, error);
   }
 
-  const data = await response.json();
-  console.log(`[${new Date().toISOString()}] Calendar "${calendarId}" returned ${data.items?.length || 0} events`);
+  console.log(`[${new Date().toISOString()}] Fetching events from ${calendars.length} calendars:`, calendars);
+
+  // Fetch events from all calendars
+  const allEvents: CalendarEvent[] = [];
   
-  return data.items || [];
+  for (const calendarId of calendars) {
+    try {
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log(`[${new Date().toISOString()}] Calendar ${calendarId} API response status: ${response.status} ${response.statusText}`);
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`[${new Date().toISOString()}] Failed to fetch events from calendar ${calendarId}: Status ${response.status}, Error: ${errorData}`);
+        continue; // Skip this calendar and continue with others
+      }
+
+      const data = await response.json();
+      const events = data.items || [];
+      console.log(`[${new Date().toISOString()}] Calendar ${calendarId} returned ${events.length} events`);
+      
+      // Add calendar ID to each event for tracking
+      events.forEach((event: CalendarEvent) => {
+        event.calendarId = calendarId;
+      });
+      
+      allEvents.push(...events);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error fetching events from calendar ${calendarId}:`, error);
+      continue;
+    }
+  }
+
+  console.log(`[${new Date().toISOString()}] Total events fetched from all calendars: ${allEvents.length}`);
+  
+  // Log sample events for debugging
+  if (allEvents.length > 0) {
+    console.log(`[${new Date().toISOString()}] Sample events:`, JSON.stringify(allEvents.slice(0, 3), null, 2));
+  }
+  
+  return allEvents;
 }
 
 serve(async (req) => {
@@ -202,55 +237,14 @@ serve(async (req) => {
       console.log(`[${new Date().toISOString()}] Access token is still valid. Expires: ${expiresAt.toISOString()}`);
     }
 
-    // Calculate dynamic date range: current time to 2 weeks in the future
-    const now = new Date();
-    const twoWeeksFromNow = new Date(now.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days in milliseconds
-    
-    const minTime = now.toISOString();
-    const maxTime = twoWeeksFromNow.toISOString();
-    
-    console.log(`[${new Date().toISOString()}] Using dynamic date range: ${minTime} to ${maxTime} (current time + 2 weeks)`);
-
-    // Fetch calendar list to get all calendars
-    const calendarList = await fetchCalendarList(accessToken);
-    
-    // Filter calendars to include primary and any calendar that might contain lessons
-    const relevantCalendars = calendarList.filter(calendar => 
-      calendar.accessRole === 'owner' || 
-      calendar.accessRole === 'writer' || 
-      calendar.primary ||
-      calendar.summary.toLowerCase().includes('preply') ||
-      calendar.summary.toLowerCase().includes('schedule') ||
-      calendar.summary.toLowerCase().includes('lesson') ||
-      calendar.summary.toLowerCase().includes('teaching')
-    );
-
-    console.log(`[${new Date().toISOString()}] Found ${relevantCalendars.length} relevant calendars out of ${calendarList.length} total calendars`);
-    
-    // Log calendar names for debugging
-    relevantCalendars.forEach(calendar => {
-      console.log(`[${new Date().toISOString()}] Will sync calendar: "${calendar.summary}" (ID: ${calendar.id}, Primary: ${calendar.primary || false})`);
-    });
-
-    let allEvents: CalendarEvent[] = [];
-
-    // Fetch events from all relevant calendars
-    for (const calendar of relevantCalendars) {
-      try {
-        const events = await fetchCalendarEvents(accessToken, calendar.id, minTime, maxTime);
-        console.log(`[${new Date().toISOString()}] Retrieved ${events.length} events from calendar "${calendar.summary}"`);
-        allEvents = allEvents.concat(events);
-      } catch (error: any) {
-        console.error(`[${new Date().toISOString()}] Failed to fetch events from calendar "${calendar.summary}": ${error.message}`);
-        // Continue with other calendars even if one fails
-      }
-    }
-
-    console.log(`[${new Date().toISOString()}] Total events retrieved from all calendars: ${allEvents.length}`);
+    // Fetch calendar events with dynamic 2-week range
+    console.log(`[${new Date().toISOString()}] Calling fetchCalendarEvents with current access token.`);
+    const events = await fetchCalendarEvents(accessToken)
+    console.log(`[${new Date().toISOString()}] Received ${events.length} events from Google Calendar.`);
 
     // Process and store events
     console.log(`[${new Date().toISOString()}] Processing events for database upsert.`);
-    const processedEvents = allEvents.map(event => ({
+    const processedEvents = events.map(event => ({
       tutor_id: user.id,
       google_event_id: event.id,
       summary: event.summary || 'Untitled Event',
@@ -260,8 +254,7 @@ serve(async (req) => {
       location: event.location || null,
       // Ensure attendees is stored as JSON string if it exists
       attendees: event.attendees ? JSON.stringify(event.attendees) : null,
-    }));
-
+    }))
     console.log(`[${new Date().toISOString()}] Finished processing ${processedEvents.length} events.`);
 
     // Upsert events to avoid duplicates
@@ -286,14 +279,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Successfully synced ${processedEvents.length} upcoming calendar events (next 2 weeks)`,
+        message: `Successfully synced ${processedEvents.length} calendar events`,
         events_count: processedEvents.length,
-        last_sync: new Date().toISOString(),
-        date_range: {
-          from: minTime,
-          to: maxTime,
-          description: "Current time to 2 weeks in the future"
-        }
+        last_sync: new Date().toISOString()
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
