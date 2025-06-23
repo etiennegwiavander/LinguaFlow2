@@ -97,7 +97,6 @@ import {
   Smartphone,
   Tablet,
   Laptop,
-  Desktop,
   Server,
   Printer,
   Camera,
