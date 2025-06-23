@@ -235,7 +235,6 @@ import {
   ThumbsUp as ThumbsUpIcon,
   ToggleLeft,
   ToggleRight,
-  Tool,
   Trash as TrashIcon,
   Trash2,
   Trello,
