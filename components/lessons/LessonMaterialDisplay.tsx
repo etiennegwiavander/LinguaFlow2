@@ -3,8 +3,8 @@ import { safeGetString, safeGetArray, debounce } from "@/lib/utils";
 
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import {  } from "react";
-import { DetailedHTMLProps, HTMLAttributes, useState, useEffect } from 'react';
+// import {  } from "react";
+import { DetailedHTMLProps, HTMLAttributes, HTMLProps, useState, useEffect } from 'react';
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { 
