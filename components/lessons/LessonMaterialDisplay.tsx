@@ -758,52 +758,53 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
         
         // Define explicit components for ReactMarkdown
         const components = {
-          p: ({ children, ...props }: React.HTMLProps<HTMLParagraphElement>) => (
-            <p className="mb-4 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
-              {children}
-            </p>
-          ),
-          ul: ({ children, ...props }: React.HTMLProps<HTMLUListElement>) => (
-            <ul className="list-disc list-inside mb-4 space-y-2" {...props}>
-              {children}
-            </ul>
-          ),
-          ol: ({ children, ...props }: React.HTMLProps<HTMLOListElement>) => (
-            <ol className="list-decimal list-inside mb-4 space-y-2" {...props}>
-              {children}
-            </ol>
-          ),
-          li: ({ children, ...props }: React.HTMLProps<HTMLLIElement>) => (
-            <li className="mb-1" onDoubleClick={handleTextDoubleClick} {...props}>
-              {children}
-            </li>
-          ),
-          strong: ({ children, ...props }: React.HTMLProps<HTMLElement>) => (
-            <strong className="font-bold text-gray-900 dark:text-gray-100" {...props}>
-              {children}
-            </strong>
-          ),
-          em: ({ children, ...props }: React.HTMLProps<HTMLElement>) => (
-            <em className="italic" {...props}>
-              {children}
-            </em>
-          ),
-          h1: ({ children, ...props }: React.HTMLProps<HTMLHeadingElement>) => (
-            <h1 className="text-2xl font-bold mb-4" {...props}>
-              {children}
-            </h1>
-          ),
-          h2: ({ children, ...props }: React.HTMLProps<HTMLHeadingElement>) => (
-            <h2 className="text-xl font-bold mb-3" {...props}>
-              {children}
-            </h2>
-          ),
-          h3: ({ children, ...props }: React.HTMLProps<HTMLHeadingElement>) => (
-            <h3 className="text-lg font-bold mb-2" {...props}>
-              {children}
-            </h3>
-          ),
-        };
+  p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+    <p className="mb-4 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
+      {children}
+    </p>
+  ),
+  ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
+    <ul className="list-disc list-inside mb-4 space-y-2" {...props}>
+      {children}
+    </ul>
+  ),
+  ol: ({ children, ...props }: React.OlHTMLAttributes<HTMLOListElement>) => (
+    <ol className="list-decimal list-inside mb-4 space-y-2" {...props}>
+      {children}
+    </ol>
+  ),
+  li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
+    <li className="mb-1" onDoubleClick={handleTextDoubleClick} {...props}>
+      {children}
+    </li>
+  ),
+  strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+    <strong className="font-bold text-gray-900 dark:text-gray-100" {...props}>
+      {children}
+    </strong>
+  ),
+  em: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+    <em className="italic" {...props}>
+      {children}
+    </em>
+  ),
+  h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h1 className="text-2xl font-bold mb-4" {...props}>
+      {children}
+    </h1>
+  ),
+  h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h2 className="text-xl font-bold mb-3" {...props}>
+      {children}
+    </h2>
+  ),
+  h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h3 className="text-lg font-bold mb-2" {...props}>
+      {children}
+    </h3>
+  ),
+};
+
 
         return (
           <div className="prose prose-sm max-w-none">
