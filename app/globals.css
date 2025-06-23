@@ -225,7 +225,7 @@
   }
   
   .table-row {
-    @apply hover:bg-cyber-400/5 transition-colors duration-300 border-cyber-400/10 group;
+    @apply hover:bg-cyber-400/5 transition-colors duration-300 border-cyber-400/10;
   }
   
   /* Animation classes */

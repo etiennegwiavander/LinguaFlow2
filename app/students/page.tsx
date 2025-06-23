@@ -288,7 +288,7 @@ export default function StudentsPage() {
                     return (
                       <TableRow 
                         key={student.id} 
-                        className="table-row animate-scale-in hover-lift"
+                        className="table-row group animate-scale-in hover-lift"
                         style={{ animationDelay: `${0.3 + index * 0.1}s` }}
                       >
                         <TableCell className="font-medium">
