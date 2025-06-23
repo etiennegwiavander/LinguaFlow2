@@ -72,7 +72,7 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
     <>
       <Card 
         className={cn(
-          "cyber-card h-full group overflow-hidden relative", 
+          "cyber-card h-full group overflow-hidden relative hover:shadow-md", 
           className
         )}
       >
