@@ -15,7 +15,7 @@ export default function StatsCard({ stat, className }: StatsCardProps) {
   ) as React.ComponentType<React.SVGProps<SVGSVGElement>>;
 
   return (
-    <Card className={cn("floating-card glass-effect border-cyber-400/20 hover:border-cyber-400/50 transition-all duration-300 group", className)}>
+    <Card className={cn("cyber-card", className)}>
       <CardContent className="p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
@@ -31,8 +31,8 @@ export default function StatsCard({ stat, className }: StatsCardProps) {
               className={cn(
                 "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium transition-all duration-300",
                 stat.change > 0
-                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400"
-                  : "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400"
+                  ? "badge-success"
+                  : "badge-error"
               )}
             >
               {stat.change > 0 ? (

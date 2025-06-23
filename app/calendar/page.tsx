@@ -271,9 +271,9 @@ export default function CalendarPage() {
 
   const getStatusColor = () => {
     if (isConnected) {
-      return "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+      return "badge-success";
     }
-    return "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+    return "badge-error";
   };
 
   // Sort events by start time and filter to upcoming events only
@@ -289,14 +289,25 @@ export default function CalendarPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 animate-slide-up">
         {/* Page header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-          <h1 className="text-3xl font-bold tracking-tight">Calendar Sync</h1>
+          <div className="space-y-2">
+            <Badge className="badge-cyber">
+              <Calendar className="w-3 h-3 mr-1" />
+              Calendar Sync
+            </Badge>
+            <h1 className="text-3xl font-bold tracking-tight">
+              <span className="gradient-text">Calendar</span> Sync
+            </h1>
+            <p className="text-muted-foreground">
+              Sync your lessons with Google Calendar to manage your schedule efficiently
+            </p>
+          </div>
         </div>
 
         {/* Connection Setup Card */}
-        <Card>
+        <Card className="cyber-card">
           <CardHeader>
             <CardTitle className="flex items-center">
               <Calendar className="mr-2 h-5 w-5 text-primary" />
@@ -320,11 +331,12 @@ export default function CalendarPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={isLoading}
-                      className="flex-1"
+                      className="flex-1 input-cyber focus-cyber"
                     />
                     <Button
                       onClick={handleConnect}
                       disabled={!email.trim() || isLoading}
+                      className="btn-cyber"
                     >
                       {isLoading ? "Connecting..." : "Connect Calendar"}
                     </Button>
@@ -336,7 +348,7 @@ export default function CalendarPage() {
 
                 {/* Popup Blocked Alert */}
                 {showPopupBlockedAlert && (
-                  <Alert>
+                  <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
                     <Info className="h-4 w-4" />
                     <AlertDescription className="space-y-3">
                       <p>
@@ -353,7 +365,7 @@ export default function CalendarPage() {
                       <Button
                         onClick={handleManualConnect}
                         variant="outline"
-                        className="flex items-center"
+                        className="flex items-center btn-ghost-cyber"
                         disabled={!email.trim()}
                       >
                         <ExternalLink className="mr-2 h-4 w-4" />
@@ -366,7 +378,7 @@ export default function CalendarPage() {
             )}
 
             {/* Connection Status */}
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center justify-between p-4 border rounded-lg border-cyber-400/30 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm">
               <div className="flex items-center space-x-3">
                 {getStatusIcon()}
                 <div>
@@ -390,7 +402,7 @@ export default function CalendarPage() {
                     variant="outline"
                     onClick={handleSync}
                     disabled={isSyncing}
-                    className="flex items-center"
+                    className="flex items-center btn-ghost-cyber"
                   >
                     <RefreshCcw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
                     {isSyncing ? "Syncing..." : "Sync Now"}
@@ -407,7 +419,7 @@ export default function CalendarPage() {
 
             {/* Connection Details */}
             {isConnected && (
-              <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-4 pt-4 border-t border-cyber-400/20">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   {connectionStatus.last_sync && (
                     <div className="flex items-center space-x-2">
@@ -440,7 +452,7 @@ export default function CalendarPage() {
 
         {/* Calendar Events */}
         {isConnected && (
-          <Card>
+          <Card className="cyber-card">
             <CardHeader>
               <CardTitle>Upcoming Calendar Events</CardTitle>
               <CardDescription>
@@ -449,8 +461,10 @@ export default function CalendarPage() {
             </CardHeader>
             <CardContent>
               {upcomingEvents.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <div className="empty-state">
+                  <div className="empty-state-icon">
+                    <Calendar className="h-12 w-12 text-cyber-400" />
+                  </div>
                   <p className="text-muted-foreground mb-2">No upcoming events found</p>
                   <p className="text-sm text-muted-foreground mb-4">
                     Next 2 weeks: {format(now, "MMMM d")} - {format(twoWeeksFromNow, "MMMM d, yyyy")}
@@ -459,7 +473,7 @@ export default function CalendarPage() {
                     variant="outline" 
                     onClick={handleSync}
                     disabled={isSyncing}
-                    className="mt-4"
+                    className="mt-4 btn-ghost-cyber"
                   >
                     <RefreshCcw className="mr-2 h-4 w-4" />
                     Sync Calendar
@@ -467,7 +481,7 @@ export default function CalendarPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {upcomingEvents.map((event) => {
+                  {upcomingEvents.map((event, index) => {
                     const eventDate = parseISO(event.start_time);
                     const isToday = format(eventDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
                     const isTomorrow = format(eventDate, 'yyyy-MM-dd') === format(addWeeks(now, 0).setDate(now.getDate() + 1), 'yyyy-MM-dd');
@@ -475,10 +489,12 @@ export default function CalendarPage() {
                     return (
                       <div 
                         key={event.id} 
-                        className={`flex items-start space-x-4 p-4 border rounded-lg transition-colors ${
+                        className={`flex items-start space-x-4 p-4 border rounded-lg transition-colors hover-lift animate-scale-in ${
                           isToday ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20' : 
-                          isTomorrow ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : ''
+                          isTomorrow ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 
+                          'border-cyber-400/30 hover:border-cyber-400/50'
                         }`}
+                        style={{ animationDelay: `${index * 0.1}s` }}
                       >
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-1">
@@ -520,7 +536,7 @@ export default function CalendarPage() {
                   })}
                   
                   {events.length > upcomingEvents.length && (
-                    <div className="text-center pt-4 border-t">
+                    <div className="text-center pt-4 border-t border-cyber-400/20">
                       <p className="text-sm text-muted-foreground">
                         Showing {upcomingEvents.length} upcoming events • {events.length} total synced events
                       </p>

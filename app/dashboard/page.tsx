@@ -232,7 +232,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <Badge className="bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30">
+              <Badge className="badge-cyber">
                 <Sparkles className="w-3 h-3 mr-1" />
                 Dashboard
               </Badge>
@@ -259,9 +259,9 @@ export default function DashboardPage() {
 
         {/* Stats section */}
         <section aria-labelledby="stats-heading" className="animate-scale-in" style={{ animationDelay: '0.1s' }}>
-          <div className="mb-4 sm:mb-6 flex items-center justify-between">
-            <h2 className="text-lg sm:text-xl font-semibold flex items-center" id="stats-heading">
-              <TrendingUp className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-cyber-400" />
+          <div className="section-header">
+            <h2 className="section-title" id="stats-heading">
+              <TrendingUp className="section-icon" />
               Quick Stats
             </h2>
           </div>
@@ -276,9 +276,9 @@ export default function DashboardPage() {
 
         {/* Upcoming lessons section */}
         <section aria-labelledby="lessons-heading" className="pt-4 animate-scale-in" style={{ animationDelay: '0.5s' }}>
-          <div className="mb-4 sm:mb-6 flex items-center justify-between">
-            <h2 className="text-lg sm:text-xl font-semibold flex items-center" id="lessons-heading">
-              <Calendar className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-neon-400" />
+          <div className="section-header">
+            <h2 className="section-title" id="lessons-heading">
+              <Calendar className="section-icon text-neon-400" />
               Upcoming Lessons
             </h2>
           </div>
@@ -290,7 +290,7 @@ export default function DashboardPage() {
                 <h3 className="text-base font-medium text-muted-foreground">
                   Next 48 Hours - Calendar Events ({calendarEvents.length})
                 </h3>
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs border-cyber-400/30">
                   From Calendar Sync
                 </Badge>
               </div>
@@ -301,7 +301,7 @@ export default function DashboardPage() {
                   return (
                     <div 
                       key={event.id} 
-                      className={`floating-card glass-effect border-cyber-400/20 hover:border-cyber-400/50 transition-all duration-300 group overflow-hidden relative p-4 rounded-lg cursor-pointer ${
+                      className={`cyber-card p-4 rounded-lg cursor-pointer hover-lift ${
                         timeInfo.isToday ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10' : 
                         timeInfo.isTomorrow ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10' : ''
                       }`}
@@ -310,7 +310,7 @@ export default function DashboardPage() {
                       title="Click to find or create student"
                     >
                       {/* Gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-cyber-400/5 to-neon-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-cyber-400/5 to-neon-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
                       
                       <div className="relative z-10">
                         <div className="flex items-start justify-between mb-3">
@@ -375,14 +375,14 @@ export default function DashboardPage() {
 
           {/* Regular Lessons */}
           {upcomingLessons.length === 0 && calendarEvents.length === 0 ? (
-            <div className="text-center py-12 floating-card glass-effect border-cyber-400/20 rounded-lg">
-              <div className="w-16 h-16 bg-cyber-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="empty-state">
+              <div className="empty-state-icon">
                 <Calendar className="w-8 h-8 text-cyber-400" />
               </div>
               <h3 className="text-lg font-semibold mb-2">No upcoming lessons</h3>
               <p className="text-muted-foreground mb-4">Schedule some lessons or sync your calendar to see them here</p>
               <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs border-cyber-400/30">
                   Connect Google Calendar for automatic lesson detection
                 </Badge>
               </div>
@@ -395,7 +395,7 @@ export default function DashboardPage() {
                     <h3 className="text-base font-medium text-muted-foreground">
                       Scheduled Lessons ({upcomingLessons.length})
                     </h3>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs border-cyber-400/30">
                       From Lesson Plans
                     </Badge>
                   </div>

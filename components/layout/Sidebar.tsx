@@ -82,7 +82,7 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
   return (
     <aside 
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen glass-effect backdrop-blur-md border-r border-cyber-400/20 shadow-cyber transition-all duration-300 ease-in-out",
+        "fixed left-0 top-0 z-40 h-screen glass-nav backdrop-blur-xl border-r border-cyber-400/20 shadow-cyber transition-all duration-300 ease-in-out",
         collapsed ? "w-[70px]" : "w-[250px]",
         isMobile && collapsed ? "-translate-x-full" : "translate-x-0",
         className
@@ -105,7 +105,7 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-2 py-4">
           <TooltipProvider delayDuration={0}>
-            {filteredNavItems.map((item) => {
+            {filteredNavItems.map((item, index) => {
               const isActive = pathname === item.href;
               
               return (
@@ -114,19 +114,21 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
                     <Link
                       href={item.href}
                       className={cn(
-                        "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all duration-300 group relative overflow-hidden",
-                        isActive
-                          ? "bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-400 shadow-glow"
-                          : "text-muted-foreground hover:bg-cyber-900/10 hover:text-cyber-400",
+                        "nav-item relative overflow-hidden group",
+                        isActive ? "nav-item-active" : "nav-item-inactive",
                         collapsed ? "justify-center" : "justify-start"
                       )}
+                      style={{ animationDelay: `${index * 0.1}s` }}
                     >
                       {isActive && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-cyber-400/10 to-neon-400/10 animate-pulse"></div>
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-r from-cyber-400/10 to-neon-400/10 animate-pulse"></div>
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyber-400 to-neon-400"></div>
+                        </>
                       )}
                       <div className="relative z-10 flex items-center">
                         <IconComponent name={item.icon} />
-                        {!collapsed && <span className="ml-3">{item.title}</span>}
+                        {!collapsed && <span className="ml-3 font-medium">{item.title}</span>}
                       </div>
                     </Link>
                   </TooltipTrigger>
@@ -147,7 +149,7 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
             variant="outline"
             size="sm"
             className={cn(
-              "w-full flex items-center justify-center border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300",
+              "w-full flex items-center justify-center btn-ghost-cyber transition-all duration-300",
               collapsed && "p-0 h-8 w-8 sm:h-9 sm:w-9"
             )}
             onClick={toggleSidebar}

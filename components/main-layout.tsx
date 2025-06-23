@@ -29,12 +29,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neural-50 via-cyber-50/30 to-neon-50/20 dark:from-neural-900 dark:via-neural-800 dark:to-neural-900 overflow-x-hidden">
-      {/* Background Effects */}
-      <div className="fixed inset-0 grid-background opacity-20 pointer-events-none"></div>
-      <div className="fixed top-20 left-10 w-20 h-20 bg-cyber-400/20 rounded-full blur-xl animate-float pointer-events-none"></div>
+    <div className="page-container">
+      {/* Enhanced background effects */}
+      <div className="page-background"></div>
+      <div className="floating-elements"></div>
       <div className="fixed top-40 right-20 w-32 h-32 bg-neon-400/20 rounded-full blur-xl animate-float pointer-events-none" style={{ animationDelay: '2s' }}></div>
       <div className="fixed bottom-40 left-20 w-24 h-24 bg-purple-400/20 rounded-full blur-xl animate-float pointer-events-none" style={{ animationDelay: '4s' }}></div>
+      
+      {/* Subtle grid overlay */}
+      <div className="fixed inset-0 grid-background-dense opacity-10 pointer-events-none"></div>
       
       <Sidebar onToggle={handleSidebarToggle} />
       <div 
@@ -44,7 +47,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
       >
         <Header sidebarCollapsed={sidebarCollapsed} />
         <main className="p-4 sm:p-6 max-w-[1600px] mx-auto relative z-10">
-          {children}
+          <div className="animate-fade-in">
+            {children}
+          </div>
         </main>
       </div>
     </div>

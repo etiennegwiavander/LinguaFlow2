@@ -40,11 +40,11 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "upcoming":
-        return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200";
+        return "badge-success";
       case "completed":
-        return "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-200";
+        return "badge-success";
       case "cancelled":
-        return "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200";
+        return "badge-error";
       default:
         return "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200";
     }
@@ -72,13 +72,10 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
     <>
       <Card 
         className={cn(
-          "floating-card glass-effect border-cyber-400/20 hover:border-cyber-400/50 transition-all duration-300 h-full group overflow-hidden relative", 
+          "cyber-card h-full group overflow-hidden relative", 
           className
         )}
       >
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-cyber-400/5 to-neon-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        
         <CardContent className="p-4 sm:p-6 relative z-10">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center">
@@ -87,7 +84,7 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
                 onClick={handleStudentClick}
               >
                 <AvatarImage src={lesson.student.avatar_url || undefined} alt={lesson.student.name} />
-                <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400">
+                <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 font-semibold">
                   {getInitials(lesson.student.name)}
                 </AvatarFallback>
               </Avatar>
@@ -144,7 +141,7 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
         <CardFooter className="bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 px-4 sm:px-6 py-2 sm:py-3 relative z-10">
           <Button 
             variant="ghost" 
-            className="ml-auto flex items-center text-xs sm:text-sm hover:bg-cyber-400/10 hover:text-cyber-400 transition-all duration-300 group"
+            className="ml-auto flex items-center text-xs sm:text-sm hover:bg-cyber-400/10 hover:text-cyber-400 transition-all duration-300 group focus-cyber"
             onClick={() => setIsDialogOpen(true)}
           >
             <span>View Lesson</span>
@@ -170,7 +167,7 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
                   onClick={handleStudentClick}
                 >
                   <AvatarImage src={lesson.student.avatar_url || undefined} alt={lesson.student.name} />
-                  <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400">
+                  <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 font-semibold">
                     {getInitials(lesson.student.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -258,12 +255,12 @@ export default function LessonCard({ lesson, className }: LessonCardProps) {
           
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" className="border-cyber-400/30 hover:bg-cyber-400/10">
+              <Button variant="outline" className="btn-ghost-cyber">
                 Close
               </Button>
             </DialogClose>
             <Button 
-              className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
+              className="btn-cyber"
               onClick={handleStudentClick}
             >
               View Student Profile

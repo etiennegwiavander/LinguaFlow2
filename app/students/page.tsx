@@ -151,7 +151,7 @@ export default function StudentsPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <Badge className="bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30">
+              <Badge className="badge-cyber">
                 <Users className="w-3 h-3 mr-1" />
                 Students
               </Badge>
@@ -165,7 +165,7 @@ export default function StudentsPage() {
           </div>
           <Button 
             onClick={handleAddStudent}
-            className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300 group"
+            className="btn-cyber hover-lift"
           >
             <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
             Add New Student
@@ -180,7 +180,7 @@ export default function StudentsPage() {
               placeholder="Search students by name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 border-cyber-400/30 focus:border-cyber-400"
+              className="pl-10 input-cyber focus-cyber"
             />
             {searchTerm && (
               <Button
@@ -201,9 +201,9 @@ export default function StudentsPage() {
         </div>
 
         <section aria-labelledby="students-heading" className="animate-scale-in" style={{ animationDelay: '0.2s' }}>
-          <div className="mb-6 flex items-center">
-            <h2 className="text-xl font-semibold flex items-center" id="students-heading">
-              <Users className="mr-2 h-5 w-5 text-cyber-400" />
+          <div className="section-header">
+            <h2 className="section-title" id="students-heading">
+              <Users className="section-icon" />
               Student List
               {filteredStudents.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
@@ -213,7 +213,7 @@ export default function StudentsPage() {
             </h2>
           </div>
           
-          <div className="floating-card glass-effect border-cyber-400/20 rounded-lg overflow-hidden">
+          <div className="table-container">
             <Table>
               <TableCaption className="text-muted-foreground py-4">
                 {searchTerm ? (
@@ -227,7 +227,7 @@ export default function StudentsPage() {
                 )}
               </TableCaption>
               <TableHeader>
-                <TableRow className="border-cyber-400/20 hover:bg-cyber-400/5">
+                <TableRow className="table-header">
                   <TableHead className="font-semibold">Student</TableHead>
                   <TableHead className="font-semibold">Language</TableHead>
                   <TableHead className="font-semibold">Level</TableHead>
@@ -238,8 +238,8 @@ export default function StudentsPage() {
                 {filteredStudents.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-12">
-                      <div className="space-y-4">
-                        <div className="w-16 h-16 bg-cyber-400/10 rounded-full flex items-center justify-center mx-auto">
+                      <div className="empty-state">
+                        <div className="empty-state-icon">
                           <Users className="w-8 h-8 text-cyber-400" />
                         </div>
                         <div>
@@ -252,13 +252,13 @@ export default function StudentsPage() {
                                 <Button 
                                   variant="outline" 
                                   onClick={handleClearSearch}
-                                  className="border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300"
+                                  className="btn-ghost-cyber"
                                 >
                                   Clear search
                                 </Button>
                                 <Button 
                                   onClick={handleAddStudent}
-                                  className="border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300"
+                                  className="btn-ghost-cyber"
                                 >
                                   <Plus className="mr-2 h-4 w-4" />
                                   Create "{searchTerm}"
@@ -271,7 +271,7 @@ export default function StudentsPage() {
                               <Button 
                                 variant="outline" 
                                 onClick={handleAddStudent}
-                                className="border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300"
+                                className="btn-ghost-cyber"
                               >
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add your first student
@@ -288,14 +288,14 @@ export default function StudentsPage() {
                     return (
                       <TableRow 
                         key={student.id} 
-                        className="hover:bg-cyber-400/5 transition-colors duration-300 border-cyber-400/10 group animate-scale-in"
+                        className="table-row animate-scale-in hover-lift"
                         style={{ animationDelay: `${0.3 + index * 0.1}s` }}
                       >
                         <TableCell className="font-medium">
                           <div className="flex items-center">
                             <Avatar className="h-8 w-8 mr-3 ring-2 ring-cyber-400/20 group-hover:ring-cyber-400/50 transition-all duration-300">
                               <AvatarImage src={student.avatar_url || undefined} alt={student.name} />
-                              <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400">
+                              <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 font-semibold">
                                 {getInitials(student.name)}
                               </AvatarFallback>
                             </Avatar>
@@ -329,7 +329,7 @@ export default function StudentsPage() {
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-8 w-8 hover:bg-cyber-400/10 hover:text-cyber-400 transition-all duration-300"
+                                className="h-8 w-8 hover:bg-cyber-400/10 hover:text-cyber-400 transition-all duration-300 focus-cyber"
                               >
                                 <MoreVertical className="h-4 w-4" />
                                 <span className="sr-only">Open menu</span>
@@ -338,21 +338,21 @@ export default function StudentsPage() {
                             <DropdownMenuContent align="end" className="glass-effect border-cyber-400/30">
                               <DropdownMenuItem 
                                 onClick={() => handleViewProfile(student.id)}
-                                className="hover:bg-cyber-400/10"
+                                className="hover:bg-cyber-400/10 focus-cyber"
                               >
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Profile
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleEditStudent(student)}
-                                className="hover:bg-cyber-400/10"
+                                className="hover:bg-cyber-400/10 focus-cyber"
                               >
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteStudent(student.id)}
-                                className="text-destructive focus:text-destructive hover:bg-red-400/10"
+                                className="text-destructive focus:text-destructive hover:bg-red-400/10 focus:bg-red-400/10"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete

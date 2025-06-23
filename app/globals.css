@@ -78,65 +78,255 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Custom futuristic styles */
+/* Enhanced futuristic design system */
 @layer components {
+  /* Typography */
   .gradient-text {
     @apply bg-gradient-to-r from-cyber-400 via-neon-400 to-cyber-600 bg-clip-text text-transparent;
   }
   
+  .text-glow {
+    text-shadow: 0 0 10px currentColor;
+  }
+  
+  /* Glass morphism effects */
   .glass-effect {
     @apply bg-white/10 backdrop-blur-md border border-white/20;
   }
   
-  .cyber-border {
-    @apply border border-cyber-400/30 shadow-cyber;
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
   }
   
-  .neon-glow {
-    @apply shadow-neon;
+  .glass-nav {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-800/50;
   }
   
+  /* Enhanced card styles */
   .floating-card {
-    @apply transform transition-all duration-300 hover:shadow-2xl;
+    @apply transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
+  }
+  
+  .cyber-card {
+    @apply bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-cyber-400/30 shadow-cyber hover:border-cyber-400/50 hover:shadow-cyber-lg transition-all duration-300;
+  }
+  
+  .neon-card {
+    @apply bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-neon-400/30 shadow-neon hover:border-neon-400/50 hover:shadow-neon-lg transition-all duration-300;
+  }
+  
+  /* Button styles */
+  .btn-cyber {
+    @apply bg-gradient-to-r from-cyber-400 to-cyber-600 hover:from-cyber-500 hover:to-cyber-700 text-white border-0 shadow-cyber hover:shadow-cyber-lg transition-all duration-300 font-medium;
+  }
+  
+  .btn-neon {
+    @apply bg-gradient-to-r from-neon-400 to-neon-600 hover:from-neon-500 hover:to-neon-700 text-white border-0 shadow-neon hover:shadow-neon-lg transition-all duration-300 font-medium;
+  }
+  
+  .btn-ghost-cyber {
+    @apply border border-cyber-400/30 text-cyber-600 dark:text-cyber-400 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300;
+  }
+  
+  /* Input styles */
+  .input-cyber {
+    @apply border-cyber-400/30 focus:border-cyber-400 focus:ring-cyber-400/20 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm;
+  }
+  
+  /* Navigation styles */
+  .nav-item {
+    @apply relative flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 group;
+  }
+  
+  .nav-item-active {
+    @apply bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-400 shadow-glow;
+  }
+  
+  .nav-item-inactive {
+    @apply text-muted-foreground hover:bg-cyber-900/10 hover:text-cyber-400;
+  }
+  
+  /* Badge styles */
+  .badge-cyber {
+    @apply bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30;
+  }
+  
+  .badge-success {
+    @apply bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800;
+  }
+  
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800;
+  }
+  
+  .badge-error {
+    @apply bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800;
+  }
+  
+  /* Layout styles */
+  .page-container {
+    @apply min-h-screen bg-gradient-to-br from-neural-50 via-cyber-50/30 to-neon-50/20 dark:from-neural-900 dark:via-neural-800 dark:to-neural-900 relative overflow-hidden;
+  }
+  
+  .page-background {
+    @apply absolute inset-0 grid-background opacity-20 pointer-events-none;
+  }
+  
+  .floating-elements {
+    @apply fixed top-20 left-10 w-20 h-20 bg-cyber-400/20 rounded-full blur-xl animate-float pointer-events-none;
+  }
+  
+  /* Section headers */
+  .section-header {
+    @apply flex items-center space-x-2 mb-6;
+  }
+  
+  .section-title {
+    @apply text-xl font-semibold flex items-center;
+  }
+  
+  .section-icon {
+    @apply mr-2 h-5 w-5 text-cyber-400;
+  }
+  
+  /* Status indicators */
+  .status-active {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800;
+  }
+  
+  .status-inactive {
+    @apply bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700;
+  }
+  
+  .status-pending {
+    @apply bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800;
+  }
+  
+  /* Form styles */
+  .form-section {
+    @apply space-y-6 p-6 cyber-card rounded-lg;
+  }
+  
+  .form-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+  
+  /* Table styles */
+  .table-container {
+    @apply floating-card glass-effect border-cyber-400/20 rounded-lg overflow-hidden;
+  }
+  
+  .table-header {
+    @apply border-cyber-400/20 hover:bg-cyber-400/5;
+  }
+  
+  .table-row {
+    @apply hover:bg-cyber-400/5 transition-colors duration-300 border-cyber-400/10 group;
+  }
+  
+  /* Animation classes */
+  .animate-slide-up {
+    animation: slide-up 0.6s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scale-in 0.5s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out;
+  }
+  
+  /* Hover effects */
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1;
+  }
+  
+  .hover-glow {
+    @apply transition-shadow duration-300 hover:shadow-glow;
+  }
+  
+  /* Loading states */
+  .loading-shimmer {
+    @apply animate-pulse bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700;
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  
+  /* Empty states */
+  .empty-state {
+    @apply text-center py-12 floating-card glass-effect border-cyber-400/20 rounded-lg;
+  }
+  
+  .empty-state-icon {
+    @apply w-16 h-16 bg-cyber-400/10 rounded-full flex items-center justify-center mx-auto mb-4;
   }
 }
 
-/* Scrollbar styling */
+/* Enhanced scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-neural-100 dark:bg-neural-800;
+  @apply bg-neural-100 dark:bg-neural-800 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-cyber-400 rounded-full;
+  @apply bg-gradient-to-b from-cyber-400 to-cyber-600 rounded-full hover:from-cyber-500 hover:to-cyber-700;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-cyber-500;
+::-webkit-scrollbar-corner {
+  @apply bg-transparent;
 }
 
-/* Custom animations */
+/* Enhanced animations */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes matrix-rain {
   0% { transform: translateY(-100vh); opacity: 1; }
   100% { transform: translateY(100vh); opacity: 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px currentColor; }
+  50% { box-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
 }
 
 .matrix-rain {
   animation: matrix-rain 3s linear infinite;
 }
 
-/* Futuristic grid background */
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Enhanced grid background */
 .grid-background {
   background-image: 
     linear-gradient(rgba(100, 255, 218, 0.1) 1px, transparent 1px),
     linear-gradient(90deg, rgba(100, 255, 218, 0.1) 1px, transparent 1px);
   background-size: 50px 50px;
+}
+
+.grid-background-dense {
+  background-image: 
+    linear-gradient(rgba(100, 255, 218, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 255, 218, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
 /* Glitch effect */
@@ -151,4 +341,55 @@
 
 .glitch:hover {
   animation: glitch 0.3s ease-in-out;
+}
+
+/* Focus styles */
+.focus-cyber:focus {
+  @apply outline-none ring-2 ring-cyber-400 ring-offset-2 ring-offset-background;
+}
+
+.focus-neon:focus {
+  @apply outline-none ring-2 ring-neon-400 ring-offset-2 ring-offset-background;
+}
+
+/* Selection styles */
+::selection {
+  @apply bg-cyber-400/30 text-cyber-900;
+}
+
+::-moz-selection {
+  @apply bg-cyber-400/30 text-cyber-900;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .glass-effect {
+    @apply bg-white dark:bg-gray-900 border-2;
+  }
+  
+  .gradient-text {
+    @apply text-foreground bg-none;
+  }
 }
