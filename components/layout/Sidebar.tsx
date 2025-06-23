@@ -114,7 +114,7 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
                     <Link
                       href={item.href}
                       className={cn(
-                        "nav-item relative overflow-hidden group",
+                        "nav-item group relative overflow-hidden",
                         isActive ? "nav-item-active" : "nav-item-inactive",
                         collapsed ? "justify-center" : "justify-start"
                       )}
