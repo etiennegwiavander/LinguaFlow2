@@ -195,10 +195,20 @@ export default function DashboardPage() {
     };
   };
 
+  const extractStudentNameFromEventSummary = (eventSummary: string): string => {
+    // Split by " - " and take the first part as the student name
+    // This handles cases like "Julia - preply lesson" -> "Julia"
+    const parts = eventSummary.split(' - ');
+    return parts[0].trim();
+  };
+
   const handleCalendarEventClick = (eventSummary: string) => {
-    // Navigate to students page with the event summary as search parameter
+    // Extract just the student name from the event summary
+    const studentName = extractStudentNameFromEventSummary(eventSummary);
+    
+    // Navigate to students page with the extracted student name as search parameter
     const searchParams = new URLSearchParams();
-    searchParams.set('searchName', eventSummary);
+    searchParams.set('searchName', studentName);
     router.push(`/students?${searchParams.toString()}`);
   };
 
