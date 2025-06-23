@@ -758,47 +758,47 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
         
         // Define explicit components for ReactMarkdown
         const components = {
-          p: ({ children, ...props }: HTMLProps<HTMLParagraphElement>) => (
+          p: ({ children, ...props }: React.HTMLProps<HTMLParagraphElement>) => (
             <p className="mb-4 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
               {children}
             </p>
           ),
-          ul: ({ children, ...props }: HTMLProps<HTMLUListElement>) => (
+          ul: ({ children, ...props }: React.HTMLProps<HTMLUListElement>) => (
             <ul className="list-disc list-inside mb-4 space-y-2" {...props}>
               {children}
             </ul>
           ),
-          ol: ({ children, ...props }: HTMLProps<HTMLOListElement>) => (
+          ol: ({ children, ...props }: React.HTMLProps<HTMLOListElement>) => (
             <ol className="list-decimal list-inside mb-4 space-y-2" {...props}>
               {children}
             </ol>
           ),
-          li: ({ children, ...props }: HTMLProps<HTMLLIElement>) => (
+          li: ({ children, ...props }: React.HTMLProps<HTMLLIElement>) => (
             <li className="mb-1" onDoubleClick={handleTextDoubleClick} {...props}>
               {children}
             </li>
           ),
-          strong: ({ children, ...props }: HTMLProps<HTMLElement>) => (
+          strong: ({ children, ...props }: React.HTMLProps<HTMLElement>) => (
             <strong className="font-bold text-gray-900 dark:text-gray-100" {...props}>
               {children}
             </strong>
           ),
-          em: ({ children, ...props }: HTMLProps<HTMLElement>) => (
+          em: ({ children, ...props }: React.HTMLProps<HTMLElement>) => (
             <em className="italic" {...props}>
               {children}
             </em>
           ),
-          h1: ({ children, ...props }: HTMLProps<HTMLHeadingElement>) => (
+          h1: ({ children, ...props }: React.HTMLProps<HTMLHeadingElement>) => (
             <h1 className="text-2xl font-bold mb-4" {...props}>
               {children}
             </h1>
           ),
-          h2: ({ children, ...props }: HTMLProps<HTMLHeadingElement>) => (
+          h2: ({ children, ...props }: React.HTMLProps<HTMLHeadingElement>) => (
             <h2 className="text-xl font-bold mb-3" {...props}>
               {children}
             </h2>
           ),
-          h3: ({ children, ...props }: HTMLProps<HTMLHeadingElement>) => (
+          h3: ({ children, ...props }: React.HTMLProps<HTMLHeadingElement>) => (
             <h3 className="text-lg font-bold mb-2" {...props}>
               {children}
             </h3>
