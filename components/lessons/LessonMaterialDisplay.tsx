@@ -184,7 +184,6 @@ import {
   PhoneMissed,
   PhoneOff,
   PhoneOutgoing,
-  Pie,
   Play as PlayIcon,
   Plus as PlusIcon,
   PlusCircle,
