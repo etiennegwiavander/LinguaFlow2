@@ -1,1420 +1,874 @@
 "use client";
-import { safeGetString, safeGetArray, debounce } from "@/lib/utils";
 
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import { useState, useEffect, HTMLProps } from "react";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/lib/auth-context";
+import React, { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Loader2, 
   BookOpen, 
-  Target, 
-  Users, 
   MessageSquare, 
-  CheckCircle2,
-  ArrowRight,
+  Lightbulb, 
+  Sparkles, 
+  Pencil, 
+  Check, 
+  X, 
+  ChevronDown, 
+  ChevronUp,
+  Zap,
+  Languages,
   Volume2,
-  Edit3,
-  RotateCcw,
+  Headphones,
   Mic,
   Play,
   Pause,
-  Image as ImageIcon,
-  PenTool,
+  SkipBack,
+  SkipForward,
+  Repeat,
+  Shuffle,
+  List,
+  MoreHorizontal,
+  Maximize2,
+  Minimize2,
+  HelpCircle,
+  Info,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Calendar,
+  User,
+  Users,
+  Settings,
+  FileText,
+  Folder,
+  FolderOpen,
+  Image,
+  Video,
+  Music,
+  Download,
+  Upload,
+  Share2,
+  Star,
+  Heart,
+  ThumbsUp,
+  ThumbsDown,
+  Bookmark,
+  Flag,
+  Send,
+  Trash,
+  Edit,
+  Copy,
+  Clipboard,
+  ClipboardCheck,
+  ClipboardList,
+  Link,
+  ExternalLink,
+  RefreshCw,
+  RotateCw,
+  RotateCcw,
+  Filter,
+  Search,
+  ZoomIn,
+  ZoomOut,
+  Plus,
+  Minus,
+  Divide,
+  Asterisk,
+  Hash,
+  Percent,
+  DollarSign,
+  Euro,
+  CreditCard,
+  ShoppingCart,
+  ShoppingBag,
+  Gift,
+  Tag,
+  Truck,
+  Map,
+  MapPin,
+  Navigation,
+  Globe,
+  Wifi,
+  Bluetooth,
+  Battery,
+  BatteryCharging,
+  Smartphone,
+  Tablet,
+  Laptop,
+  Desktop,
+  Server,
+  Printer,
+  Camera,
+  Tv,
+  Radio,
+  Speaker,
+  Bell,
+  BellOff,
   Eye,
-  MessageCircle,
-  Globe
+  EyeOff,
+  Lock,
+  Unlock,
+  Key,
+  FileKey,
+  Shield,
+  ShieldOff,
+  AlertTriangle,
+  Award,
+  Briefcase,
+  Coffee,
+  Compass,
+  Crop,
+  Crosshair,
+  Database,
+  Disc,
+  File,
+  FilePlus,
+  FileMinus,
+  FileText as FileTextIcon,
+  Film,
+  Fingerprint,
+  Flag as FlagIcon,
+  Folder as FolderIcon,
+  FolderPlus,
+  FolderMinus,
+  Gift as GiftIcon,
+  GitBranch,
+  GitCommit,
+  GitMerge,
+  GitPullRequest,
+  Gitlab,
+  Github,
+  Globe as GlobeIcon,
+  Grid,
+  HardDrive,
+  Hash as HashIcon,
+  Headphones as HeadphonesIcon,
+  Heart as HeartIcon,
+  HelpCircle as HelpCircleIcon,
+  Home,
+  Image as ImageIcon,
+  Inbox,
+  Instagram,
+  Layers,
+  Layout,
+  LifeBuoy,
+  Link as LinkIcon,
+  Linkedin,
+  List as ListIcon,
+  Loader,
+  Lock as LockIcon,
+  LogIn,
+  LogOut,
+  Mail,
+  Map as MapIcon,
+  MapPin as MapPinIcon,
+  Maximize,
+  Minimize,
+  Mic as MicIcon,
+  Monitor,
+  Moon,
+  MoreHorizontal as MoreHorizontalIcon,
+  MoreVertical,
+  MousePointer,
+  Move,
+  Music as MusicIcon,
+  Navigation as NavigationIcon,
+  Package,
+  Paperclip,
+  Pause as PauseIcon,
+  Percent as PercentIcon,
+  PhoneCall,
+  PhoneForwarded,
+  PhoneIncoming,
+  PhoneMissed,
+  PhoneOff,
+  PhoneOutgoing,
+  Pie,
+  Play as PlayIcon,
+  Plus as PlusIcon,
+  PlusCircle,
+  PlusSquare,
+  Pocket,
+  Power,
+  Printer as PrinterIcon,
+  Radio as RadioIcon,
+  RefreshCcw,
+  RefreshCw as RefreshCwIcon,
+  Repeat as RepeatIcon,
+  Rewind,
+  RotateCcw as RotateCcwIcon,
+  RotateCw as RotateCwIcon,
+  Rss,
+  Save,
+  Scissors,
+  Search as SearchIcon,
+  Send as SendIcon,
+  Server as ServerIcon,
+  Settings as SettingsIcon,
+  Share,
+  Shield as ShieldIcon,
+  ShieldOff as ShieldOffIcon,
+  ShoppingBag as ShoppingBagIcon,
+  ShoppingCart as ShoppingCartIcon,
+  Shuffle as ShuffleIcon,
+  Sidebar,
+  SkipBack as SkipBackIcon,
+  SkipForward as SkipForwardIcon,
+  Slack,
+  Slash,
+  Sliders,
+  Smartphone as SmartphoneIcon,
+  Smile,
+  Speaker as SpeakerIcon,
+  Square,
+  Star as StarIcon,
+  StopCircle,
+  Sun,
+  Sunrise,
+  Sunset,
+  Tablet as TabletIcon,
+  Tag as TagIcon,
+  Target,
+  Terminal,
+  Thermometer,
+  ThumbsDown as ThumbsDownIcon,
+  ThumbsUp as ThumbsUpIcon,
+  ToggleLeft,
+  ToggleRight,
+  Tool,
+  Trash as TrashIcon,
+  Trash2,
+  Trello,
+  TrendingDown,
+  TrendingUp,
+  Triangle,
+  Truck as TruckIcon,
+  Tv as TvIcon,
+  Twitch,
+  Twitter,
+  Type,
+  Umbrella,
+  Underline,
+  Unlock as UnlockIcon,
+  Upload as UploadIcon,
+  User as UserIcon,
+  UserCheck,
+  UserMinus,
+  UserPlus,
+  UserX,
+  Users as UsersIcon,
+  Video as VideoIcon,
+  VideoOff,
+  Voicemail,
+  Volume,
+  Volume1,
+  Volume2 as Volume2Icon,
+  VolumeX,
+  Watch,
+  Wifi as WifiIcon,
+  WifiOff,
+  Wind,
+  X as XIcon,
+  XCircle as XCircleIcon,
+  XOctagon,
+  XSquare,
+  Youtube,
+  Zap as ZapIcon,
+  ZoomIn as ZoomInIcon,
+  ZoomOut as ZoomOutIcon
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
 import WordTranslationPopup from "./WordTranslationPopup";
-
-interface LessonTemplate {
-  id: string;
-  name: string;
-  category: string;
-  level: string;
-  template_json: {
-    name: string;
-    category: string;
-    level: string;
-    colors: {
-      primary_bg: string;
-      secondary_bg: string;
-      text_color: string;
-      accent_color: string;
-      border_color: string;
-    };
-    sections: TemplateSection[];
-  };
-}
-
-interface TemplateSection {
-  id: string;
-  type: string;
-  title?: string;
-  subtitle?: string;
-  instruction?: string;
-  instruction_bg_color_var?: string;
-  background_color_var?: string;
-  content_type?: string;
-  items?: string[];
-  dialogue_elements?: any[];
-  dialogue_lines?: any[];
-  vocabulary_items?: any[];
-  matching_pairs?: any[];
-  ordering_items?: string[];
-  ai_placeholder?: string;
-  content?: string;
-  explanation_content?: string;
-  sentences?: string[];
-}
-
-interface Lesson {
-  id: string;
-  student_id: string;
-  tutor_id: string;
-  date: string;
-  status: string;
-  materials: string[];
-  notes: string | null;
-  generated_lessons: string[] | null;
-  sub_topics: any[] | null;
-  lesson_template_id: string | null;
-  interactive_lesson_content: any | null;
-  student: {
-    name: string;
-    target_language: string;
-    native_language: string | null;
-    level: string;
-  };
-}
-
-interface LessonPlan {
-  title: string;
-  objectives: string[];
-  activities: string[];
-  materials: string[];
-  assessment: string[];
-}
+import { cn } from "@/lib/utils";
 
 interface LessonMaterialDisplayProps {
-  lessonId: string;
-  studentNativeLanguage?: string | null;
+  content: any;
+  onTranslationRequest?: (text: string) => Promise<string>;
 }
 
 interface TranslationPopupState {
-  isVisible: boolean;
   word: string;
   translation: string;
-  wordRect: DOMRect | null;
+  rect: DOMRect;
+  visible: boolean;
 }
 
-// Helper function to safely convert any value to a string for rendering
-const safeStringify = (value: any): string => {
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
-  if (value === null || value === undefined) {
-    return '';
-  }
-  if (typeof value === 'object') {
-    try {
-      return JSON.stringify(value);
-    } catch (error) {
-      return '[Object]';
-    }
-  }
-  return String(value);
-};
-
-// Helper function to parse dialogue strings like "A: Hello! I am Maria."
-const parseDialogueLine = (line: string): { character: string; text: string } => {
-  if (typeof line !== 'string') {
-    return { character: 'Speaker', text: 'No text available' };
-  }
-  
-  const match = line.match(/^([^:]+):\s*(.*)$/);
-  if (match) {
-    return {
-      character: match[1].trim(),
-      text: match[2].trim()
-    };
-  }
-  
-  // Fallback if no colon found
-  return { character: 'Speaker', text: line };
-};
-
-// Helper function to get content from info_card sections
-const getInfoCardContent = (section: TemplateSection): string => {
-  console.log('🔍 DEBUG: getInfoCardContent called with section:', {
-    id: safeGetString(section, 'id'),
-    type: safeGetString(section, 'type'),
-    title: safeGetString(section, 'title'),
-    ai_placeholder: safeGetString(section, 'ai_placeholder'),
-    content_type: safeGetString(section, 'content_type'),
-    fullSection: section,
-    allKeys: Object.keys(section)
-  });
-
-  // Check for content in section.content
-  const directContent = safeGetString(section, 'content');
-  if (directContent) {
-    console.log('✅ Found content in section.content:', directContent.substring(0, 100) + '...');
-    return directContent;
-  } else {
-    console.log('❌ No content found in section.content:', directContent);
-  }
-
-  // Check for content in the ai_placeholder field (this should contain the actual content)
-  const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
-  if (aiPlaceholderKey && (section as any)[aiPlaceholderKey]) {
-    console.log('✅ Found content in ai_placeholder field:', (section as any)[aiPlaceholderKey]);
-    return safeStringify((section as any)[aiPlaceholderKey]);
-  } else {
-    console.log('❌ No content found in ai_placeholder field');
-  }
-
-  // Check for content in items array
-  const items = safeGetArray(section, 'items');
-  if (items.length > 0) {
-    console.log('✅ Found content in items array:', items);
-    return items.map(item => `• ${safeStringify(item)}`).join('\n');
-  } else {
-    console.log('❌ No content found in items array');
-  }
-
-  // Check for content in other common fields
-  const commonContentFields = ['text', 'description', 'summary', 'overview'];
-  for (const field of commonContentFields) {
-    const fieldContent = safeGetString(section, field);
-    if (fieldContent) {
-      console.log(`✅ Found content in ${field} field:`, fieldContent);
-      return fieldContent;
-    }
-  }
-  console.log('❌ No content found in any common fields');
-
-  // Debug: Log all available fields
-  console.log('🔍 All available fields in section:', Object.keys(section).map(key => ({
-    key,
-    value: (section as any)[key],
-    type: typeof (section as any)[key]
-  })));
-
-  // Check if there's a 'text' field specifically (this might be where the AI content is stored)
-  if ((section as any).text) {
-    console.log('✅ Found content in text field:', (section as any).text);
-    return safeStringify((section as any).text);
-  }
-
-  console.log('❌ No content found anywhere in section');
-  return '';
-};
-
-export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage }: LessonMaterialDisplayProps) {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [template, setTemplate] = useState<LessonTemplate | null>(null);
-  const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
-  const [isPlaying, setIsPlaying] = useState<Record<string, boolean>>({});
-  const [isTranslating, setIsTranslating] = useState(false);
+export default function LessonMaterialDisplay({ 
+  content, 
+  onTranslationRequest 
+}: LessonMaterialDisplayProps) {
+  const [activeTab, setActiveTab] = useState("lesson");
   const [translationPopup, setTranslationPopup] = useState<TranslationPopupState>({
-    isVisible: false,
-    word: '',
-    translation: '',
-    wordRect: null
+    word: "",
+    translation: "",
+    rect: new DOMRect(),
+    visible: false
   });
-  const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
+  const [isTranslating, setIsTranslating] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
+  // Close translation popup when clicking outside
   useEffect(() => {
-    if (!user || !lessonId) return;
-
-    const fetchLessonData = async () => {
-      try {
-        // Fetch lesson with student details and interactive content
-        const { data: lessonData, error: lessonError } = await supabase
-          .from('lessons')
-          .select(`
-            *,
-            student:students(
-              name,
-              target_language,
-              native_language,
-              level
-            )
-          `)
-          .eq('id', lessonId)
-          .eq('tutor_id', user.id)
-          .single();
-
-        if (lessonError) {
-          throw new Error('Failed to fetch lesson data');
-        }
-
-        if (!lessonData) {
-          throw new Error('Lesson not found');
-        }
-
-        console.log('🔍 DEBUG: Lesson data fetched:', {
-          id: lessonData.id,
-          hasInteractiveContent: !!lessonData.interactive_lesson_content,
-          interactiveContentType: typeof lessonData.interactive_lesson_content,
-          interactiveContent: lessonData.interactive_lesson_content
-        });
-
-        setLesson(lessonData as Lesson);
-
-        // Check if we have interactive lesson content
-        if (lessonData.interactive_lesson_content) {
-          console.log('🔍 DEBUG: Interactive lesson content found:', lessonData.interactive_lesson_content);
-          
-          // If we have a lesson template ID, fetch the template structure
-          if (lessonData.lesson_template_id) {
-            const { data: templateData, error: templateError } = await supabase
-              .from('lesson_templates')
-              .select('*')
-              .eq('id', lessonData.lesson_template_id)
-              .single();
-
-            if (templateError) {
-              console.error('⚠️ Could not fetch lesson template:', templateError);
-            } else {
-              // Use the interactive content as the template JSON
-              const finalTemplate = {
-                ...templateData,
-                template_json: lessonData.interactive_lesson_content
-              } as LessonTemplate;
-              
-              console.log('🔍 DEBUG: Final template created:', {
-                templateId: finalTemplate.id,
-                templateName: finalTemplate.name,
-                sectionsCount: finalTemplate.template_json.sections?.length,
-                sections: finalTemplate.template_json.sections
-              });
-              
-              setTemplate(finalTemplate);
-            }
-          } else {
-            // Create a mock template with the interactive content
-            const mockTemplate = {
-              id: 'interactive',
-              name: 'Interactive Lesson',
-              category: 'Interactive',
-              level: lessonData.student.level,
-              template_json: lessonData.interactive_lesson_content
-            } as LessonTemplate;
-            
-            setTemplate(mockTemplate);
-          }
-        } else {
-          // Fall back to generated lessons if no interactive content
-          if (lessonData.generated_lessons && lessonData.generated_lessons.length > 0) {
-            try {
-              const parsedLessons = lessonData.generated_lessons.map((lessonStr: string) => 
-                JSON.parse(lessonStr)
-              );
-              setGeneratedLessons(parsedLessons);
-            } catch (parseError) {
-              console.error('❌ Error parsing generated lessons:', parseError);
-              setError('Failed to parse lesson content');
-              return;
-            }
-          }
-
-          // Fetch lesson template if available for fallback
-          if (lessonData.lesson_template_id) {
-            const { data: templateData, error: templateError } = await supabase
-              .from('lesson_templates')
-              .select('*')
-              .eq('id', lessonData.lesson_template_id)
-              .single();
-
-            if (templateError) {
-              console.error('⚠️ Could not fetch lesson template:', templateError);
-            } else {
-              setTemplate(templateData as LessonTemplate);
-            }
-          }
-        }
-
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (translationPopup.visible) {
+        setTranslationPopup(prev => ({ ...prev, visible: false }));
       }
     };
 
-    fetchLessonData();
-  }, [user, lessonId]);
-
-  // Global click handler to close translation popup
-  useEffect(() => {
-    if (!translationPopup.isVisible) return;
-
-    const handleGlobalClick = () => {
-      setTranslationPopup(prev => ({ ...prev, isVisible: false }));
-    };
-
-    document.addEventListener('click', handleGlobalClick);
-    return () => document.removeEventListener('click', handleGlobalClick);
-  }, [translationPopup.isVisible]);
-
-  // Add scroll event listener to dismiss translation popup
-  useEffect(() => {
-    const handleScroll = () => {
-      if (translationPopup.isVisible) {
-        setTranslationPopup(prev => ({ ...prev, isVisible: false }));
-      }
-    };
-
-    // Add scroll event listener to window
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
-    // Also listen for scroll events on any scrollable containers within the lesson content
-    const scrollableElements = document.querySelectorAll('[data-lesson-content]');
-    scrollableElements.forEach(element => {
-      element.addEventListener('scroll', handleScroll, { passive: true });
-    });
-
-    // Cleanup function to remove event listeners
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      scrollableElements.forEach(element => {
-        element.removeEventListener('scroll', handleScroll);
-      });
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [translationPopup.isVisible]);
+  }, [translationPopup.visible]);
 
-  const handleAnswerChange = (questionId: string, answer: string) => {
-    setUserAnswers(prev => ({
-      ...prev,
-      [questionId]: answer
-    }));
-  };
-
-  const handleAudioPlay = (audioId: string) => {
-    setIsPlaying(prev => ({
-      ...prev,
-      [audioId]: !prev[audioId]
-    }));
+  const handleTextDoubleClick = async (event: React.MouseEvent<HTMLElement>) => {
+    if (!onTranslationRequest) return;
     
-    // Simulate audio playback
-    setTimeout(() => {
-      setIsPlaying(prev => ({
-        ...prev,
-        [audioId]: false
-      }));
-    }, 3000);
-  };
-
-  const toggleAnswerReveal = (questionId: string) => {
-    setRevealedAnswers(prev => ({
-      ...prev,
-      [questionId]: !prev[questionId]
-    }));
-  };
-
-  const translateWord = async (word: string, wordRect: DOMRect) => {
-    if (!studentNativeLanguage || isTranslating) return;
-    
-    setIsTranslating(true);
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
-
-      const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/translate-text`;
-      
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text_to_translate: word,
-          target_language_code: studentNativeLanguage
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || 'Translation failed');
-      }
-
-      const result = await response.json();
-      
-      if (result.success && result.translated_text) {
-        setTranslationPopup({
-          isVisible: true,
-          word: word,
-          translation: result.translated_text,
-          wordRect: wordRect
-        });
-      } else {
-        throw new Error(result.error || 'Translation failed');
-      }
-    } catch (error: any) {
-      console.error('Translation error:', error);
-      toast.error(error.message || 'Failed to translate text');
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
-  // Debounced translation function
-  const debouncedTranslateWord = debounce(translateWord, 300);
-
-  const handleTextDoubleClick = (e: React.MouseEvent<HTMLElement>) => {
-    if (!studentNativeLanguage) return;
-    
-    e.preventDefault();
-    
-    // Get the selected text
+    // Get the text selection
     const selection = window.getSelection();
-    const selectedText = selection?.toString().trim();
+    if (!selection || selection.rangeCount === 0) return;
     
-    if (selectedText && selectedText.length > 0) {
-      // Get the range and its bounding rect
-      const range = selection?.getRangeAt(0);
-      if (range) {
-        const rect = range.getBoundingClientRect();
-        
-        // Close any existing popup first
-        setTranslationPopup(prev => ({ ...prev, isVisible: false }));
-        
-        // Trigger translation with debouncing
-        debouncedTranslateWord(selectedText, rect);
-      }
-    }
-  };
-
-  const handleTranslateText = async (text: string) => {
-    if (!studentNativeLanguage) {
-      toast.info("No native language set for this student. Please add it in the student profile.");
-      return;
-    }
-
-    if (isTranslating) return;
+    const range = selection.getRangeAt(0);
+    const selectedText = selection.toString().trim();
+    
+    if (!selectedText || selectedText.length > 50) return;
+    
+    // Get the bounding rectangle of the selection
+    const rect = range.getBoundingClientRect();
+    
+    // Adjust rect position relative to the viewport
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+    
+    const adjustedRect = new DOMRect(
+      rect.x + scrollLeft,
+      rect.y + scrollTop,
+      rect.width,
+      rect.height
+    );
     
     setIsTranslating(true);
+    setTranslationPopup({
+      word: selectedText,
+      translation: "Translating...",
+      rect: adjustedRect,
+      visible: true
+    });
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
-
-      const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/translate-text`;
-      
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text_to_translate: text,
-          target_language_code: studentNativeLanguage
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || 'Translation failed');
-      }
-
-      const result = await response.json();
-      
-      if (result.success && result.translated_text) {
-        toast.success("Translation successful", {
-          description: result.translated_text,
-          duration: 5000,
-          action: {
-            label: "Close",
-            onClick: () => {}
-          }
-        });
-      } else {
-        throw new Error(result.error || 'Translation failed');
-      }
-    } catch (error: any) {
-      console.error('Translation error:', error);
-      toast.error(error.message || 'Failed to translate text');
+      const translation = await onTranslationRequest(selectedText);
+      setTranslationPopup(prev => ({
+        ...prev,
+        translation,
+        visible: true
+      }));
+    } catch (error) {
+      console.error("Translation error:", error);
+      setTranslationPopup(prev => ({
+        ...prev,
+        translation: "Translation failed",
+        visible: true
+      }));
     } finally {
       setIsTranslating(false);
     }
   };
 
-  const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
-    if (!template) return null;
+  const closeTranslationPopup = () => {
+    setTranslationPopup(prev => ({ ...prev, visible: false }));
+  };
 
-    // Defensive check for section object
-    if (!section || typeof section !== 'object') {
-      console.warn('Invalid section object:', section);
-      return (
-        <div key="invalid-section" className="p-4 border border-red-200 rounded-lg bg-red-50">
-          <p className="text-red-600">Invalid section data</p>
-        </div>
-      );
-    }
-
-    const colors = template.template_json.colors || {};
-    const currentLesson = generatedLessons[lessonIndex];
-
-    // Get background color class
-    const getBgColor = (colorVar?: string) => {
-      if (!colorVar || !colors) return '';
-      return colors[colorVar as keyof typeof colors] || '';
-    };
-
-    const sectionId = safeGetString(section, 'id', 'unknown-section');
-    const sectionType = safeGetString(section, 'type', 'unknown');
-
-    console.log('🔍 DEBUG: Rendering section:', {
-      id: sectionId,
-      type: sectionType,
-      title: safeGetString(section, 'title', '')
-    });
-
-    switch (sectionType) {
-      case 'title':
+  const renderSection = (section: any) => {
+    switch (section.type) {
+      case "title":
         return (
-          <div key={sectionId} className="text-center mb-8">
-            <h1 
-              className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2 gradient-text"
-              onDoubleClick={handleTextDoubleClick}
-            >
-              {safeGetString(section, 'title', 'Lesson Title')}
-            </h1>
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2 gradient-text">{section.title}</h1>
             {section.subtitle && (
-              <p 
-                className="text-xl text-gray-600 dark:text-gray-300"
-                onDoubleClick={handleTextDoubleClick}
-              >
-                {safeGetString(section, 'subtitle', '')}
-              </p>
+              <p className="text-lg text-muted-foreground">{section.subtitle}</p>
+            )}
+            {section.image_url && (
+              <div className="mt-4 rounded-lg overflow-hidden">
+                <img 
+                  src={section.image_url} 
+                  alt={section.title} 
+                  className="w-full h-auto object-cover max-h-[300px]"
+                />
+              </div>
             )}
           </div>
         );
-
-      case 'info_card':
-        const objectives = safeGetArray(section, 'items');
-        const cardContent = getInfoCardContent(section);
-
-        console.log('🔍 DEBUG: info_card section processing:', {
-          sectionId,
-          title: safeGetString(section, 'title', 'Information'),
-          cardContent: cardContent.length > 50 ? cardContent.substring(0, 50) + '...' : cardContent,
-          cardContentLength: cardContent.length,
-          objectives: objectives,
-          objectivesLength: objectives.length
-        });
-
+      
+      case "info_card":
         return (
-          <Card key={sectionId} className={`mb-6 floating-card glass-effect border-cyber-400/20 ${getBgColor(section.background_color_var)}`}>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Target className="w-5 h-5 mr-2 text-cyber-400" />
-                {safeGetString(section, 'title', 'Information')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Check if we have content as a string */}
-              {cardContent ? (
+          <Card className={`mb-6 border-cyber-400/30 ${section.background_color_var ? `${section.background_color_var}` : 'bg-muted/30'}`}>
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Lightbulb className="mr-2 h-5 w-5 text-cyber-400" />
+                {section.title}
+              </h2>
+              
+              {section.content_type === "text" && (
                 <div 
-                  className="prose max-w-none"
+                  className="prose dark:prose-invert max-w-none" 
                   onDoubleClick={handleTextDoubleClick}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {cardContent}
-                  </p>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {section.content || ""}
+                  </ReactMarkdown>
                 </div>
-              ) : objectives.length > 0 ? (
+              )}
+              
+              {section.content_type === "list" && (
                 <ul className="space-y-2">
-                  {objectives.map((item, index) => (
-                    <li key={index} className="flex items-start">
-                      <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                      <span onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
+                  {section.items?.map((item: string, index: number) => (
+                    <li 
+                      key={index} 
+                      className="flex items-start"
+                      onDoubleClick={handleTextDoubleClick}
+                    >
+                      <Sparkles className="h-5 w-5 text-cyber-400 mr-2 mt-0.5 flex-shrink-0" />
+                      <span>{item}</span>
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <div className="text-center py-4 text-gray-500">
-                  <p>No content available for this section.</p>
-                </div>
               )}
             </CardContent>
           </Card>
         );
-
-      case 'exercise':
+      
+      case "exercise":
         return (
-          <Card key={sectionId} className="mb-6 floating-card glass-effect border-cyber-400/20">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <BookOpen className="w-5 h-5 mr-2 text-cyber-400" />
-                {safeGetString(section, 'title', 'Exercise')}
-              </CardTitle>
+          <Card className="mb-6 border-cyber-400/30 hover:border-cyber-400/50 transition-all duration-300">
+            <CardContent className="p-0">
+              <div className="border-b border-cyber-400/20 p-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold flex items-center">
+                  <BookOpen className="mr-2 h-5 w-5 text-cyber-400" />
+                  {section.title}
+                </h2>
+              </div>
+              
               {section.instruction && (
-                <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
-                  <p 
-                    className="text-sm font-medium"
-                    onDoubleClick={handleTextDoubleClick}
-                  >
-                    {safeGetString(section, 'instruction', '')}
+                <div className={`p-4 ${section.instruction_bg_color_var ? `${section.instruction_bg_color_var}` : 'bg-muted/30'} border-b border-cyber-400/20`}>
+                  <p className="text-sm flex items-center">
+                    <Info className="h-4 w-4 mr-2 text-cyber-400" />
+                    {section.instruction}
                   </p>
                 </div>
               )}
-            </CardHeader>
-            <CardContent>
-              {renderExerciseContent(section, lessonIndex)}
-            </CardContent>
-          </Card>
-        );
-
-      default:
-        console.warn(`Unknown section type: ${sectionType}`);
-        return (
-          <div key={sectionId} className="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
-            <p className="text-yellow-600">Unknown section type: {sectionType}</p>
-          </div>
-        );
-    }
-  };
-
-  const renderExerciseContent = (
-    section: TemplateSection, 
-    lessonIndex: number
-  ) => {
-    const currentLesson = generatedLessons[lessonIndex];
-    const contentType = safeGetString(section, 'content_type', 'unknown');
-
-    switch (contentType) {
-      case 'list': {
-        const items = safeGetArray(section, 'items');
-
-        if (items.length === 0) {
-          return (
-            <div className="text-center py-4 text-gray-500">
-              <p>No items available for this exercise.</p>
-            </div>
-          );
-        }
-
-        return (
-          <div className="space-y-3">
-            {items.map((item: string, index: number) => (
-              <div 
-                key={index} 
-                className="p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20"
-                onDoubleClick={handleTextDoubleClick}
-              >
-                <span className="font-medium">{safeStringify(item)}</span>
-              </div>
-            ))}
-          </div>
-        );
-      }
-
-      case 'text': {
-        const textContent = safeGetString(section, 'content', 'Content will be displayed here.');
-        
-        return (
-          <div className="prose max-w-none">
-            <div 
-              className="whitespace-pre-wrap text-sm leading-relaxed"
-              onDoubleClick={handleTextDoubleClick}
-            >
-              {textContent}
-            </div>
-          </div>
-        );
-      }
-
-      case 'grammar_explanation': {
-        const explanationContent = safeGetString(section, 'explanation_content', '') || safeGetString(section, 'content', '');
-        
-        // Define explicit components for ReactMarkdown
-        const components = {
-          p: ({ children, ...props }: HTMLProps<HTMLParagraphElement>) => (
-            <p className="mb-4 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
-              {children}
-            </p>
-          ),
-          ul: ({ children, ...props }: HTMLProps<HTMLUListElement>) => (
-            <ul className="list-disc list-inside mb-4 space-y-2" {...props}>
-              {children}
-            </ul>
-          ),
-          ol: ({ children, ...props }: HTMLProps<HTMLOListElement>) => (
-            <ol className="list-decimal list-inside mb-4 space-y-2" {...props}>
-              {children}
-            </ol>
-          ),
-          li: ({ children, ...props }: HTMLProps<HTMLLIElement>) => (
-            <li className="mb-1" onDoubleClick={handleTextDoubleClick} {...props}>
-              {children}
-            </li>
-          ),
-          strong: ({ children, ...props }: HTMLProps<HTMLElement>) => (
-            <strong className="font-bold text-gray-900 dark:text-gray-100" {...props}>
-              {children}
-            </strong>
-          ),
-          em: ({ children, ...props }: HTMLProps<HTMLElement>) => (
-            <em className="italic" {...props}>
-              {children}
-            </em>
-          ),
-          h1: ({ children, ...props }: HTMLProps<HTMLHeadingElement>) => (
-            <h1 className="text-2xl font-bold mb-4" {...props}>
-              {children}
-            </h1>
-          ),
-          h2: ({ children, ...props }: HTMLProps<HTMLHeadingElement>) => (
-            <h2 className="text-xl font-bold mb-3" {...props}>
-              {children}
-            </h2>
-          ),
-          h3: ({ children, ...props }: HTMLProps<HTMLHeadingElement>) => (
-            <h3 className="text-lg font-bold mb-2" {...props}>
-              {children}
-            </h3>
-          ),
-        };
-
-        return (
-          <div className="prose prose-sm max-w-none">
-            <ReactMarkdown 
-              key={explanationContent}
-              remarkPlugins={[remarkGfm]}
-              components={components}
-            >
-              {explanationContent}
-            </ReactMarkdown>
-          </div>
-        );
-      }
-
-      case 'example_sentences': {
-        const sentences = safeGetArray(section, 'sentences');
-        
-        if (sentences.length === 0) {
-          return (
-            <div className="text-center py-4 text-gray-500">
-              <p>No example sentences available.</p>
-            </div>
-          );
-        }
-
-        return (
-          <div className="space-y-2">
-            <ul className="space-y-3">
-              {sentences.map((sentence: string, index: number) => (
-                <li key={index} className="flex items-start">
-                  <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">
-                    {index + 1}
-                  </span>
-                  <span 
-                    className="text-sm"
+              
+              <div className="p-4">
+                {section.content_type === "text" && (
+                  <div 
+                    className="prose dark:prose-invert max-w-none" 
                     onDoubleClick={handleTextDoubleClick}
                   >
-                    {safeStringify(sentence)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      }
-
-      case 'vocabulary_matching': {
-        const vocabularyItems = safeGetArray(section, 'vocabulary_items');
-
-        if (vocabularyItems.length === 0) {
-          return (
-            <div className="text-center py-4 text-gray-500">
-              <p>No vocabulary items available for this exercise.</p>
-            </div>
-          );
-        }
-
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {vocabularyItems.map((item, index) => (
-              <div key={index} className="flex items-center space-x-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
-                {item.image_url && (
-                  <img 
-                    src={safeStringify(item.image_url)} 
-                    alt={safeStringify(item.word || item.name)}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {section.content || ""}
+                    </ReactMarkdown>
+                  </div>
                 )}
-                <div className="flex-1">
-                  <h4 
-                    className="font-semibold"
-                    onDoubleClick={handleTextDoubleClick}
-                  >
-                    {safeStringify(item.word || item.name)}
-                  </h4>
-                  <p 
-                    className="text-sm text-gray-600 dark:text-gray-300"
-                    onDoubleClick={handleTextDoubleClick}
-                  >
-                    {safeStringify(item.definition || item.prompt)}
-                  </p>
-                </div>
-                <Button size="sm" variant="outline" className="border-cyber-400/30 hover:bg-cyber-400/10">
-                  <Volume2 className="w-4 h-4 text-cyber-400" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        );
-      }
-
-      case 'full_dialogue': {
-        const dialogueLines = safeGetArray(section, 'dialogue_lines');
-
-        if (dialogueLines.length === 0) {
-          return (
-            <div className="text-center py-4 text-gray-500">
-              <p>No dialogue content available for this exercise.</p>
-            </div>
-          );
-        }
-
-        return (
-          <div className="space-y-3">
-            {dialogueLines.map((line, index) => {
-              let character: string;
-              let text: string;
-              
-              // Handle both object format and string format
-              if (typeof line === 'object' && line !== null) {
-                // Object format: { speaker: "Person A", line: "Hello!" }
-                character = safeGetString(line, 'character', 'Speaker');
-                text = safeGetString(line, 'text', 'No text available');
-              } else {
-                // String format: "A: Hello! I am Maria."
-                const parsed = parseDialogueLine(line);
-                character = parsed.character;
-                text = parsed.text;
-              }
-              
-              const isTeacher = character.toLowerCase().includes('teacher') || 
-                               character.toLowerCase().includes('tutor');
-              
-              return (
-                <div key={index} className="flex items-start space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
-                  }`}>
-                    <span className={`text-xs font-bold ${
-                      isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
-                    }`}>
-                      {character ? character[0] : '?'}
-                    </span>
-                  </div>
-                  <div className={`flex-1 p-3 rounded-lg ${
-                    isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 
-                    'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                  }`}>
-                    <p className={`font-medium ${
-                      isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
-                    }`}>
-                      {character}:
-                    </p>
-                    <p onDoubleClick={handleTextDoubleClick}>{text}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      }
-
-      case 'fill_in_the_blanks_dialogue': {
-        const dialogueElements = safeGetArray(section, 'dialogue_elements');
-
-        if (dialogueElements.length === 0) {
-          return (
-            <div className="text-center py-4 text-gray-500">
-              <p>No dialogue elements available for this exercise.</p>
-            </div>
-          );
-        }
-
-        return (
-          <div className="space-y-4">
-            {dialogueElements.map((element, index) => {
-              // Defensive check for element object
-              if (!element || typeof element !== 'object') {
-                return (
-                  <div key={index} className="p-3 border border-red-200 rounded-lg bg-red-50">
-                    <p className="text-red-600 text-sm">Invalid dialogue element</p>
-                  </div>
-                );
-              }
-
-              // Determine the element type dynamically
-              let determinedElementType = safeGetString(element, 'type', 'unknown');
-              if (element.character && element.text && determinedElementType === 'unknown') {
-                // If it has character and text, and no explicit type, it's a dialogue line
-                determinedElementType = 'dialogue';
-              }
-
-              // Handle different element types properly
-              if (determinedElementType === 'dialogue') {
-                const character = safeGetString(element, 'character', 'Speaker');
-                const text = safeGetString(element, 'text', 'No text available');
-                const isTeacher = character === 'Tutor' || character.toLowerCase().includes('teacher');
                 
-                return (
-                  <div key={index} className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
-                    }`}>
-                      <span className={`text-xs font-bold ${
-                        isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
-                      }`}>
-                        {character[0] || '?'}
-                      </span>
-                    </div>
-                    <div className={`flex-1 p-3 rounded-lg ${
-                      isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 
-                      'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                    }`}>
-                      <p className={`font-medium ${
-                        isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-400'
-                      }`}>
-                        {character}:
-                      </p>
-                      <p onDoubleClick={handleTextDoubleClick}>{text}</p>
-                    </div>
-                  </div>
-                );
-              } else if (determinedElementType === 'multiple_choice') {
-                const question = safeGetString(element, 'question', '') || safeGetString(element, 'text', 'Question not available');
-                const options = safeGetArray(element, 'options');
-                const correctAnswer = safeGetString(element, 'correct_answer', '');
-                
-                return (
-                  <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-yellow-50/50 to-amber-50/50 dark:from-yellow-900/20 dark:to-amber-900/20">
-                    <p 
-                      className="font-medium mb-3"
-                      onDoubleClick={handleTextDoubleClick}
-                    >
-                      {question}
-                    </p>
-                    <RadioGroup 
-                      onValueChange={(value) => handleAnswerChange(`${section.id}_mc_${index}`, value)}
-                    >
-                      {options.length > 0 ? options.map((option: any, optIndex: number) => (
-                        <div key={optIndex} className="flex items-center space-x-2">
-                          <RadioGroupItem value={safeStringify(option)} id={`${section.id}_${index}_${optIndex}`} />
-                          <Label 
-                            htmlFor={`${section.id}_${index}_${optIndex}`}
-                            onDoubleClick={handleTextDoubleClick}
-                          >
-                            {safeStringify(option)}
-                          </Label>
-                        </div>
-                      )) : (
-                        <p className="text-sm text-gray-500">No answer options available</p>
-                      )}
-                    </RadioGroup>
-                    {correctAnswer && (
-                      <div className="mt-4">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => toggleAnswerReveal(`${section.id}_mc_${index}`)}
-                          className="text-xs"
-                        >
-                          {revealedAnswers[`${section.id}_mc_${index}`] ? 'Hide Answer' : 'Show Answer'}
-                        </Button>
-                        
-                        {revealedAnswers[`${section.id}_mc_${index}`] && (
-                          <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm">
-                            <span className="font-medium text-green-700 dark:text-green-300">Correct answer:</span> {correctAnswer}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              } else {
-                // Return a warning for unrecognized element types
-                return (
-                  <div key={index} className="p-3 border border-yellow-200 rounded-lg bg-yellow-50">
-                    <p className="text-yellow-600 text-sm">Unknown element type: {determinedElementType}</p>
-                  </div>
-                );
-              }
-            })}
-          </div>
-        );
-      }
-
-      case 'matching': {
-        const matchingPairs = safeGetArray(section, 'matching_pairs');
-
-        if (matchingPairs.length === 0) {
-          return (
-            <div className="text-center py-4 text-gray-500">
-              <p>No matching questions available for this exercise.</p>
-            </div>
-          );
-        }
-
-        return (
-          <div className="space-y-4">
-            {matchingPairs.map((pair, index) => {
-              const question = safeGetString(pair, 'question', 'Question not available');
-              const answer = safeGetString(pair, 'answer', 'No answer available');
-              const pairId = `${section.id}_match_${index}`;
-              
-              return (
-                <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
-                  <div className="space-y-3">
-                    <div>
-                      <p 
-                        className="font-medium text-gray-800 dark:text-gray-200"
+                {section.content_type === "list" && (
+                  <ul className="space-y-3">
+                    {section.items?.map((item: string, index: number) => (
+                      <li 
+                        key={index} 
+                        className="flex items-start"
                         onDoubleClick={handleTextDoubleClick}
                       >
-                        {question}
-                      </p>
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => toggleAnswerReveal(pairId)}
-                        className="text-xs"
+                        <div className="h-5 w-5 rounded-full bg-cyber-400/20 flex items-center justify-center mr-3 flex-shrink-0">
+                          <span className="text-xs font-medium text-cyber-600 dark:text-cyber-400">{index + 1}</span>
+                        </div>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                
+                {section.content_type === "vocabulary_matching" && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {section.vocabulary_items?.map((item: any, index: number) => (
+                      <div 
+                        key={index} 
+                        className="border border-cyber-400/30 rounded-lg p-4 hover:border-cyber-400/50 transition-all duration-300"
+                        onDoubleClick={handleTextDoubleClick}
                       >
-                        {revealedAnswers[pairId] ? 'Hide Answer' : 'Show Answer'}
-                      </Button>
-                    </div>
-                    
-                    {revealedAnswers[pairId] && (
-                      <div className="pl-4 border-l-2 border-cyber-400/30 mt-2">
-                        <p 
-                          className="text-sm text-cyber-600 dark:text-cyber-400 font-medium"
-                          onDoubleClick={handleTextDoubleClick}
-                        >
-                          Answer: {answer}
-                        </p>
+                        {item.image_url && (
+                          <div className="mb-3 rounded-md overflow-hidden">
+                            <img 
+                              src={item.image_url} 
+                              alt={item.name} 
+                              className="w-full h-32 object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <h3 className="font-semibold text-lg mb-1">{item.name}</h3>
+                          <p className="text-sm text-muted-foreground">{item.prompt}</p>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                )}
+                
+                {section.content_type === "full_dialogue" && (
+                  <div className="space-y-4" onDoubleClick={handleTextDoubleClick}>
+                    {section.dialogue_lines?.map((line: any, index: number) => (
+                      <div 
+                        key={index} 
+                        className={`flex ${line.character === "Tutor" ? "justify-start" : "justify-end"}`}
+                      >
+                        <div 
+                          className={`max-w-[80%] rounded-lg p-3 ${
+                            line.character === "Tutor" 
+                              ? "bg-muted/50 text-foreground rounded-tl-none" 
+                              : "bg-cyber-400/20 text-foreground rounded-tr-none"
+                          }`}
+                        >
+                          <div className="font-semibold text-xs mb-1">
+                            {line.character}
+                          </div>
+                          <p>{line.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {section.content_type === "matching" && (
+                  <div className="space-y-6" onDoubleClick={handleTextDoubleClick}>
+                    {section.matching_pairs?.map((pair: any, index: number) => (
+                      <div key={index} className="border border-cyber-400/30 rounded-lg p-4">
+                        <div className="font-semibold mb-2">{pair.question}</div>
+                        <div className="pl-4 space-y-2">
+                          {pair.answers?.map((answer: string, answerIndex: number) => (
+                            <div key={answerIndex} className="flex items-center">
+                              <div className="h-4 w-4 rounded-full border border-cyber-400/50 mr-2"></div>
+                              <span>{answer}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {section.content_type === "fill_in_the_blanks_dialogue" && (
+                  <div className="space-y-4" onDoubleClick={handleTextDoubleClick}>
+                    {section.dialogue_elements?.map((element: any, index: number) => {
+                      if (element.type === "multiple_choice") {
+                        return (
+                          <div key={index} className="border border-cyber-400/30 rounded-lg p-4 bg-muted/30">
+                            <p className="font-medium mb-2">{element.question}</p>
+                            <div className="grid gap-2">
+                              {element.options?.map((option: string, optionIndex: number) => (
+                                <div key={optionIndex} className="flex items-center">
+                                  <div className="h-4 w-4 rounded-full border border-cyber-400/50 mr-2"></div>
+                                  <span>{option}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div 
+                            key={index} 
+                            className={`flex ${element.character === "Tutor" ? "justify-start" : "justify-end"}`}
+                          >
+                            <div 
+                              className={`max-w-[80%] rounded-lg p-3 ${
+                                element.character === "Tutor" 
+                                  ? "bg-muted/50 text-foreground rounded-tl-none" 
+                                  : "bg-cyber-400/20 text-foreground rounded-tr-none"
+                              }`}
+                            >
+                              <div className="font-semibold text-xs mb-1">
+                                {element.character}
+                              </div>
+                              <p>{element.text}</p>
+                            </div>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
+                
+                {section.content_type === "ordering" && (
+                  <div className="space-y-3" onDoubleClick={handleTextDoubleClick}>
+                    {section.ordering_items?.map((item: string, index: number) => (
+                      <div 
+                        key={index} 
+                        className="border border-cyber-400/30 rounded-lg p-3 flex items-center"
+                      >
+                        <div className="h-6 w-6 rounded-full bg-cyber-400/20 flex items-center justify-center mr-3 flex-shrink-0">
+                          <span className="text-xs font-medium text-cyber-600 dark:text-cyber-400">{index + 1}</span>
+                        </div>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {section.content_type === "grammar_explanation" && (
+                  <div 
+                    className="prose dark:prose-invert max-w-none" 
+                    onDoubleClick={handleTextDoubleClick}
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {section.explanation_content || ""}
+                    </ReactMarkdown>
+                  </div>
+                )}
+                
+                {section.content_type === "example_sentences" && (
+                  <ul className="space-y-3" onDoubleClick={handleTextDoubleClick}>
+                    {section.sentences?.map((sentence: string, index: number) => (
+                      <li 
+                        key={index} 
+                        className="border-l-4 border-cyber-400 pl-3 py-1"
+                      >
+                        {sentence}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         );
-      }
-
+      
       default:
-        return (
-          <div className="text-center py-8 text-gray-500">
-            <p>Content type "{contentType}" will be displayed here.</p>
-          </div>
-        );
+        return null;
     }
   };
 
-  const handleTranslationRequest = async () => {
-    if (!studentNativeLanguage) {
-      toast.info("No native language set for this student. Please add it in the student profile.");
-      return;
-    }
-
-    const selection = window.getSelection();
-    const selectedText = selection?.toString().trim();
-    
-    if (!selectedText || selectedText.length === 0) {
-      toast.info("Please select text to translate by double-clicking on it.");
-      return;
-    }
-    
-    await handleTranslateText(selectedText);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-cyber-400 mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading lesson material...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Failed to Load Lesson</h3>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()}
-            className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!lesson) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="w-8 h-8 text-gray-600" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Lesson Not Found</h3>
-          <p className="text-muted-foreground">The requested lesson could not be found.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If we have interactive content and a template, render the interactive lesson
-  if (lesson.interactive_lesson_content && template) {
-    // Defensive check for template structure
-    if (!template.template_json || !template.template_json.sections) {
+  const renderContent = () => {
+    if (!content || !content.sections || !Array.isArray(content.sections)) {
       return (
-        <div className="flex items-center justify-center h-[50vh]">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BookOpen className="w-8 h-8 text-red-600" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Invalid Template Structure</h3>
-            <p className="text-muted-foreground">The lesson template has an invalid structure.</p>
-          </div>
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">No content available</h3>
+          <p className="text-muted-foreground">
+            This lesson doesn't have any interactive content yet.
+          </p>
         </div>
       );
     }
 
-    const sections = safeGetArray(template.template_json, 'sections');
-
     return (
-      <div className="space-y-6 max-w-4xl mx-auto" data-lesson-content>
-<div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-  <div className="flex items-start space-x-2 flex-1">
-    <CheckCircle2 className="w-5 h-5 text-green-600 mt-1" />
-    <div>
-      <h3 className="font-semibold text-green-800 dark:text-green-200">
-        Interactive Lesson Material Ready
-      </h3>
-      <p className="text-sm text-green-700 dark:text-green-300">
-        This lesson has been personalized for {lesson.student.name} using the {template.name} template.
-      </p>
-    </div>
-  </div>
-
-  {studentNativeLanguage && (
-    <div className="mt-4 lg:mt-0 lg:ml-4 w-full lg:w-auto">
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="w-full flex items-center justify-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
-        onClick={handleTranslationRequest}
-        disabled={isTranslating}
-      >
-        {isTranslating ? (
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-        ) : (
-          <Globe className="w-4 h-4 mr-2" />
-        )}
-        <span>Double-click text to translate</span>
-      </Button>
-    </div>
-  )}
-</div>
-
-        {sections.map((section, index) => 
-          renderTemplateSection(section, 0)
-        )}
-        
-        <div className="flex justify-center pt-8">
-          <Button 
-            size="lg" 
-            className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-          >
-            <CheckCircle2 className="w-5 h-5 mr-2" />
-            Complete Lesson
-          </Button>
-        </div>
-
-        {/* Translation Popup */}
-        {translationPopup.isVisible && translationPopup.wordRect && (
-          <WordTranslationPopup
-            word={translationPopup.word}
-            translation={translationPopup.translation}
-            wordRect={translationPopup.wordRect}
-            onClose={() => setTranslationPopup(prev => ({ ...prev, isVisible: false }))}
-          />
-        )}
+      <div ref={contentRef}>
+        {content.sections.map((section: any, index: number) => (
+          <div key={index} className="mb-8">
+            {renderSection(section)}
+          </div>
+        ))}
       </div>
     );
-  }
+  };
 
-  // Fall back to basic lesson plan view if no interactive content
-  return (
-    <div className="space-y-6" data-lesson-content>
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2 gradient-text">
-          Lesson for {lesson.student.name}
-        </h1>
-        <div className="flex items-center justify-center space-x-2">
-          <Badge variant="outline" className="capitalize border-cyber-400/30">
-            {lesson.student.level} Level {lesson.student.target_language}
-          </Badge>
-          {lesson.student.native_language && (
-            <Badge variant="secondary" className="flex items-center">
-              <Globe className="w-3 h-3 mr-1" />
-              Native: {lesson.student.native_language}
-            </Badge>
-          )}
-        </div>
+  // Define explicit components for ReactMarkdown
+  const components = {
+    p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+      <p className="mb-4 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
+        {children}
+      </p>
+    ),
+    h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <h1 className="text-3xl font-bold mt-6 mb-4" {...props}>
+        {children}
+      </h1>
+    ),
+    h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <h2 className="text-2xl font-bold mt-6 mb-3" {...props}>
+        {children}
+      </h2>
+    ),
+    h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <h3 className="text-xl font-bold mt-5 mb-3" {...props}>
+        {children}
+      </h3>
+    ),
+    h4: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <h4 className="text-lg font-bold mt-4 mb-2" {...props}>
+        {children}
+      </h4>
+    ),
+    ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
+      <ul className="list-disc list-inside mb-4 space-y-2" {...props}>
+        {children}
+      </ul>
+    ),
+    ol: ({ children, ...props }: React.OlHTMLAttributes<HTMLOListElement>) => (
+      <ol className="list-decimal list-inside mb-4 space-y-2" {...props}>
+        {children}
+      </ol>
+    ),
+    li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
+      <li className="ml-2" {...props}>
+        {children}
+      </li>
+    ),
+    a: ({ children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+      <a className="text-cyber-400 hover:underline" {...props}>
+        {children}
+      </a>
+    ),
+    blockquote: ({ children, ...props }: React.HTMLAttributes<HTMLQuoteElement>) => (
+      <blockquote className="border-l-4 border-cyber-400/50 pl-4 italic my-4" {...props}>
+        {children}
+      </blockquote>
+    ),
+    code: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+      <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+        {children}
+      </code>
+    ),
+    pre: ({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) => (
+      <pre className="bg-muted p-4 rounded-lg overflow-x-auto my-4 text-sm" {...props}>
+        {children}
+      </pre>
+    ),
+    img: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+      <img 
+        src={src} 
+        alt={alt || "Image"} 
+        className="max-w-full h-auto rounded-lg my-4" 
+        {...props} 
+      />
+    ),
+    table: ({ children, ...props }: React.TableHTMLAttributes<HTMLTableElement>) => (
+      <div className="overflow-x-auto my-4">
+        <table className="min-w-full border-collapse" {...props}>
+          {children}
+        </table>
       </div>
+    ),
+    thead: ({ children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+      <thead className="bg-muted/50" {...props}>
+        {children}
+      </thead>
+    ),
+    tbody: ({ children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+      <tbody {...props}>
+        {children}
+      </tbody>
+    ),
+    tr: ({ children, ...props }: React.HTMLAttributes<HTMLTableRowElement>) => (
+      <tr className="border-b border-border" {...props}>
+        {children}
+      </tr>
+    ),
+    th: ({ children, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) => (
+      <th className="px-4 py-2 text-left font-medium" {...props}>
+        {children}
+      </th>
+    ),
+    td: ({ children, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) => (
+      <td className="px-4 py-2" {...props}>
+        {children}
+      </td>
+    ),
+    hr: (props: React.HTMLAttributes<HTMLHRElement>) => (
+      <hr className="my-6 border-border" {...props} />
+    ),
+    strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+      <strong className="font-bold" {...props}>
+        {children}
+      </strong>
+    ),
+    em: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+      <em className="italic" {...props}>
+        {children}
+      </em>
+    ),
+    del: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+      <del className="line-through" {...props}>
+        {children}
+      </del>
+    ),
+  };
 
-      {generatedLessons.length > 0 ? (
-        <div className="space-y-6">
-          {generatedLessons.map((lessonPlan, index) => (
-            <Card key={index} className="floating-card glass-effect border-cyber-400/20">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BookOpen className="w-5 h-5 mr-2 text-cyber-400" />
-                  {safeStringify(lessonPlan.title)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h4 className="font-semibold mb-3 flex items-center">
-                    <Target className="w-4 h-4 mr-2 text-blue-600" />
-                    Objectives
-                  </h4>
-                  <ul className="space-y-2">
-                    {Array.isArray(lessonPlan.objectives) && lessonPlan.objectives.map((objective, objIndex) => (
-                      <li key={objIndex} className="flex items-start">
-                        <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                        <span onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
-                          {safeStringify(objective)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <Separator className="bg-cyber-400/20" />
-
-                <div>
-                  <h4 className="font-semibold mb-3 flex items-center">
-                    <Users className="w-4 h-4 mr-2 text-purple-600" />
-                    Activities
-                  </h4>
-                  <ul className="space-y-2">
-                    {Array.isArray(lessonPlan.activities) && lessonPlan.activities.map((activity, actIndex) => (
-                      <li key={actIndex} className="flex items-start">
-                        <ArrowRight className="w-4 h-4 mr-2 mt-0.5 text-purple-500 flex-shrink-0" />
-                        <span onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
-                          {safeStringify(activity)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <Separator className="bg-cyber-400/20" />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center">
-                      <BookOpen className="w-4 h-4 mr-2 text-green-600" />
-                      Materials
-                    </h4>
-                    <ul className="space-y-2">
-                      {Array.isArray(lessonPlan.materials) && lessonPlan.materials.map((material, matIndex) => (
-                        <li key={matIndex} className="flex items-start">
-                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          <span onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
-                            {safeStringify(material)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center">
-                      <CheckCircle2 className="w-4 h-4 mr-2 text-orange-600" />
-                      Assessment
-                    </h4>
-                    <ul className="space-y-2">
-                      {Array.isArray(lessonPlan.assessment) && lessonPlan.assessment.map((item, assIndex) => (
-                        <li key={assIndex} className="flex items-start">
-                          <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          <span onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
-                            {safeStringify(item)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="w-8 h-8 text-gray-600" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">No Lesson Content</h3>
-          <p className="text-muted-foreground">
-            This lesson doesn't have any generated content yet. Generate lesson plans first, then use "Use This Plan" to create interactive material.
-          </p>
-        </div>
-      )}
-
-      {/* Translation Popup */}
-      {translationPopup.isVisible && translationPopup.wordRect && (
+  return (
+    <div className="relative">
+      <Tabs defaultValue="lesson" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="lesson" className="flex items-center space-x-2">
+            <BookOpen className="h-4 w-4" />
+            <span>Lesson Material</span>
+          </TabsTrigger>
+          <TabsTrigger value="notes" className="flex items-center space-x-2">
+            <MessageSquare className="h-4 w-4" />
+            <span>Notes & Tips</span>
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="lesson" className="space-y-4">
+          {renderContent()}
+        </TabsContent>
+        
+        <TabsContent value="notes" className="space-y-4">
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Lightbulb className="mr-2 h-5 w-5 text-yellow-500" />
+                Teaching Notes
+              </h2>
+              
+              <div className="prose dark:prose-invert max-w-none">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={components}
+                >
+                  {content?.teaching_notes || "No teaching notes available for this lesson."}
+                </ReactMarkdown>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+                Additional Resources
+              </h2>
+              
+              <div className="prose dark:prose-invert max-w-none">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={components}
+                >
+                  {content?.additional_resources || "No additional resources available for this lesson."}
+                </ReactMarkdown>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {translationPopup.visible && (
         <WordTranslationPopup
           word={translationPopup.word}
           translation={translationPopup.translation}
-          wordRect={translationPopup.wordRect}
-          onClose={() => setTranslationPopup(prev => ({ ...prev, isVisible: false }))}
+          wordRect={translationPopup.rect}
+          onClose={closeTranslationPopup}
         />
+      )}
+      
+      {onTranslationRequest && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Button 
+            size="sm" 
+            variant="outline"
+            className="bg-background/80 backdrop-blur-sm border-cyber-400/30 text-xs flex items-center space-x-1"
+          >
+            <Languages className="h-3 w-3 mr-1" />
+            <span>Double-click text to translate</span>
+          </Button>
+        </div>
       )}
     </div>
   );
