@@ -1,4 +1,6 @@
 "use client";
+
+import React from 'react';
 import { safeGetString, safeGetArray, debounce } from "@/lib/utils";
 
 import ReactMarkdown from "react-markdown"
