@@ -167,6 +167,11 @@ const config: Config = {
       },
     },
   },
+  variants: {
+    extend: {
+      boxShadow: ['hover', 'focus'],
+    },
+  },
   plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
 };
 export default config;
