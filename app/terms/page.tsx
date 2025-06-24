@@ -3,7 +3,7 @@
 import LandingLayout from "@/components/landing/LandingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Shield, Users, CreditCard, Scale, Globe, Settings } from "lucide-react";
+import { FileText, Shield, Users, CreditCard, Scale, Globe, Settings, Mail } from "lucide-react";
 
 export default function TermsPage() {
   return (
