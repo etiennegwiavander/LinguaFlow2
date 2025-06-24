@@ -11,7 +11,6 @@ import {
   CheckCircle,
   Zap,
   Crown,
-  Rocket,
   Star,
   Users,
   Brain,
@@ -75,33 +74,6 @@ export default function PricingPage() {
       cta: "Start Free Trial",
       popular: true,
     },
-    {
-      name: "Enterprise",
-      description: "For large institutions and language schools",
-      icon: Rocket,
-      color: "text-purple-400",
-      bgColor: "bg-purple-400/10",
-      borderColor: "border-purple-400/30",
-      monthly: 99,
-      annual: 79,
-      features: [
-        "Unlimited students",
-        "Unlimited AI-generated lessons",
-        "All premium templates",
-        "Advanced analytics & reporting",
-        "API access",
-        "Custom integrations",
-        "Dedicated account manager",
-        "24/7 phone support",
-        "Custom AI model training",
-        "White-label solution",
-        "SSO integration",
-        "Advanced security features",
-      ],
-      limitations: [],
-      cta: "Contact Sales",
-      popular: false,
-    },
   ];
 
   const features = [
@@ -109,36 +81,30 @@ export default function PricingPage() {
       category: "AI & Content Generation",
       icon: Brain,
       items: [
-        { name: "AI-Powered Lesson Generation", starter: true, pro: true, enterprise: true },
-        { name: "Basic Lesson Templates", starter: true, pro: false, enterprise: false },
-        { name: "Premium Lesson Templates", starter: false, pro: true, enterprise: true },
-        { name: "Custom Template Creation", starter: false, pro: true, enterprise: true },
-        { name: "Advanced AI Models", starter: false, pro: true, enterprise: true },
-        { name: "Custom AI Training", starter: false, pro: false, enterprise: true },
+        { name: "AI-Powered Lesson Generation", starter: true, pro: true },
+        { name: "Basic Lesson Templates", starter: true, pro: false },
+        { name: "Premium Lesson Templates", starter: false, pro: true },
+        { name: "Custom Template Creation", starter: false, pro: true },
+        { name: "Advanced AI Models", starter: false, pro: true },
       ],
     },
     {
       category: "Student Management",
       icon: Users,
       items: [
-        { name: "Student Profiles", starter: true, pro: true, enterprise: true },
-        { name: "Progress Tracking", starter: true, pro: true, enterprise: true },
-        { name: "Advanced Analytics", starter: false, pro: true, enterprise: true },
-        { name: "Bulk Import/Export", starter: false, pro: true, enterprise: true },
-        { name: "Custom Reports", starter: false, pro: false, enterprise: true },
+        { name: "Student Profiles", starter: true, pro: true },
+        { name: "Progress Tracking", starter: true, pro: true },
+        { name: "Advanced Analytics", starter: false, pro: true },
+        { name: "Bulk Import/Export", starter: false, pro: true },
       ],
     },
     {
       category: "Integration & Support",
       icon: Globe,
       items: [
-        { name: "Calendar Integration", starter: false, pro: true, enterprise: true },
-        { name: "API Access", starter: false, pro: false, enterprise: true },
-        { name: "SSO Integration", starter: false, pro: false, enterprise: true },
-        { name: "Email Support", starter: true, pro: true, enterprise: true },
-        { name: "Priority Support", starter: false, pro: true, enterprise: true },
-        { name: "24/7 Phone Support", starter: false, pro: false, enterprise: true },
-        { name: "Dedicated Account Manager", starter: false, pro: false, enterprise: true },
+        { name: "Calendar Integration", starter: false, pro: true },
+        { name: "Email Support", starter: true, pro: true },
+        { name: "Priority Support", starter: false, pro: true },
       ],
     },
   ];
@@ -212,7 +178,7 @@ export default function PricingPage() {
       {/* Pricing Cards */}
       <section className="py-12 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {plans.map((plan, index) => (
               <Card
                 key={index}
@@ -313,7 +279,6 @@ export default function PricingPage() {
                         <th className="text-left py-3 pr-6 font-medium">Feature</th>
                         <th className="text-center py-3 px-4 font-medium">Starter</th>
                         <th className="text-center py-3 px-4 font-medium">Professional</th>
-                        <th className="text-center py-3 px-4 font-medium">Enterprise</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -329,13 +294,6 @@ export default function PricingPage() {
                           </td>
                           <td className="text-center py-3 px-4">
                             {item.pro ? (
-                              <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto" />
-                            ) : (
-                              <div className="w-5 h-5 mx-auto"></div>
-                            )}
-                          </td>
-                          <td className="text-center py-3 px-4">
-                            {item.enterprise ? (
                               <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto" />
                             ) : (
                               <div className="w-5 h-5 mx-auto"></div>
@@ -395,7 +353,7 @@ export default function PricingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth/signup">
               <Button size="lg" className="bg-white text-cyber-900 hover:bg-white/90 border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300 group px-8 py-6 text-lg">
-                <Rocket className="w-5 h-5 mr-2 group-hover:animate-pulse" />
+                <Sparkles className="w-5 h-5 mr-2 group-hover:animate-pulse" />
                 Start Free Trial
               </Button>
             </Link>
