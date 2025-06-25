@@ -475,11 +475,16 @@ export default function HomePage() {
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
             </Link>
-            <Link href="/pricing">
-              <Button variant="outline" size="lg" className="border-white/30 hover:bg-white/10 hover:border-white transition-all duration-300 px-8 py-6 text-lg">
-                View Pricing
-              </Button>
-            </Link>
+<Link href="/pricing">
+  <Button 
+    variant="outline" 
+    size="lg" 
+    className="border-white/30 hover:bg-white/10 hover:border-white transition-all duration-300 px-8 py-6 text-lg text-black"
+  >
+    View Pricing
+  </Button>
+</Link>
+
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-6 text-sm text-white/60">
