@@ -245,10 +245,11 @@ export default function HomePage() {
                 <div className="relative rounded-lg overflow-hidden shadow-xl border border-cyber-400/30">
                   <div className="aspect-video">
                     <iframe 
-                      src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1" 
-                      title="LinguaFlow Demo Video"
+                      src="https://www.youtube-nocookie.com/embed/haCKxBlcc6E?si=xVLIN0p4iGD9iwuf&autoplay=1" 
+                      title="YouTube video player"
                       className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                      referrerPolicy="strict-origin-when-cross-origin"
                       allowFullScreen
                     ></iframe>
                   </div>
