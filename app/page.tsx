@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -8,7 +8,6 @@ import LandingLayout from "@/components/landing/LandingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Brain,
   Zap,
@@ -30,13 +29,15 @@ import {
   Lightbulb,
   Loader2,
   GraduationCap,
+  Play,
 } from "lucide-react";
 
 export default function HomePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
-  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showDemoVideo, setShowDemoVideo] = useState(false);
+  const videoSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -45,6 +46,16 @@ export default function HomePage() {
       router.replace('/dashboard');
     }
   }, [user, loading, router]);
+
+  const handleWatchDemo = () => {
+    setShowDemoVideo(true);
+    // Scroll to video section after a short delay to ensure it's rendered
+    setTimeout(() => {
+      if (videoSectionRef.current) {
+        videoSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
 
   // Show loading state while checking auth
   if (!mounted || loading) {
@@ -200,27 +211,36 @@ export default function HomePage() {
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                 </Button>
               </Link>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="lg" className="border-cyber-400/30 text-cyber-600 dark:text-cyber-400 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300 px-8 py-6 text-lg">
-                    <MessageSquare className="w-5 h-5 mr-2" />
-                    Watch Demo
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-4xl">
-                  <DialogTitle>LinguaFlow Demo Video</DialogTitle>
-                  <div className="aspect-video relative">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-cyber-400/30 text-cyber-600 dark:text-cyber-400 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300 px-8 py-6 text-lg"
+                onClick={handleWatchDemo}
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Watch Demo
+              </Button>
+            </div>
+
+            {/* Demo Video Section */}
+            {showDemoVideo && (
+              <div 
+                ref={videoSectionRef} 
+                className="w-full max-w-4xl mx-auto mb-12 animate-scale-in"
+              >
+                <div className="relative rounded-lg overflow-hidden shadow-xl border border-cyber-400/30">
+                  <div className="aspect-video">
                     <iframe 
-                      src="https://www.youtube.com/embed/haCKxBlcc6E?si=rZdijkixe_XXL-Ms" 
+                      src="https://www.youtube.com/embed/haCKxBlcc6E?si=rZdijkixe_XXL-Ms&autoplay=1" 
                       title="LinguaFlow Demo Video"
-                      className="w-full h-full rounded-md"
+                      className="w-full h-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                       allowFullScreen
                     ></iframe>
                   </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+                </div>
+              </div>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
