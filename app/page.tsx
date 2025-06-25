@@ -211,7 +211,7 @@ export default function HomePage() {
                   <DialogTitle>LinguaFlow Demo Video</DialogTitle>
                   <div className="aspect-video relative">
                     <iframe 
-                      src="https://www.youtube.com/embed/haCKxBlcc6E" 
+                      src="https://www.youtube.com/embed/haCKxBlcc6E?si=rZdijkixe_XXL-Ms" 
                       title="LinguaFlow Demo Video"
                       className="w-full h-full rounded-md"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
