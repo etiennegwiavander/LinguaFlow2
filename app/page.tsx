@@ -479,7 +479,7 @@ export default function HomePage() {
   <Button 
     variant="outline" 
     size="lg" 
-    className="border-white/30 hover:bg-white/10 hover:border-white transition-all duration-300 px-8 py-6 text-lg text-black"
+    className="border-white/30 hover:bg-white/10 hover:border-white transition-all duration-300 px-8 py-6 text-lg text-black dark:text-white"
   >
     View Pricing
   </Button>
