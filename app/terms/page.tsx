@@ -3,7 +3,7 @@
 import LandingLayout from "@/components/landing/LandingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Shield, Users, CreditCard, Scale, Globe, Settings, Mail } from "lucide-react";
+import { FileText, Shield, Users, CreditCard, Scale, Globe, Settings, Mail as MailIcon } from "lucide-react";
 
 export default function TermsPage() {
   return (
@@ -327,7 +327,7 @@ export default function TermsPage() {
                 {/* Contact Information */}
                 <div className="mb-12">
                   <h2 className="text-2xl font-bold mb-4 flex items-center">
-                    <Mail className="w-6 h-6 mr-2 text-cyber-400" />
+                    <MailIcon className="w-6 h-6 mr-2 text-cyber-400" />
                     Contact Information
                   </h2>
                   <p className="text-muted-foreground mb-4">

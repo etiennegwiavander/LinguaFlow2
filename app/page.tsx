@@ -8,6 +8,7 @@ import LandingLayout from "@/components/landing/LandingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import {
   Brain,
   Zap,
@@ -35,6 +36,7 @@ export default function HomePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -198,12 +200,25 @@ export default function HomePage() {
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                 </Button>
               </Link>
-              <Link href="#demo">
-                <Button variant="outline" size="lg" className="border-cyber-400/30 text-cyber-600 dark:text-cyber-400 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300 px-8 py-6 text-lg">
-                  <MessageSquare className="w-5 h-5 mr-2" />
-                  Watch Demo
-                </Button>
-              </Link>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="lg" className="border-cyber-400/30 text-cyber-600 dark:text-cyber-400 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300 px-8 py-6 text-lg">
+                    <MessageSquare className="w-5 h-5 mr-2" />
+                    Watch Demo
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-4xl">
+                  <div className="aspect-video relative">
+                    <iframe 
+                      src="https://www.youtube.com/embed/haCKxBlcc6E" 
+                      title="LinguaFlow Demo Video"
+                      className="w-full h-full rounded-md"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* Stats */}
