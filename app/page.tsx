@@ -30,6 +30,7 @@ import {
   Loader2,
   GraduationCap,
   Play,
+  X,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -48,13 +49,16 @@ export default function HomePage() {
   }, [user, loading, router]);
 
   const handleWatchDemo = () => {
-    setShowDemoVideo(true);
-    // Scroll to video section after a short delay to ensure it's rendered
-    setTimeout(() => {
-      if (videoSectionRef.current) {
-        videoSectionRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
+    setShowDemoVideo(!showDemoVideo);
+    
+    // If showing video, scroll to it after a short delay to ensure it's rendered
+    if (!showDemoVideo) {
+      setTimeout(() => {
+        if (videoSectionRef.current) {
+          videoSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
   };
 
   // Show loading state while checking auth
@@ -217,8 +221,17 @@ export default function HomePage() {
                 className="border-cyber-400/30 text-cyber-600 dark:text-cyber-400 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300 px-8 py-6 text-lg"
                 onClick={handleWatchDemo}
               >
-                <Play className="w-5 h-5 mr-2" />
-                Watch Demo
+                {showDemoVideo ? (
+                  <>
+                    <X className="w-5 h-5 mr-2" />
+                    Hide Demo
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5 mr-2" />
+                    Watch Demo
+                  </>
+                )}
               </Button>
             </div>
 
@@ -227,11 +240,12 @@ export default function HomePage() {
               <div 
                 ref={videoSectionRef} 
                 className="w-full max-w-4xl mx-auto mb-12 animate-scale-in"
+                id="demo-video-section"
               >
                 <div className="relative rounded-lg overflow-hidden shadow-xl border border-cyber-400/30">
                   <div className="aspect-video">
                     <iframe 
-                      src="https://www.youtube.com/embed/haCKxBlcc6E?si=rZdijkixe_XXL-Ms&autoplay=1" 
+                      src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" 
                       title="LinguaFlow Demo Video"
                       className="w-full h-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
