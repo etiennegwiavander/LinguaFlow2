@@ -23,13 +23,6 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
-# Add catch-all redirect for SPA routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  force = true
-
 [[headers]]
   for = "/*"
   [headers.values]
