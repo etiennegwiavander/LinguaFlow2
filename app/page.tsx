@@ -245,7 +245,7 @@ export default function HomePage() {
                 <div className="relative rounded-lg overflow-hidden shadow-xl border border-cyber-400/30">
                   <div className="aspect-video">
                     <iframe 
-                      src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" 
+                      src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1" 
                       title="LinguaFlow Demo Video"
                       className="w-full h-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
