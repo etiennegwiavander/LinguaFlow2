@@ -11,7 +11,6 @@ export default function Footer() {
       { label: "Features", href: "#features" },
       { label: "Pricing", href: "/pricing" },
       { label: "FAQ", href: "/faq" },
-      { label: "Roadmap", href: "#roadmap" },
     ],
     company: [
       { label: "About", href: "#about" },
@@ -25,7 +24,7 @@ export default function Footer() {
       { label: "Cookie Policy", href: "#cookies" },
       { label: "GDPR", href: "#gdpr" },
     ],
-    support: [
+    support: [ 
       { label: "Help Center", href: "#help" },
       { label: "Documentation", href: "#docs" },
       { label: "API Reference", href: "#api" },
@@ -34,10 +33,10 @@ export default function Footer() {
   };
 
   const socialLinks = [
-    { icon: Github, href: "#github", label: "GitHub" },
-    { icon: Twitter, href: "#twitter", label: "Twitter" },
-    { icon: Linkedin, href: "#linkedin", label: "LinkedIn" },
-    { icon: Mail, href: "mailto:hello@linguaflow.com", label: "Email" },
+    { icon: Github, href: "https://github.com/etiennegwiavander", label: "GitHub" },
+    { icon: Twitter, href: "https://teams.live.com/l/message/19:19564ad44a2eb7802749fea8ef8d1bc6c774003fb03f7681f922269bba575bda@oneToOne.skype/1750916943331?context=%7B%22contextType%22%3A%22chat%22%7D", label: "X" },
+    { icon: Linkedin, href: "www.linkedin.com/in/etienne-gwiavander-lakiebukeh", label: "LinkedIn" },
+    { icon: Mail, href: "gwiavanderetienne2@mail.com", label: "Email" },
   ];
 
   return (
