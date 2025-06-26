@@ -52,6 +52,9 @@ export default function DashboardPage() {
   }, [user]);
 
   const fetchDashboardData = async () => {
+    // Add null check for user at the beginning of the function
+    if (!user) return;
+    
     try {
       setLoading(true);
       // Fetch tutor profile
@@ -155,6 +158,9 @@ export default function DashboardPage() {
   };
 
   const fetchCalendarEvents = async () => {
+    // Add null check for user at the beginning of the function
+    if (!user) return;
+    
     try {
       // Fetch calendar events for the next 48 hours
       const now = new Date();
