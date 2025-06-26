@@ -44,12 +44,27 @@ export default function DashboardPage() {
   const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date>(new Date());
 
   useEffect(() => {
     if (!user) return;
 
     fetchDashboardData();
-  }, [user]);
+    
+    // Set up automatic refresh every 30 minutes
+    const refreshInterval = setInterval(() => {
+      if (isCalendarConnected) {
+        handleRefreshCalendar();
+      } else {
+        fetchDashboardData();
+      }
+      setLastRefreshTime(new Date());
+    }, 30 * 60 * 1000); // 30 minutes in milliseconds
+    
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [user, isCalendarConnected]);
 
   const fetchDashboardData = async () => {
     // Add null check for user at the beginning of the function
@@ -112,7 +127,7 @@ export default function DashboardPage() {
 
       if (totalLessonsError) throw totalLessonsError;
 
-      // Fetch completed lessons count for this month
+      // Fetch lessons count for this month (all lessons, not just completed)
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
@@ -121,7 +136,6 @@ export default function DashboardPage() {
         .from('lessons')
         .select('*', { count: 'exact', head: true })
         .eq('tutor_id', user.id)
-        .eq('status', 'completed')
         .gte('date', startOfMonth.toISOString());
 
       if (monthlyError) throw monthlyError;
@@ -198,6 +212,9 @@ export default function DashboardPage() {
       
       // Fetch updated calendar events
       await fetchCalendarEvents();
+      
+      // Refresh dashboard data to update stats
+      await fetchDashboardData();
       
       toast.success(`Calendar refreshed: ${result.events_count} events synced`);
     } catch (error: any) {
