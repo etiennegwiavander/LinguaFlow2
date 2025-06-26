@@ -14,21 +14,21 @@ export default function Footer() {
     ],
     company: [
       { label: "About", href: "#about" },
-      { label: "Blog", href: "#blog" },
-      { label: "Careers", href: "#careers" },
+      // { label: "Blog", href: "#blog" },
+      // { label: "Careers", href: "#careers" },
       { label: "Contact", href: "#contact" },
     ],
     legal: [
       { label: "Privacy Policy", href: "/privacy" },
       { label: "Terms of Service", href: "/terms" },
       { label: "Cookie Policy", href: "#cookies" },
-      { label: "GDPR", href: "#gdpr" },
+      // { label: "GDPR", href: "#gdpr" },
     ],
     support: [ 
       { label: "Help Center", href: "#help" },
       { label: "Documentation", href: "#docs" },
-      { label: "API Reference", href: "#api" },
-      { label: "Status", href: "#status" },
+      // { label: "API Reference", href: "#api" },
+      // { label: "Status", href: "#status" },
     ],
   };
 
