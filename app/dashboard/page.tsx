@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/components/main-layout";
 import LessonCard from "@/components/dashboard/LessonCard";
 import StatsCard from "@/components/dashboard/StatsCard";
-import { Clock, Calendar, Sparkles, Loader2, TrendingUp, Users, BarChart3, ExternalLink } from "lucide-react";
+import { Clock, Calendar, Sparkles, Loader2, TrendingUp, Users, BarChart3, ExternalLink, RefreshCcw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Lesson, Stat } from "@/types";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format, addHours, parseISO } from "date-fns";
 
 interface TutorProfile {
@@ -41,120 +42,164 @@ export default function DashboardPage() {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [stats, setStats] = useState<Stat[]>([]);
   const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
+  const [isCalendarConnected, setIsCalendarConnected] = useState(false);
+  const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
 
   useEffect(() => {
     if (!user) return;
 
-    const fetchDashboardData = async () => {
-      try {
-        // Fetch tutor profile
-        const { data: tutorData, error: tutorError } = await supabase
-          .from('tutors')
-          .select('name, email, avatar_url')
-          .eq('id', user.id)
-          .single();
-
-        if (tutorError) {
-          console.error('Error fetching tutor profile:', tutorError);
-        } else {
-          setTutorProfile(tutorData);
-        }
-
-        // Fetch upcoming lessons with student details
-        const { data: lessonsData, error: lessonsError } = await supabase
-          .from('lessons')
-          .select(`
-            *,
-            student:students(*)
-          `)
-          .eq('tutor_id', user.id)
-          .gte('date', new Date().toISOString())
-          .order('date', { ascending: true })
-          .limit(6);
-
-        if (lessonsError) throw lessonsError;
-
-        // Fetch calendar events for the next 48 hours
-        const now = new Date();
-        const fortyEightHoursFromNow = addHours(now, 48);
-        
-        const { data: calendarData, error: calendarError } = await supabase
-          .from('calendar_events')
-          .select('*')
-          .eq('tutor_id', user.id)
-          .gte('start_time', now.toISOString())
-          .lte('start_time', fortyEightHoursFromNow.toISOString())
-          .order('start_time', { ascending: true });
-
-        if (calendarError) {
-          console.error('Error fetching calendar events:', calendarError);
-        } else {
-          setCalendarEvents(calendarData || []);
-        }
-
-        // Fetch total students count
-        const { count: studentsCount, error: studentsError } = await supabase
-          .from('students')
-          .select('*', { count: 'exact', head: true })
-          .eq('tutor_id', user.id);
-
-        if (studentsError) throw studentsError;
-
-        // Fetch total lessons count
-        const { count: lessonsCount, error: totalLessonsError } = await supabase
-          .from('lessons')
-          .select('*', { count: 'exact', head: true })
-          .eq('tutor_id', user.id);
-
-        if (totalLessonsError) throw totalLessonsError;
-
-        // Fetch completed lessons count for this month
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-
-        const { count: monthlyLessonsCount, error: monthlyError } = await supabase
-          .from('lessons')
-          .select('*', { count: 'exact', head: true })
-          .eq('tutor_id', user.id)
-          .eq('status', 'completed')
-          .gte('date', startOfMonth.toISOString());
-
-        if (monthlyError) throw monthlyError;
-
-        setUpcomingLessons(lessonsData as Lesson[]);
-        setStats([
-          {
-            id: '1',
-            label: 'Total Students',
-            value: studentsCount || 0,
-            change: 5.4,
-            icon: 'Users'
-          },
-          {
-            id: '2',
-            label: 'Total Lessons',
-            value: lessonsCount || 0,
-            change: 8.2,
-            icon: 'BarChart3'
-          },
-          {
-            id: '3',
-            label: 'Lessons This Month',
-            value: monthlyLessonsCount || 0,
-            change: 12.7,
-            icon: 'Calendar'
-          }
-        ]);
-      } catch (error: any) {
-        toast.error(error.message || 'Failed to fetch dashboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, [user]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      // Fetch tutor profile
+      const { data: tutorData, error: tutorError } = await supabase
+        .from('tutors')
+        .select('name, email, avatar_url')
+        .eq('id', user.id)
+        .single();
+
+      if (tutorError) {
+        console.error('Error fetching tutor profile:', tutorError);
+      } else {
+        setTutorProfile(tutorData);
+      }
+
+      // Fetch upcoming lessons with student details
+      const { data: lessonsData, error: lessonsError } = await supabase
+        .from('lessons')
+        .select(`
+          *,
+          student:students(*)
+        `)
+        .eq('tutor_id', user.id)
+        .gte('date', new Date().toISOString())
+        .order('date', { ascending: true })
+        .limit(6);
+
+      if (lessonsError) throw lessonsError;
+
+      // Check if calendar is connected
+      const { data: googleTokens, error: tokensError } = await supabase
+        .from('google_tokens')
+        .select('id')
+        .eq('tutor_id', user.id)
+        .maybeSingle();
+
+      if (!tokensError && googleTokens) {
+        setIsCalendarConnected(true);
+        await fetchCalendarEvents();
+      }
+
+      // Fetch total students count
+      const { count: studentsCount, error: studentsError } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true })
+        .eq('tutor_id', user.id);
+
+      if (studentsError) throw studentsError;
+
+      // Fetch total lessons count
+      const { count: lessonsCount, error: totalLessonsError } = await supabase
+        .from('lessons')
+        .select('*', { count: 'exact', head: true })
+        .eq('tutor_id', user.id);
+
+      if (totalLessonsError) throw totalLessonsError;
+
+      // Fetch completed lessons count for this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { count: monthlyLessonsCount, error: monthlyError } = await supabase
+        .from('lessons')
+        .select('*', { count: 'exact', head: true })
+        .eq('tutor_id', user.id)
+        .eq('status', 'completed')
+        .gte('date', startOfMonth.toISOString());
+
+      if (monthlyError) throw monthlyError;
+
+      setUpcomingLessons(lessonsData as Lesson[]);
+      setStats([
+        {
+          id: '1',
+          label: 'Total Students',
+          value: studentsCount || 0,
+          change: 5.4,
+          icon: 'Users'
+        },
+        {
+          id: '2',
+          label: 'Total Lessons',
+          value: lessonsCount || 0,
+          change: 8.2,
+          icon: 'BarChart3'
+        },
+        {
+          id: '3',
+          label: 'Lessons This Month',
+          value: monthlyLessonsCount || 0,
+          change: 12.7,
+          icon: 'Calendar'
+        }
+      ]);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to fetch dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCalendarEvents = async () => {
+    try {
+      // Fetch calendar events for the next 48 hours
+      const now = new Date();
+      const fortyEightHoursFromNow = addHours(now, 48);
+      
+      const { data: calendarData, error: calendarError } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('tutor_id', user.id)
+        .gte('start_time', now.toISOString())
+        .lte('start_time', fortyEightHoursFromNow.toISOString())
+        .order('start_time', { ascending: true });
+
+      if (calendarError) {
+        console.error('Error fetching calendar events:', calendarError);
+      } else {
+        setCalendarEvents(calendarData || []);
+      }
+    } catch (error: any) {
+      console.error('Error in fetchCalendarEvents:', error);
+    }
+  };
+
+  const handleRefreshCalendar = async () => {
+    if (!user || !isCalendarConnected) return;
+
+    try {
+      setIsSyncingCalendar(true);
+      
+      // Import the googleCalendarService
+      const { googleCalendarService } = await import('@/lib/google-calendar');
+      
+      // Sync calendar
+      const result = await googleCalendarService.syncCalendar();
+      
+      // Fetch updated calendar events
+      await fetchCalendarEvents();
+      
+      toast.success(`Calendar refreshed: ${result.events_count} events synced`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to refresh calendar');
+    } finally {
+      setIsSyncingCalendar(false);
+    }
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -290,9 +335,18 @@ export default function DashboardPage() {
                 <h3 className="text-base font-medium text-muted-foreground">
                   Next 48 Hours - Calendar Events ({calendarEvents.length})
                 </h3>
-                <Badge variant="outline" className="text-xs border-cyber-400/30">
-                  From Calendar Sync
-                </Badge>
+                {isCalendarConnected && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleRefreshCalendar}
+                    disabled={isSyncingCalendar}
+                    className="text-xs border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300 btn-ghost-cyber"
+                  >
+                    <RefreshCcw className={`h-3 w-3 mr-1.5 ${isSyncingCalendar ? 'animate-spin' : ''}`} />
+                    {isSyncingCalendar ? 'Refreshing...' : 'Refresh Calendar'}
+                  </Button>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {calendarEvents.map((event, index) => {
@@ -382,9 +436,21 @@ export default function DashboardPage() {
               <h3 className="text-lg font-semibold mb-2">No upcoming lessons</h3>
               <p className="text-muted-foreground mb-4">Schedule some lessons or sync your calendar to see them here</p>
               <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                <Badge variant="outline" className="text-xs border-cyber-400/30">
-                  Connect Google Calendar for automatic lesson detection
-                </Badge>
+                {isCalendarConnected ? (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleRefreshCalendar}
+                    disabled={isSyncingCalendar}
+                    className="btn-ghost-cyber"
+                  >
+                    <RefreshCcw className={`mr-2 h-4 w-4 ${isSyncingCalendar ? 'animate-spin' : ''}`} />
+                    {isSyncingCalendar ? 'Refreshing Calendar...' : 'Refresh Calendar'}
+                  </Button>
+                ) : (
+                  <Badge variant="outline" className="text-xs border-cyber-400/30">
+                    Connect Google Calendar for automatic lesson detection
+                  </Badge>
+                )}
               </div>
             </div>
           ) : (
