@@ -147,7 +147,7 @@ export default function Footer() {
               © {currentYear} LinguaFlow. All rights reserved.
             </p>
             <div className="mt-4 md:mt-0 flex items-center space-x-6">
-              <span className="text-gray-400 text-sm">Made with ❤️ for educators worldwide</span>
+              <span className="text-gray-400 text-sm">Made with ❤️ for Tutors worldwide</span>
             </div>
           </div>
         </div>
