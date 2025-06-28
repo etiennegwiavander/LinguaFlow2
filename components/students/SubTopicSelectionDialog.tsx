@@ -80,7 +80,6 @@ export default function SubTopicSelectionDialog({
 
   // Update edited sub-topics when props change
   useEffect(() => {
-    console.log('🔧 useEffect: Updating editedSubTopics with new subTopics:', subTopics);
     setEditedSubTopics(subTopics);
   }, [subTopics]);
 
@@ -102,8 +101,6 @@ export default function SubTopicSelectionDialog({
   const getCategoryColor = (category: string) => {
     return categoryColors[category as keyof typeof categoryColors] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
-
-  console.log('🔍 DEBUG: About to render dialog with editedSubTopics:', editedSubTopics);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -37,18 +37,15 @@ export default function CalendarPage() {
       // Verify origin for security
       const expectedOrigin = window.location.origin;
       if (event.origin !== expectedOrigin) {
-        console.warn('Received message from unexpected origin:', event.origin);
         return;
       }
 
       // Check if this is our OAuth callback message
       if (event.data && event.data.type === 'google-oauth-callback') {
-        console.log('📨 Received OAuth callback message:', event.data);
         
         const { status, data, message } = event.data;
         
         if (status === 'success') {
-          console.log('✅ OAuth success detected from popup');
           
           try {
             // Store the tokens using the data from the popup
@@ -61,27 +58,21 @@ export default function CalendarPage() {
                 email: data.email || undefined
               });
               
-              console.log('✅ Tokens stored successfully from popup data');
-              
               // Update connection status
               await checkConnectionStatus();
               
               toast.success('Google Calendar connected successfully!');
               
               // Auto-sync after connection
-              console.log('🔄 Auto-syncing calendar...');
               await handleSync();
               
             } else {
-              console.error('❌ Missing token data in popup message');
               toast.error('Incomplete OAuth data received');
             }
           } catch (error: any) {
-            console.error('❌ Failed to process OAuth data from popup:', error);
             toast.error(error.message || 'Failed to complete Google Calendar connection');
           }
         } else {
-          console.error('❌ OAuth error from popup:', message);
           toast.error(`Google Calendar connection failed: ${message}`);
         }
       }
@@ -102,7 +93,6 @@ export default function CalendarPage() {
       const authStatus = searchParams.get('google_auth_status');
       
       if (authStatus === 'success') {
-        console.log('✅ OAuth success detected in URL (manual connection)');
         
         // For manual connections, we don't have token data in URL
         // Just check connection status and sync
@@ -111,11 +101,9 @@ export default function CalendarPage() {
           toast.success('Google Calendar connected successfully!');
           
           // Auto-sync after connection
-          console.log('🔄 Auto-syncing calendar...');
           await handleSync();
           
         } catch (error: any) {
-          console.error('❌ Failed to complete manual connection:', error);
           toast.error(error.message || 'Failed to complete Google Calendar connection');
         }
         
@@ -127,7 +115,6 @@ export default function CalendarPage() {
         
       } else if (authStatus === 'error') {
         const errorMessage = searchParams.get('message') || 'Unknown error occurred';
-        console.error('❌ OAuth error detected in URL:', errorMessage);
         toast.error(`Google Calendar connection failed: ${errorMessage}`);
         
         // Clean up URL parameters
@@ -157,7 +144,7 @@ export default function CalendarPage() {
         setEmail(status.email);
       }
     } catch (error) {
-      console.error('Failed to check connection status:', error);
+      // Error handling without console.error
     }
   };
 
@@ -191,15 +178,11 @@ export default function CalendarPage() {
     setShowPopupBlockedAlert(false);
     
     try {
-      console.log('🚀 Starting OAuth flow...');
       
       // Try to initiate OAuth with popup
       await googleCalendarService.initiateOAuth(email);
       
-      console.log('✅ OAuth popup opened, waiting for callback...');
-      
     } catch (error: any) {
-      console.error('❌ OAuth flow failed:', error);
       
       if (error.message === 'POPUP_BLOCKED') {
         // Show popup blocked alert with manual option

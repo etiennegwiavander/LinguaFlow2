@@ -80,7 +80,7 @@ export default function DashboardPage() {
         .single();
 
       if (tutorError) {
-        console.error('Error fetching tutor profile:', tutorError);
+        // Error handling without console.error
       } else {
         setTutorProfile(tutorData);
       }
@@ -189,12 +189,12 @@ export default function DashboardPage() {
         .order('start_time', { ascending: true });
 
       if (calendarError) {
-        console.error('Error fetching calendar events:', calendarError);
+        // Error handling without console.error
       } else {
         setCalendarEvents(calendarData || []);
       }
     } catch (error: any) {
-      console.error('Error in fetchCalendarEvents:', error);
+      // Error handling without console.error
     }
   };
 

@@ -113,8 +113,6 @@ export class GoogleCalendarService {
 
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
-        console.log('🔗 Opening Google OAuth URL');
-
         // Try to open popup window with better error handling
         const width = 600;
         const height = 600;
@@ -135,14 +133,11 @@ export class GoogleCalendarService {
             return;
           }
 
-          console.log('🔗 Popup window opened successfully');
-
           // Monitor popup window
           const checkClosed = setInterval(() => {
             if (this.popupWindow && this.popupWindow.closed) {
               clearInterval(checkClosed);
               // Don't reject here as the user might have completed auth
-              console.log('🔗 Popup window was closed');
             }
           }, 1000);
 
@@ -157,7 +152,6 @@ export class GoogleCalendarService {
           resolve();
 
         } catch (error) {
-          console.error('❌ Failed to open popup:', error);
           reject(new Error('POPUP_BLOCKED'));
         }
       }).catch(reject);

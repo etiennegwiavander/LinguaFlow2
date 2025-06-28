@@ -17,7 +17,6 @@ export default function GoogleCallbackPage() {
           // For now, we'll just redirect back to the calendar page
           router.push("/calendar");
         } catch (error) {
-          console.error("Error handling Google callback:", error);
           router.push("/calendar?error=auth_failed");
         }
       } else {
