@@ -150,7 +150,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
             setGeneratedLessons(parsedLessons);
             setHasGeneratedBefore(true);
           } catch (parseError) {
-            // Error handling without console.error
+            // Handle parse error silently
           }
         }
       } else {
@@ -168,7 +168,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         setShowOnboarding(true);
       }
     } catch (error) {
-      // Error handling without console.error
+      // Handle error silently
     } finally {
       setLoadingUpcomingLesson(false);
     }
