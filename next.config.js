@@ -101,6 +101,26 @@ const nextConfig = {
       }
     });
     
+    // Fix for preload warnings
+    if (!isServer) {
+      // Find the rule that handles font files
+      const fontRule = config.module.rules.find(rule => 
+        rule.test && rule.test.toString().includes('woff')
+      );
+      
+      // If found, modify it to not use preload
+      if (fontRule && fontRule.use && Array.isArray(fontRule.use)) {
+        fontRule.use.forEach(loader => {
+          if (loader.loader === 'next-font-loader' || 
+              (typeof loader === 'string' && loader.includes('next-font-loader'))) {
+            if (typeof loader === 'object' && loader.options) {
+              loader.options.preload = false;
+            }
+          }
+        });
+      }
+    }
+    
     return config;
   },
   // Exclude supabase/functions from TypeScript compilation at the Next.js level
@@ -116,7 +136,7 @@ const nextConfig = {
   swcMinify: false,
   // Add compiler options to help with build stability
   compiler: {
-    removeConsole: false,
+    removeConsole: true,
   },
   // Add distDir to ensure proper build output
   distDir: '.next',
