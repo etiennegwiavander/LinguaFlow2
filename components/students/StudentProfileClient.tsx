@@ -116,11 +116,15 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
   // Load upcoming lesson and any existing generated lessons
   const loadUpcomingLesson = async () => {
+    console.log('🔄 loadUpcomingLesson called');
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log('❌ No user found in loadUpcomingLesson');
         return;
       }
+
+      console.log('🔍 Searching for upcoming lessons for student:', student.id);
 
       // Find the most recent upcoming lesson for this student
       const { data: lessons, error } = await supabase
@@ -133,13 +137,21 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         .limit(1);
 
       if (error) {
+        console.error('❌ Error loading upcoming lesson:', error);
         return;
       }
 
+      console.log('📊 Raw query results from database:', lessons);
+
       if (lessons && lessons.length > 0) {
         const lesson = lessons[0];
+        console.log('✅ Found upcoming lesson:', lesson);
+        console.log('🔍 DEBUG: Raw lesson.sub_topics from database:', lesson.sub_topics);
+        console.log('🔍 DEBUG: Type of lesson.sub_topics:', typeof lesson.sub_topics);
+        console.log('🔍 DEBUG: Is lesson.sub_topics an array?', Array.isArray(lesson.sub_topics));
         
         setUpcomingLesson(lesson);
+        console.log('🔍 DEBUG: Set upcomingLesson state to:', lesson);
 
         // If the lesson has generated content, parse and display it
         if (lesson.generated_lessons && lesson.generated_lessons.length > 0) {
@@ -149,11 +161,20 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
             );
             setGeneratedLessons(parsedLessons);
             setHasGeneratedBefore(true);
+            console.log('✅ Parsed generated lessons:', parsedLessons.length);
           } catch (parseError) {
-            // Handle parse error silently
+            console.error('❌ Error parsing generated lessons:', parseError);
           }
         }
+
+        // Log sub-topics for debugging
+        if (lesson.sub_topics && Array.isArray(lesson.sub_topics)) {
+          console.log('✅ Loaded sub-topics from lesson:', lesson.sub_topics.length, lesson.sub_topics);
+        } else {
+          console.log('⚠️ No sub-topics found in lesson or invalid format:', lesson.sub_topics);
+        }
       } else {
+        console.log('ℹ️ No upcoming lessons found');
         setUpcomingLesson(null);
       }
 
@@ -168,9 +189,10 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         setShowOnboarding(true);
       }
     } catch (error) {
-      // Handle error silently
+      console.error('❌ Error in loadUpcomingLesson:', error);
     } finally {
       setLoadingUpcomingLesson(false);
+      console.log('✅ loadUpcomingLesson completed');
     }
   };
 
@@ -183,10 +205,14 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     setGenerationProgress("Analyzing learning profile...");
     
     try {
+      console.log('🚀 Starting lesson generation for student:', student.id);
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Not authenticated');
       }
+
+      console.log('✅ Session found, making request to edge function...');
 
       // Update progress message
       setTimeout(() => setGenerationProgress(`Crafting personalized lesson ideas for ${student.name}...`), 1000);
@@ -194,6 +220,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       setTimeout(() => setGenerationProgress("Generating focused sub-topics..."), 3000);
 
       const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-lesson-plan`;
+      console.log('📡 Function URL:', functionUrl);
 
       let requestBody;
       
@@ -202,12 +229,16 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         requestBody = {
           lesson_id: upcomingLesson.id
         };
+        console.log('🔄 Updating existing lesson:', upcomingLesson.id);
       } else {
         // Create new lesson (legacy mode)
         requestBody = {
           student_id: student.id
         };
+        console.log('➕ Creating new lesson for student:', student.id);
       }
+
+      console.log('📦 Request body:', requestBody);
 
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -218,8 +249,12 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         body: JSON.stringify(requestBody),
       });
 
+      console.log('📨 Response status:', response.status);
+      console.log('📨 Response ok:', response.ok);
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Response error text:', errorText);
         
         let errorData;
         try {
@@ -232,6 +267,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       }
 
       const result = await response.json();
+      console.log('✅ Response data:', result);
       
       if (result.success && result.lessons) {
         setGeneratedLessons(result.lessons);
@@ -246,10 +282,12 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
             sub_topics: result.sub_topics || null,
             lesson_template_id: result.lesson_template_id || upcomingLesson.lesson_template_id
           });
+          console.log('✅ Updated upcomingLesson state with sub-topics:', result.sub_topics?.length || 0);
         }
         
         // If we created a new lesson, we might want to refresh the upcoming lesson
         if (result.created) {
+          console.log('🔄 Reloading upcoming lesson data after creation...');
           await loadUpcomingLesson();
         }
         
@@ -259,6 +297,8 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         throw new Error(result.error || 'Invalid response format');
       }
     } catch (error: any) {
+      console.error('❌ Error generating lessons:', error);
+      
       // Provide more specific error messages
       if (error.message.includes('Failed to fetch')) {
         toast.error('Network error: Unable to connect to the lesson generation service. Please check your internet connection and try again.');
@@ -303,25 +343,38 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
   };
 
   const handleUseLessonPlan = async (lessonIndex: number) => {
+    console.log('🎯 handleUseLessonPlan called with index:', lessonIndex);
+    
     if (!upcomingLesson) {
+      console.log('❌ No upcoming lesson available');
       toast.error('No lesson available to generate interactive material for');
       return;
     }
 
     // Get sub-topics directly from upcomingLesson
     const subTopics = upcomingLesson.sub_topics || [];
+    console.log('🔍 Sub-topics from upcomingLesson:', subTopics.length, subTopics);
+    console.log('🔍 DEBUG: Type of subTopics:', typeof subTopics);
+    console.log('🔍 DEBUG: Is subTopics an array?', Array.isArray(subTopics));
+    console.log('🔍 DEBUG: Raw subTopics value:', subTopics);
 
     if (!subTopics || subTopics.length === 0) {
+      console.log('❌ No sub-topics available in upcomingLesson');
       toast.error('No sub-topics available. Please regenerate lesson plans.');
       return;
     }
+
+    console.log('🔍 DEBUG: About to pass availableSubTopics to dialog:', subTopics);
 
     // Open the sub-topic selection dialog
     setIsSubTopicDialogOpen(true);
   };
 
   const handleSelectSubTopic = async (subTopic: SubTopic) => {
+    console.log('🎯 handleSelectSubTopic called with:', subTopic);
+    
     if (!upcomingLesson) {
+      console.log('❌ No upcoming lesson available');
       toast.error('No lesson available to generate interactive material for');
       return;
     }
@@ -331,6 +384,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     setIsSubTopicDialogOpen(false);
 
     try {
+      console.log('🎯 Generating interactive material for sub-topic:', subTopic.title);
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Not authenticated');
@@ -348,6 +403,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         selected_sub_topic: subTopic
       };
 
+      console.log('📦 Interactive material request:', requestBody);
+
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
@@ -359,6 +416,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Interactive material generation error:', errorText);
         
         let errorData;
         try {
@@ -371,6 +429,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
       }
 
       const result = await response.json();
+      console.log('✅ Interactive material generated:', result);
       
       if (result.success) {
         // Update the upcoming lesson state with the new interactive content
@@ -392,6 +451,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         throw new Error(result.error || 'Failed to generate interactive material');
       }
     } catch (error: any) {
+      console.error('❌ Error generating interactive material:', error);
       toast.error(error.message || 'Failed to generate interactive lesson material. Please try again.');
     } finally {
       setIsGeneratingInteractive(false);
@@ -448,6 +508,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
   // Get sub-topics directly from upcomingLesson
   const availableSubTopics = upcomingLesson?.sub_topics || [];
+  console.log('🔍 DEBUG: availableSubTopics in render:', availableSubTopics);
 
   return (
     <MainLayout>
