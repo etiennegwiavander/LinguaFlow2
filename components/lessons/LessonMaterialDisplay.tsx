@@ -3,25 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { 
-  BookOpen, 
-  Loader2, 
-  Target, 
-  Sparkles, 
-  Languages, 
-  Info, 
-  Lightbulb,
-  MessageSquare,
-  Pencil,
-  Volume2,
-  Zap,
-  Headphones,
-  Mic,
-  CheckCircle,
-  XCircle,
-  HelpCircle,
-  Translate
-} from "lucide-react";
+import { BookOpen, Loader2, Target, Sparkles, Languages, Info, Lightbulb, MessageSquare, Pencil, Volume2, Zap, Headphones, Mic, CheckCircle, XCircle, HelpCircle, HandPlatter as Translate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
