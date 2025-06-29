@@ -59,12 +59,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Textarea } from "@/components/ui/textarea";
 import StudentForm from "@/components/students/StudentForm";
 import LessonMaterialDisplay from "@/components/lessons/LessonMaterialDisplay";
 import SubTopicSelectionDialog from "@/components/students/SubTopicSelectionDialog";
 import EditImprovementAreasDialog from "@/components/students/EditImprovementAreasDialog";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+
 
 interface LessonPlan {
   title: string;
@@ -74,6 +76,7 @@ interface LessonPlan {
   assessment: string[];
   sub_topics?: SubTopic[];
 }
+
 
 interface UpcomingLesson {
   id: string;
@@ -85,9 +88,11 @@ interface UpcomingLesson {
   interactive_lesson_content: any | null;
 }
 
+
 interface StudentProfileClientProps {
   student: Student;
 }
+
 
 export default function StudentProfileClient({ student }: StudentProfileClientProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -103,7 +108,12 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [isGeneratingInteractive, setIsGeneratingInteractive] = useState(false);
   const [interactiveGenerationProgress, setInteractiveGenerationProgress] = useState("");
   const [isSubTopicDialogOpen, setIsSubTopicDialogOpen] = useState(false);
-  const [isEditImprovementAreasOpen, setIsEditImprovementAreasOpen] = useState(false);
+  const [isImprovementAreasDialogOpen, setIsImprovementAreasDialogOpen] = useState(false);
+  const [editingLessonIndex, setEditingLessonIndex] = useState<number | null>(null);
+  const [editedLessonPlan, setEditedLessonPlan] = useState<LessonPlan | null>(null);
+  const [isEditingLessonPlan, setIsEditingLessonPlan] = useState(false);
+  const [isSavingLessonPlan, setIsSavingLessonPlan] = useState(false);
+
 
   const getInitials = (name: string) => {
     return name
@@ -113,9 +123,11 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       .toUpperCase();
   };
 
+
   const getLanguageInfo = (code: string) => {
     return languages.find(lang => lang.code === code) || { code, name: code, flag: '🌐' };
   };
+
 
   // Load upcoming lesson and any existing generated lessons
   const loadUpcomingLesson = async () => {
@@ -152,7 +164,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
             setGeneratedLessons(parsedLessons);
             setHasGeneratedBefore(true);
           } catch (parseError) {
-            // Handle parse error
+            // Error handling
           }
         }
       } else {
@@ -170,15 +182,17 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         setShowOnboarding(true);
       }
     } catch (error) {
-      // Handle error
+      // Error handling
     } finally {
       setLoadingUpcomingLesson(false);
     }
   };
 
+
   useEffect(() => {
     loadUpcomingLesson();
   }, [student.id]);
+
 
   const handleGenerateLessons = async () => {
     setIsGenerating(true);
@@ -275,6 +289,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     }
   };
 
+
   const copyToClipboard = async (content: string, type: string) => {
     try {
       await navigator.clipboard.writeText(content);
@@ -283,6 +298,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       toast.error('Failed to copy to clipboard');
     }
   };
+
 
   const copyLessonPlan = async (lesson: LessonPlan) => {
     const content = `
@@ -304,6 +320,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     await copyToClipboard(content, 'Lesson plan');
   };
 
+
   const handleUseLessonPlan = async (lessonIndex: number) => {
     if (!upcomingLesson) {
       toast.error('No lesson available to generate interactive material for');
@@ -321,6 +338,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     // Open the sub-topic selection dialog
     setIsSubTopicDialogOpen(true);
   };
+
 
   const handleSelectSubTopic = async (subTopic: SubTopic) => {
     if (!upcomingLesson) {
@@ -401,6 +419,55 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     }
   };
 
+
+  const handleEditLessonPlan = (lessonIndex: number) => {
+    setEditingLessonIndex(lessonIndex);
+    setEditedLessonPlan({...generatedLessons[lessonIndex]});
+    setIsEditingLessonPlan(true);
+  };
+
+
+  const handleSaveLessonPlan = async () => {
+    if (editingLessonIndex === null || !editedLessonPlan || !upcomingLesson) {
+      return;
+    }
+
+    setIsSavingLessonPlan(true);
+
+    try {
+      // Update the lesson plan in the state
+      const updatedLessons = [...generatedLessons];
+      updatedLessons[editingLessonIndex] = editedLessonPlan;
+      setGeneratedLessons(updatedLessons);
+
+      // Update the lesson plan in the database
+      const updatedLessonStrings = updatedLessons.map(lesson => JSON.stringify(lesson));
+      
+      const { error } = await supabase
+        .from('lessons')
+        .update({
+          generated_lessons: updatedLessonStrings
+        })
+        .eq('id', upcomingLesson.id);
+
+      if (error) throw error;
+
+      // Update the upcoming lesson state
+      setUpcomingLesson({
+        ...upcomingLesson,
+        generated_lessons: updatedLessonStrings
+      });
+
+      toast.success('Lesson plan updated successfully');
+      setIsEditingLessonPlan(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update lesson plan');
+    } finally {
+      setIsSavingLessonPlan(false);
+    }
+  };
+
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -408,12 +475,15 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     return 'Good evening';
   };
 
+
   const getDisplayName = () => {
     return student.name.split(' ')[0]; // First name only
   };
 
+
   const languageInfo = getLanguageInfo(student.target_language);
   const nativeLanguageInfo = student.native_language ? getLanguageInfo(student.native_language) : null;
+
 
   const getButtonText = () => {
     if (isGenerating) {
@@ -433,6 +503,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     return hasGeneratedBefore ? 'Generate New Lesson Ideas' : 'Generate Lesson Ideas';
   };
 
+
   const getButtonIcon = () => {
     if (isGenerating) {
       return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
@@ -442,14 +513,17 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
       <Target className="mr-2 h-4 w-4" />;
   };
 
+
   const getProgressMessage = () => {
     if (generationProgress) return generationProgress;
     if (isGenerating) return "This may take a moment...";
     return "";
   };
 
+
   // Get sub-topics directly from upcomingLesson
   const availableSubTopics = upcomingLesson?.sub_topics || [];
+
 
   return (
     <MainLayout>
@@ -492,6 +566,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           </Button>
         </div>
 
+
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           
@@ -517,6 +592,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               <span className="sm:hidden">Profile</span>
             </TabsTrigger>
           </TabsList>
+
 
           {/* AI Lesson Architect Tab */}
           <TabsContent value="ai-architect" className="space-y-6 animate-scale-in">
@@ -561,6 +637,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     </AlertDescription>
                   </Alert>
                 )}
+
 
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-cyber-400/20">
                   <div className="space-y-2 flex-1">
@@ -620,6 +697,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                 </div>
 
 
+
                 {generatedLessons.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -676,7 +754,12 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                     </>
                                   )}
                                 </Button>
-                                <Button variant="outline" size="sm" className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
+                                  onClick={() => handleEditLessonPlan(index)}
+                                >
                                   <Edit className="w-4 h-4 mr-2" />
                                   Edit Plan
                                 </Button>
@@ -695,6 +778,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                 </Button>
                               </div>
 
+
                               {/* Interactive Generation Progress */}
                               {isGeneratingInteractive && (
                                 <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -703,67 +787,186 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                 </div>
                               )}
 
-                              <div className="grid gap-6 md:grid-cols-2">
-                                <div>
-                                  <h4 className="font-medium mb-3 flex items-center">
-                                    <Target className="w-4 h-4 mr-2 text-blue-600" />
-                                    Lesson Objectives
-                                  </h4>
-                                  <ul className="space-y-2">
-                                    {lesson.objectives.map((objective: string, objIndex: number) => (
-                                      <li key={objIndex} className="text-sm flex items-start">
-                                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                        {objective}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
 
-                                <div>
-                                  <h4 className="font-medium mb-3 flex items-center">
-                                    <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
-                                    Activities
-                                  </h4>
-                                  <ul className="space-y-2">
-                                    {lesson.activities.map((activity: string, actIndex: number) => (
-                                      <li key={actIndex} className="text-sm flex items-start">
-                                        <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                        {activity}
-                                      </li>
-                                    ))}
-                                  </ul>
+                              {/* Lesson Plan Editing UI */}
+                              {isEditingLessonPlan && editingLessonIndex === index && editedLessonPlan && (
+                                <div className="space-y-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="lesson-title" className="font-medium">Lesson Title</Label>
+                                    <input
+                                      id="lesson-title"
+                                      value={editedLessonPlan.title}
+                                      onChange={(e) => setEditedLessonPlan({...editedLessonPlan, title: e.target.value})}
+                                      className="w-full p-2 rounded-md border border-cyber-400/30 focus:border-cyber-400 focus:ring-cyber-400/20 bg-white/50 dark:bg-gray-900/50"
+                                    />
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <Label htmlFor="lesson-objectives" className="font-medium flex items-center">
+                                      <Target className="w-4 h-4 mr-2 text-blue-600" />
+                                      Objectives
+                                    </Label>
+                                    <Textarea
+                                      id="lesson-objectives"
+                                      value={editedLessonPlan.objectives.join('\n')}
+                                      onChange={(e) => setEditedLessonPlan({
+                                        ...editedLessonPlan, 
+                                        objectives: e.target.value.split('\n').filter(line => line.trim() !== '')
+                                      })}
+                                      className="min-h-[100px] border-cyber-400/30 focus:border-cyber-400"
+                                      placeholder="Enter each objective on a new line"
+                                    />
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <Label htmlFor="lesson-activities" className="font-medium flex items-center">
+                                      <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
+                                      Activities
+                                    </Label>
+                                    <Textarea
+                                      id="lesson-activities"
+                                      value={editedLessonPlan.activities.join('\n')}
+                                      onChange={(e) => setEditedLessonPlan({
+                                        ...editedLessonPlan, 
+                                        activities: e.target.value.split('\n').filter(line => line.trim() !== '')
+                                      })}
+                                      className="min-h-[100px] border-cyber-400/30 focus:border-cyber-400"
+                                      placeholder="Enter each activity on a new line"
+                                    />
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <Label htmlFor="lesson-materials" className="font-medium flex items-center">
+                                      <Book className="w-4 h-4 mr-2 text-green-600" />
+                                      Materials
+                                    </Label>
+                                    <Textarea
+                                      id="lesson-materials"
+                                      value={editedLessonPlan.materials.join('\n')}
+                                      onChange={(e) => setEditedLessonPlan({
+                                        ...editedLessonPlan, 
+                                        materials: e.target.value.split('\n').filter(line => line.trim() !== '')
+                                      })}
+                                      className="min-h-[100px] border-cyber-400/30 focus:border-cyber-400"
+                                      placeholder="Enter each material on a new line"
+                                    />
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <Label htmlFor="lesson-assessment" className="font-medium flex items-center">
+                                      <GraduationCap className="w-4 h-4 mr-2 text-orange-600" />
+                                      Assessment
+                                    </Label>
+                                    <Textarea
+                                      id="lesson-assessment"
+                                      value={editedLessonPlan.assessment.join('\n')}
+                                      onChange={(e) => setEditedLessonPlan({
+                                        ...editedLessonPlan, 
+                                        assessment: e.target.value.split('\n').filter(line => line.trim() !== '')
+                                      })}
+                                      className="min-h-[100px] border-cyber-400/30 focus:border-cyber-400"
+                                      placeholder="Enter each assessment item on a new line"
+                                    />
+                                  </div>
+                                  
+                                  <div className="flex justify-end space-x-2 pt-2">
+                                    <Button 
+                                      variant="outline" 
+                                      onClick={() => setIsEditingLessonPlan(false)}
+                                      className="border-cyber-400/30 hover:bg-cyber-400/10"
+                                    >
+                                      <X className="w-4 h-4 mr-2" />
+                                      Cancel
+                                    </Button>
+                                    <Button 
+                                      onClick={handleSaveLessonPlan}
+                                      disabled={isSavingLessonPlan}
+                                      className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
+                                    >
+                                      {isSavingLessonPlan ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                          Saving...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Save className="w-4 h-4 mr-2" />
+                                          Save Changes
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
                                 </div>
+                              )}
 
-                                <div>
-                                  <h4 className="font-medium mb-3 flex items-center">
-                                    <Book className="w-4 h-4 mr-2 text-green-600" />
-                                    Materials Needed
-                                  </h4>
-                                  <ul className="space-y-2">
-                                    {lesson.materials.map((material: string, matIndex: number) => (
-                                      <li key={matIndex} className="text-sm flex items-start">
-                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                        {material}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
 
-                                <div>
-                                  <h4 className="font-medium mb-3 flex items-center">
-                                    <GraduationCap className="w-4 h-4 mr-2 text-orange-600" />
-                                    Assessment Ideas
-                                  </h4>
-                                  <ul className="space-y-2">
-                                    {lesson.assessment.map((item: string, assIndex: number) => (
-                                      <li key={assIndex} className="text-sm flex items-start">
-                                        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                        {item}
-                                      </li>
-                                    ))}
-                                  </ul>
+                              {/* Lesson Plan Content (shown when not editing) */}
+                              {(!isEditingLessonPlan || editingLessonIndex !== index) && (
+                                <div className="grid gap-6 md:grid-cols-2">
+                                  <div>
+                                    <h4 className="font-medium mb-3 flex items-center">
+                                      <Target className="w-4 h-4 mr-2 text-blue-600" />
+                                      Lesson Objectives
+                                    </h4>
+                                    <ul className="space-y-2">
+                                      {lesson.objectives.map((objective: string, objIndex: number) => (
+                                        <li key={objIndex} className="text-sm flex items-start">
+                                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                          {objective}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+
+
+                                  <div>
+                                    <h4 className="font-medium mb-3 flex items-center">
+                                      <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
+                                      Activities
+                                    </h4>
+                                    <ul className="space-y-2">
+                                      {lesson.activities.map((activity: string, actIndex: number) => (
+                                        <li key={actIndex} className="text-sm flex items-start">
+                                          <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                          {activity}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+
+
+                                  <div>
+                                    <h4 className="font-medium mb-3 flex items-center">
+                                      <Book className="w-4 h-4 mr-2 text-green-600" />
+                                      Materials Needed
+                                    </h4>
+                                    <ul className="space-y-2">
+                                      {lesson.materials.map((material: string, matIndex: number) => (
+                                        <li key={matIndex} className="text-sm flex items-start">
+                                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                          {material}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+
+
+                                  <div>
+                                    <h4 className="font-medium mb-3 flex items-center">
+                                      <GraduationCap className="w-4 h-4 mr-2 text-orange-600" />
+                                      Assessment Ideas
+                                    </h4>
+                                    <ul className="space-y-2">
+                                      {lesson.assessment.map((item: string, assIndex: number) => (
+                                        <li key={assIndex} className="text-sm flex items-start">
+                                          <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                          {item}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </AccordionContent>
                           </AccordionItem>
                         );
@@ -771,6 +974,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     </Accordion>
                   </div>
                 )}
+
 
                 {generatedLessons.length === 0 && !isGenerating && (
                   <div className="text-center py-12 border-2 border-dashed border-cyber-400/20 rounded-lg">
@@ -802,6 +1006,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               </CardContent>
             </Card>
           </TabsContent>
+
 
           {/* Lesson Material Tab */}
           <TabsContent value="lesson-material" className="space-y-6 animate-scale-in">
@@ -842,6 +1047,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               </CardContent>
             </Card>
           </TabsContent>
+
 
           {/* Lesson History Tab */}
           <TabsContent value="history" className="space-y-6 animate-scale-in">
@@ -917,6 +1123,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     )}
                   </div>
 
+
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-lg">Last Lesson</h3>
@@ -930,7 +1137,9 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </div>
                 </div>
 
+
                 <Separator className="bg-cyber-400/20" />
+
 
                 <div>
                   <h3 className="font-medium mb-4 text-lg">Lesson Statistics</h3>
@@ -979,6 +1188,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                         </p>
                       </div>
 
+
                       <div>
                         <h4 className="font-medium mb-2">Learning Styles</h4>
                         <div className="flex flex-wrap gap-2">
@@ -991,6 +1201,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       </div>
                     </div>
                   </div>
+
 
                   <div>
                     <h3 className="font-medium mb-3 text-lg">Language Details</h3>
@@ -1021,7 +1232,9 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </div>
                 </div>
 
+
                 <Separator className="bg-cyber-400/20" />
+
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -1029,10 +1242,10 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => setIsEditImprovementAreasOpen(true)}
-                      className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10 max-w-[120px]"
+                      onClick={() => setIsImprovementAreasDialogOpen(true)}
+                      className="border-cyber-400/30 hover:bg-cyber-400/10 text-xs"
                     >
-                      <Edit className="w-4 h-4 mr-2" />
+                      <Edit className="w-3 h-3 mr-2" />
                       Edit Areas
                     </Button>
                   </div>
@@ -1080,7 +1293,9 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </div>
                 </div>
 
+
                 <Separator className="bg-cyber-400/20" />
+
 
                 <div>
                   <h3 className="font-medium mb-2">Additional Notes</h3>
@@ -1094,7 +1309,9 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
             </Card>
           </TabsContent>
 
+
         </Tabs>
+
 
         <StudentForm
           open={isFormOpen}
@@ -1107,6 +1324,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           }}
         />
 
+
         <SubTopicSelectionDialog
           open={isSubTopicDialogOpen}
           onOpenChange={setIsSubTopicDialogOpen}
@@ -1117,8 +1335,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         />
 
         <EditImprovementAreasDialog
-          open={isEditImprovementAreasOpen}
-          onOpenChange={setIsEditImprovementAreasOpen}
+          open={isImprovementAreasDialogOpen}
+          onOpenChange={setIsImprovementAreasDialogOpen}
           student={student}
           onSuccess={() => {
             // Refresh the page to get updated student data
