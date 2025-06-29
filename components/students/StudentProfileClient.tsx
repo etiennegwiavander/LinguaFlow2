@@ -797,15 +797,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                       <Copy className="w-4 h-4 mr-2" />
                                       Copy to Clipboard
                                     </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
-                                      disabled={isEditing}
-                                    >
-                                      <FileText className="w-4 h-4 mr-2" />
-                                      Export
-                                    </Button>
+                                   
                                   </>
                                 )}
                               </div>
