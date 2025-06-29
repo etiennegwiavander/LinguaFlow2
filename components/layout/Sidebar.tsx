@@ -79,17 +79,6 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
     return <Component className="w-4 h-4 sm:w-5 sm:h-5" />;
   };
 
-  // Helper function to check if a nav item is active
-  const isActive = (href: string) => {
-    if (pathname === href) return true;
-    
-    // For nested routes, check if the current path starts with the nav item's path
-    // But only if the nav item path is not just the root path
-    if (href !== '/' && pathname.startsWith(href)) return true;
-    
-    return false;
-  };
-
   return (
     <aside 
       className={cn(
@@ -117,7 +106,7 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
         <nav className="flex-1 space-y-1 px-2 py-4">
           <TooltipProvider delayDuration={0}>
             {filteredNavItems.map((item, index) => {
-              const active = isActive(item.href);
+              const isActive = pathname === item.href;
               
               return (
                 <Tooltip key={item.href}>
@@ -126,12 +115,12 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
                       href={item.href}
                       className={cn(
                         "nav-item group relative overflow-hidden",
-                        active ? "nav-item-active" : "nav-item-inactive",
+                        isActive ? "nav-item-active" : "nav-item-inactive",
                         collapsed ? "justify-center" : "justify-start"
                       )}
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
-                      {active && (
+                      {isActive && (
                         <>
                           <div className="absolute inset-0 bg-gradient-to-r from-cyber-400/10 to-neon-400/10 animate-pulse"></div>
                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyber-400 to-neon-400"></div>
