@@ -31,6 +31,8 @@ import {
   GraduationCap,
   Play,
   X,
+  Calendar,
+  MousePointer2,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -99,16 +101,16 @@ export default function HomePage() {
       bgColor: "bg-neon-400/10",
     },
     {
-      icon: Globe,
-      title: "Multilingual Support",
-      description: "Support for 10+ languages with native-level content generation and cultural context awareness.",
+      icon: Calendar,
+      title: "Google Calendar Integration",
+      description: "Seamlessly sync with your Google Calendar to view upcoming lessons, manage your schedule, and never miss a session.",
       color: "text-emerald-400",
       bgColor: "bg-emerald-400/10",
     },
     {
-      icon: Sparkles,
-      title: "Interactive Templates",
-      description: "Choose from dozens of professionally designed lesson templates that adapt to your teaching style.",
+      icon: MousePointer2,
+      title: "Instant Translation",
+      description: "Double-click any word or select text to instantly translate, eliminating the need for external translation tools during lessons.",
       color: "text-purple-400",
       bgColor: "bg-purple-400/10",
     },
@@ -191,7 +193,7 @@ export default function HomePage() {
           <div className="animate-slide-up">
             <Badge className="mb-6 bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30 hover:bg-gradient-to-r hover:from-cyber-400/30 hover:to-neon-400/30 transition-all duration-300">
               <Sparkles className="w-3 h-3 mr-1" />
-              AI-Powered Language Education
+              Built for Private One-on-One Language Tutors
             </Badge>
             
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
@@ -204,7 +206,7 @@ export default function HomePage() {
             
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
               Create engaging, AI-powered lesson plans tailored to each student's unique learning style. 
-              Transform your teaching with intelligent content generation.
+              Sync with Google Calendar and translate on-the-fly to transform your teaching experience.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
