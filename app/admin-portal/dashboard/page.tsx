@@ -1,9 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import MainLayout from "@/components/main-layout";
-import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Shield, Users, BarChart, Zap, Search, AlertTriangle, CheckCircle2, XCircle, UserRound, Eye, MoreHorizontal, UserCog, KeyRound, Trash2, ShieldAlert, ShieldCheck, Mail } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,12 +80,10 @@ interface SystemLog {
   details: string;
 }
 
-export default function AdminPage() {
+export default function AdminDashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [logFilter, setLogFilter] = useState("all");
-  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
@@ -103,45 +99,13 @@ export default function AdminPage() {
   const [tutorToDelete, setTutorToDelete] = useState<string | null>(null);
   const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
 
-  // Check if user is admin
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        router.push("/");
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('tutors')
-          .select('id, is_admin')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        // If no tutor record found or user is not admin
-        if (!data || !data.is_admin) {
-          toast.error('Access denied. Admin privileges required.');
-          router.push("/");
-          return;
-        }
-
-        setIsAdmin(true);
-        fetchAdminData();
-      } catch (error: any) {
-        toast.error('Failed to verify admin status');
-        router.push("/");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, [user, router]);
+    fetchAdminData();
+  }, []);
 
   const fetchAdminData = async () => {
     try {
+      setLoading(true);
       // Fetch tutors with student and lesson counts
       const { data: tutorsData, error: tutorsError } = await supabase
         .from('tutors')
@@ -209,9 +173,10 @@ export default function AdminPage() {
         { id: 6, timestamp: "2024-03-19 21:15:00", type: 'info', message: "System Backup Completed", details: "Size: 2.3GB" },
         { id: 7, timestamp: "2024-03-19 18:20:00", type: 'info', message: "Scheduled Maintenance Completed", details: "Duration: 15min" }
       ]);
-
     } catch (error: any) {
       toast.error(error.message || 'Failed to fetch admin data');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -315,365 +280,357 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-[50vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">Verifying admin access...</p>
-          </div>
+      <div className="flex items-center justify-center h-[50vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading dashboard data...</p>
         </div>
-      </MainLayout>
+      </div>
     );
   }
 
-  if (!isAdmin) {
-    return null; // Will redirect in useEffect
-  }
-
   return (
-    <MainLayout>
-      <div className="space-y-8">
-        {/* Page header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-          <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
-          <Button>Generate Reports</Button>
-        </div>
+    <div className="space-y-8">
+      {/* Page header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <Button>Generate Reports</Button>
+      </div>
 
-        {/* Overview Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tutors</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.tutorsCount}</div>
-              <p className="text-xs text-muted-foreground">+5.4% from last month</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.studentsCount}</div>
-              <p className="text-xs text-muted-foreground">+12.7% from last month</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Lessons</CardTitle>
-              <BarChart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.lessonsCount}</div>
-              <p className="text-xs text-muted-foreground">+8.2% from last month</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">System Health</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-500">{stats.systemHealth}%</div>
-              <p className="text-xs text-muted-foreground">API Uptime</p>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Overview Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Tutors</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.tutorsCount}</div>
+            <p className="text-xs text-muted-foreground">+5.4% from last month</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.studentsCount}</div>
+            <p className="text-xs text-muted-foreground">+12.7% from last month</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Lessons</CardTitle>
+            <BarChart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.lessonsCount}</div>
+            <p className="text-xs text-muted-foreground">+8.2% from last month</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">System Health</CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-500">{stats.systemHealth}%</div>
+            <p className="text-xs text-muted-foreground">API Uptime</p>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Admin tabs */}
-        <Tabs defaultValue="tutors" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:w-auto">
-            <TabsTrigger value="tutors" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Manage Tutors</span>
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center space-x-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="hidden sm:inline">System Logs</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          {/* Tutors Management Tab */}
-          <TabsContent value="tutors" className="space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Tutor Management</CardTitle>
-                  <CardDescription>
-                    Manage tutors and their access across the platform.
-                  </CardDescription>
+      {/* Admin tabs */}
+      <Tabs defaultValue="tutors" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 md:w-auto">
+          <TabsTrigger value="tutors" className="flex items-center space-x-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Manage Tutors</span>
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="flex items-center space-x-2">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="hidden sm:inline">System Logs</span>
+          </TabsTrigger>
+        </TabsList>
+        
+        {/* Tutors Management Tab */}
+        <TabsContent value="tutors" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Tutor Management</CardTitle>
+                <CardDescription>
+                  Manage tutors and their access across the platform.
+                </CardDescription>
+              </div>
+              <Button>
+                Add New Tutor
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4">
+                <div className="relative max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search tutors by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-                <Button>
-                  Add New Tutor
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4">
-                  <div className="relative max-w-md">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search tutors by name or email..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
+              </div>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name/Email</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Students</TableHead>
+                      <TableHead>Lessons</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTutors.length === 0 ? (
                       <TableRow>
-                        <TableHead>Name/Email</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Students</TableHead>
-                        <TableHead>Lessons</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No tutors found matching your search criteria
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredTutors.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                            No tutors found matching your search criteria
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredTutors.map((tutor) => (
-                          <TableRow key={tutor.id} className="group">
-                            <TableCell>
-                              <div className="flex items-center space-x-3">
-                                <Avatar className="h-8 w-8 transition-all duration-200 group-hover:ring-2 group-hover:ring-primary/30">
-                                  <AvatarImage src={tutor.avatar_url || undefined} alt={tutor.name || tutor.email} />
-                                  <AvatarFallback className="bg-primary/10">
-                                    {getInitials(tutor.name, tutor.email)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-medium group-hover:text-primary transition-colors duration-200">
-                                    {tutor.name || "Unnamed Tutor"}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">{tutor.email}</p>
-                                </div>
+                    ) : (
+                      filteredTutors.map((tutor) => (
+                        <TableRow key={tutor.id} className="group">
+                          <TableCell>
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="h-8 w-8 transition-all duration-200 group-hover:ring-2 group-hover:ring-primary/30">
+                                <AvatarImage src={tutor.avatar_url || undefined} alt={tutor.name || tutor.email} />
+                                <AvatarFallback className="bg-primary/10">
+                                  {getInitials(tutor.name, tutor.email)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium group-hover:text-primary transition-colors duration-200">
+                                  {tutor.name || "Unnamed Tutor"}
+                                </p>
+                                <p className="text-sm text-muted-foreground">{tutor.email}</p>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant={tutor.status === "active" ? "default" : "secondary"}
-                                className={`capitalize ${tutor.status === "active" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : ""}`}
-                              >
-                                {tutor.status === "active" ? (
-                                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                                ) : (
-                                  <XCircle className="w-3 h-3 mr-1" />
-                                )}
-                                {tutor.status}
-                              </Badge>
-                              {tutor.is_admin && (
-                                <Badge variant="outline" className="ml-2 bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300 border-purple-200 dark:border-purple-800">
-                                  Admin
-                                </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={tutor.status === "active" ? "default" : "secondary"}
+                              className={`capitalize ${tutor.status === "active" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : ""}`}
+                            >
+                              {tutor.status === "active" ? (
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                              ) : (
+                                <XCircle className="w-3 h-3 mr-1" />
                               )}
-                            </TableCell>
-                            <TableCell>{tutor.studentsCount}</TableCell>
-                            <TableCell>{tutor.lessonsCount}</TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end space-x-2">
+                              {tutor.status}
+                            </Badge>
+                            {tutor.is_admin && (
+                              <Badge variant="outline" className="ml-2 bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                                Admin
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>{tutor.studentsCount}</TableCell>
+                          <TableCell>{tutor.lessonsCount}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end space-x-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="outline" 
+                                      size="icon"
+                                      onClick={() => handleViewProfile(tutor)}
+                                      className="h-8 w-8 transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Profile</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              
+                              <DropdownMenu>
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="outline" 
-                                        size="icon"
-                                        onClick={() => handleViewProfile(tutor)}
-                                        className="h-8 w-8 transition-all duration-200 hover:bg-primary/10 hover:text-primary"
-                                      >
-                                        <Eye className="h-4 w-4" />
-                                      </Button>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button 
+                                          variant="outline" 
+                                          size="icon"
+                                          className="h-8 w-8 transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+                                        >
+                                          <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>View Profile</p>
+                                      <p>More Actions</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                                 
-                                <DropdownMenu>
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button 
-                                            variant="outline" 
-                                            size="icon"
-                                            className="h-8 w-8 transition-all duration-200 hover:bg-primary/10 hover:text-primary"
-                                          >
-                                            <MoreHorizontal className="h-4 w-4" />
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>More Actions</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                <DropdownMenuContent align="end" className="w-56">
+                                  <DropdownMenuLabel>Tutor Actions</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
                                   
-                                  <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuLabel>Tutor Actions</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    
-                                    <DropdownMenuItem 
-                                      onClick={() => handleViewProfile(tutor)}
-                                      className="cursor-pointer"
-                                    >
-                                      <UserRound className="mr-2 h-4 w-4" />
-                                      <span>View Profile</span>
-                                    </DropdownMenuItem>
-                                    
-                                    <DropdownMenuItem 
-                                      onClick={() => handleStatusChange(
-                                        tutor.id, 
-                                        tutor.status === "active" ? "inactive" : "active"
-                                      )}
-                                      className="cursor-pointer"
-                                    >
-                                      {tutor.status === "active" ? (
-                                        <>
-                                          <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                                          <span>Deactivate Account</span>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
-                                          <span>Activate Account</span>
-                                        </>
-                                      )}
-                                    </DropdownMenuItem>
-                                    
-                                    <DropdownMenuItem 
-                                      onClick={() => handleToggleAdminStatus(tutor.id, tutor.is_admin)}
-                                      className="cursor-pointer"
-                                    >
-                                      {tutor.is_admin ? (
-                                        <>
-                                          <ShieldAlert className="mr-2 h-4 w-4 text-red-500" />
-                                          <span>Revoke Admin Access</span>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <ShieldCheck className="mr-2 h-4 w-4 text-green-500" />
-                                          <span>Grant Admin Access</span>
-                                        </>
-                                      )}
-                                    </DropdownMenuItem>
-                                    
-                                    <DropdownMenuSeparator />
-                                    
-                                    <DropdownMenuItem 
-                                      onClick={() => {
-                                        setSelectedTutor(tutor);
-                                        setIsResetPasswordDialogOpen(true);
-                                      }}
-                                      className="cursor-pointer"
-                                    >
-                                      <KeyRound className="mr-2 h-4 w-4 text-amber-500" />
-                                      <span>Reset Password</span>
-                                    </DropdownMenuItem>
-                                    
-                                    <DropdownMenuItem 
-                                      onClick={() => confirmDelete(tutor.id)}
-                                      className="cursor-pointer text-red-600 focus:text-red-600"
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      <span>Delete Account</span>
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          {/* System Logs Tab */}
-          <TabsContent value="logs" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Logs</CardTitle>
-                <CardDescription>
-                  Monitor system activities and error logs.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search logs..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-full"
-                    />
-                  </div>
-                  <Select value={logFilter} onValueChange={setLogFilter}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Filter by type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="error">Errors</SelectItem>
-                      <SelectItem value="warning">Warnings</SelectItem>
-                      <SelectItem value="info">Info</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Timestamp</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Message</TableHead>
-                        <TableHead>Details</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredLogs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="whitespace-nowrap">
-                            {log.timestamp}
+                                  <DropdownMenuItem 
+                                    onClick={() => handleViewProfile(tutor)}
+                                    className="cursor-pointer"
+                                  >
+                                    <UserRound className="mr-2 h-4 w-4" />
+                                    <span>View Profile</span>
+                                  </DropdownMenuItem>
+                                  
+                                  <DropdownMenuItem 
+                                    onClick={() => handleStatusChange(
+                                      tutor.id, 
+                                      tutor.status === "active" ? "inactive" : "active"
+                                    )}
+                                    className="cursor-pointer"
+                                  >
+                                    {tutor.status === "active" ? (
+                                      <>
+                                        <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                                        <span>Deactivate Account</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+                                        <span>Activate Account</span>
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  
+                                  <DropdownMenuItem 
+                                    onClick={() => handleToggleAdminStatus(tutor.id, tutor.is_admin)}
+                                    className="cursor-pointer"
+                                  >
+                                    {tutor.is_admin ? (
+                                      <>
+                                        <ShieldAlert className="mr-2 h-4 w-4 text-red-500" />
+                                        <span>Revoke Admin Access</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ShieldCheck className="mr-2 h-4 w-4 text-green-500" />
+                                        <span>Grant Admin Access</span>
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  
+                                  <DropdownMenuSeparator />
+                                  
+                                  <DropdownMenuItem 
+                                    onClick={() => {
+                                      setSelectedTutor(tutor);
+                                      setIsResetPasswordDialogOpen(true);
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <KeyRound className="mr-2 h-4 w-4 text-amber-500" />
+                                    <span>Reset Password</span>
+                                  </DropdownMenuItem>
+                                  
+                                  <DropdownMenuItem 
+                                    onClick={() => confirmDelete(tutor.id)}
+                                    className="cursor-pointer text-red-600 focus:text-red-600"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete Account</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge className={getLogTypeColor(log.type)}>
-                              {log.type === "error" && <XCircle className="w-4 h-4 mr-1" />}
-                              {log.type === "warning" && <AlertTriangle className="w-4 h-4 mr-1" />}
-                              {log.type === "info" && <CheckCircle2 className="w-4 h-4 mr-1" />}
-                              {log.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{log.message}</TableCell>
-                          <TableCell>{log.details}</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* System Logs Tab */}
+        <TabsContent value="logs" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>System Logs</CardTitle>
+              <CardDescription>
+                Monitor system activities and error logs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search logs..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-full"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+                <Select value={logFilter} onValueChange={setLogFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="error">Errors</SelectItem>
+                    <SelectItem value="warning">Warnings</SelectItem>
+                    <SelectItem value="info">Info</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Message</TableHead>
+                      <TableHead>Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="whitespace-nowrap">
+                          {log.timestamp}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getLogTypeColor(log.type)}>
+                            {log.type === "error" && <XCircle className="w-4 h-4 mr-1" />}
+                            {log.type === "warning" && <AlertTriangle className="w-4 h-4 mr-1" />}
+                            {log.type === "info" && <CheckCircle2 className="w-4 h-4 mr-1" />}
+                            {log.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{log.message}</TableCell>
+                        <TableCell>{log.details}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Tutor Profile Dialog */}
       <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
@@ -956,6 +913,6 @@ export default function AdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </MainLayout>
+    </div>
   );
 }

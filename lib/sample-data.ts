@@ -36,10 +36,4 @@ export const navItems: NavItem[] = [
     href: '/settings',
     icon: 'Settings2'
   },
-  {
-    title: 'Admin Panel',
-    href: '/admin',
-    icon: 'ShieldCheck',
-    requiresAdmin: true
-  }
 ];
