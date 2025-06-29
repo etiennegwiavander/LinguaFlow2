@@ -206,10 +206,6 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push('/settings')} className="hover:bg-cyber-400/10 focus-cyber">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-cyber-400/20" />
               <DropdownMenuItem onClick={handleLogout} className="hover:bg-red-400/10 text-red-600 focus:bg-red-400/10">
                 <LogOut className="mr-2 h-4 w-4" />
