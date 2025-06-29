@@ -2,7 +2,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
 /**
- * Exports the lesson content as a PDF file
+ * Exports the lesson content as a PDF file with improved formatting
  * @param elementId The ID of the element to export
  * @param fileName The name of the file to save
  */
@@ -25,37 +25,219 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
     
     // Apply styles for better PDF formatting
     clone.style.width = '210mm'; // A4 width
-    clone.style.padding = '15mm';
+    clone.style.padding = '20mm'; // Generous margins
     clone.style.backgroundColor = '#ffffff';
     clone.style.color = '#000000';
     
+    // Add a title page
+    const titlePage = document.createElement('div');
+    titlePage.style.height = '240mm'; // A4 height minus margins
+    titlePage.style.display = 'flex';
+    titlePage.style.flexDirection = 'column';
+    titlePage.style.justifyContent = 'center';
+    titlePage.style.alignItems = 'center';
+    titlePage.style.textAlign = 'center';
+    titlePage.style.marginBottom = '20mm';
+    
+    // Get the lesson title
+    const lessonTitle = clone.querySelector('h1, h2, .title')?.textContent || 'Lesson Material';
+    
+    // Create title elements
+    const titleHeader = document.createElement('h1');
+    titleHeader.textContent = lessonTitle;
+    titleHeader.style.fontSize = '28pt';
+    titleHeader.style.fontWeight = 'bold';
+    titleHeader.style.marginBottom = '16pt';
+    titleHeader.style.color = '#1e40af'; // Deep blue color
+    
+    const subtitle = document.createElement('h2');
+    subtitle.textContent = 'LinguaFlow';
+    subtitle.style.fontSize = '18pt';
+    subtitle.style.marginBottom = '40pt';
+    subtitle.style.color = '#3b82f6'; // Blue color
+    
+    const date = document.createElement('p');
+    date.textContent = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    date.style.fontSize = '12pt';
+    date.style.color = '#6b7280'; // Gray color
+    
+    // Add elements to title page
+    titlePage.appendChild(titleHeader);
+    titlePage.appendChild(subtitle);
+    titlePage.appendChild(date);
+    
+    // Add page break after title page
+    const pageBreak = document.createElement('div');
+    pageBreak.style.pageBreakAfter = 'always';
+    titlePage.appendChild(pageBreak);
+    
+    // Insert title page at the beginning of the clone
+    clone.insertBefore(titlePage, clone.firstChild);
+    
+    // Add table of contents
+    const tocContainer = document.createElement('div');
+    tocContainer.style.marginBottom = '20mm';
+    
+    const tocTitle = document.createElement('h2');
+    tocTitle.textContent = 'Contents';
+    tocTitle.style.fontSize = '18pt';
+    tocTitle.style.fontWeight = 'bold';
+    tocTitle.style.marginBottom = '12pt';
+    tocTitle.style.color = '#1e40af'; // Deep blue color
+    
+    tocContainer.appendChild(tocTitle);
+    
+    // Get all section headings
+    const headings = clone.querySelectorAll('h1, h2, h3, h4');
+    const tocList = document.createElement('ul');
+    tocList.style.listStyleType = 'none';
+    tocList.style.paddingLeft = '0';
+    
+    headings.forEach((heading, index) => {
+      // Skip the title page heading
+      if (index === 0 && heading.textContent === lessonTitle) return;
+      
+      const tocItem = document.createElement('li');
+      tocItem.style.marginBottom = '8pt';
+      tocItem.style.fontSize = '12pt';
+      
+      // Add indentation based on heading level
+      const headingLevel = parseInt(heading.tagName.substring(1));
+      tocItem.style.paddingLeft = `${(headingLevel - 1) * 12}pt`;
+      
+      // Add dot leaders
+      tocItem.textContent = heading.textContent || `Section ${index}`;
+      
+      tocList.appendChild(tocItem);
+    });
+    
+    tocContainer.appendChild(tocList);
+    
+    // Add page break after TOC
+    const tocPageBreak = document.createElement('div');
+    tocPageBreak.style.pageBreakAfter = 'always';
+    tocContainer.appendChild(tocPageBreak);
+    
+    // Insert TOC after title page
+    clone.insertBefore(tocContainer, titlePage.nextSibling);
+    
     // Improve text formatting
-    const textElements = clone.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, span');
+    const textElements = clone.querySelectorAll('p, li, span');
     textElements.forEach(el => {
-      (el as HTMLElement).style.fontSize = '12pt';
+      (el as HTMLElement).style.fontSize = '11pt';
       (el as HTMLElement).style.lineHeight = '1.5';
       (el as HTMLElement).style.color = '#000000';
       (el as HTMLElement).style.fontFamily = 'Arial, sans-serif';
+      (el as HTMLElement).style.marginBottom = '8pt';
     });
     
     // Improve heading formatting
-    const headings = clone.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    headings.forEach(heading => {
+    const headingsAll = clone.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headingsAll.forEach((heading, index) => {
+      // Skip the title page heading
+      if (index === 0 && heading.textContent === lessonTitle) return;
+      
+      const headingLevel = parseInt(heading.tagName.substring(1));
+      
       (heading as HTMLElement).style.pageBreakAfter = 'avoid';
-      (heading as HTMLElement).style.pageBreakBefore = 'auto';
-      (heading as HTMLElement).style.marginTop = '16pt';
-      (heading as HTMLElement).style.marginBottom = '8pt';
+      (heading as HTMLElement).style.pageBreakBefore = headingLevel <= 2 ? 'always' : 'auto';
+      (heading as HTMLElement).style.marginTop = '24pt';
+      (heading as HTMLElement).style.marginBottom = '12pt';
       (heading as HTMLElement).style.fontWeight = 'bold';
+      (heading as HTMLElement).style.fontFamily = 'Arial, sans-serif';
+      
+      // Set font size based on heading level
+      switch (headingLevel) {
+        case 1:
+          (heading as HTMLElement).style.fontSize = '20pt';
+          (heading as HTMLElement).style.color = '#1e40af'; // Deep blue
+          break;
+        case 2:
+          (heading as HTMLElement).style.fontSize = '16pt';
+          (heading as HTMLElement).style.color = '#2563eb'; // Blue
+          break;
+        case 3:
+          (heading as HTMLElement).style.fontSize = '14pt';
+          (heading as HTMLElement).style.color = '#3b82f6'; // Light blue
+          break;
+        default:
+          (heading as HTMLElement).style.fontSize = '12pt';
+          (heading as HTMLElement).style.color = '#000000';
+      }
+      
+      // Add decorative underline to h1 and h2
+      if (headingLevel <= 2) {
+        const underline = document.createElement('div');
+        underline.style.height = '2px';
+        underline.style.width = '100%';
+        underline.style.backgroundColor = headingLevel === 1 ? '#1e40af' : '#3b82f6';
+        underline.style.marginTop = '4pt';
+        underline.style.marginBottom = '12pt';
+        
+        heading.parentNode?.insertBefore(underline, heading.nextSibling);
+      }
     });
     
     // Improve card formatting
-    const cards = clone.querySelectorAll('.card, [class*="Card"]');
+    const cards = clone.querySelectorAll('.card, [class*="Card"], [class*="card"]');
     cards.forEach(card => {
       (card as HTMLElement).style.border = '1px solid #e2e8f0';
       (card as HTMLElement).style.borderRadius = '4px';
       (card as HTMLElement).style.marginBottom = '16pt';
       (card as HTMLElement).style.padding = '12pt';
-      (card as HTMLElement).style.backgroundColor = '#ffffff';
+      (card as HTMLElement).style.backgroundColor = '#f8fafc'; // Very light blue/gray
+      (card as HTMLElement).style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+    });
+    
+    // Format exercise sections
+    const exercises = clone.querySelectorAll('[id^="exercise_"], [class*="exercise"]');
+    exercises.forEach((exercise, index) => {
+      // Add alternating background colors for exercises
+      (exercise as HTMLElement).style.backgroundColor = index % 2 === 0 ? '#f0f9ff' : '#f0fdf4'; // Light blue/green alternating
+      (exercise as HTMLElement).style.padding = '16pt';
+      (exercise as HTMLElement).style.marginBottom = '20pt';
+      (exercise as HTMLElement).style.borderRadius = '8px';
+      (exercise as HTMLElement).style.border = index % 2 === 0 ? '1px solid #bfdbfe' : '1px solid #bbf7d0';
+    });
+    
+    // Format lists
+    const lists = clone.querySelectorAll('ul, ol');
+    lists.forEach(list => {
+      (list as HTMLElement).style.marginBottom = '16pt';
+      (list as HTMLElement).style.paddingLeft = '24pt';
+    });
+    
+    // Format list items
+    const listItems = clone.querySelectorAll('li');
+    listItems.forEach(item => {
+      (item as HTMLElement).style.marginBottom = '6pt';
+    });
+    
+    // Format tables
+    const tables = clone.querySelectorAll('table');
+    tables.forEach(table => {
+      (table as HTMLElement).style.width = '100%';
+      (table as HTMLElement).style.borderCollapse = 'collapse';
+      (table as HTMLElement).style.marginBottom = '16pt';
+      (table as HTMLElement).style.border = '1px solid #e2e8f0';
+    });
+    
+    // Format table cells
+    const tableCells = clone.querySelectorAll('th, td');
+    tableCells.forEach(cell => {
+      (cell as HTMLElement).style.border = '1px solid #e2e8f0';
+      (cell as HTMLElement).style.padding = '8pt';
+    });
+    
+    // Format table headers
+    const tableHeaders = clone.querySelectorAll('th');
+    tableHeaders.forEach(header => {
+      (header as HTMLElement).style.backgroundColor = '#f1f5f9';
+      (header as HTMLElement).style.fontWeight = 'bold';
     });
     
     // Remove any buttons or interactive elements
@@ -64,10 +246,31 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
       button.parentNode?.removeChild(button);
     });
     
+    // Add page numbers
+    const pageNumberContainer = document.createElement('div');
+    pageNumberContainer.style.position = 'fixed';
+    pageNumberContainer.style.bottom = '10mm';
+    pageNumberContainer.style.right = '10mm';
+    pageNumberContainer.style.fontSize = '10pt';
+    pageNumberContainer.style.color = '#6b7280';
+    pageNumberContainer.textContent = 'Page ';
+    pageNumberContainer.id = 'page-number-container';
+    
+    // Add footer with branding
+    const footer = document.createElement('div');
+    footer.style.position = 'fixed';
+    footer.style.bottom = '10mm';
+    footer.style.left = '10mm';
+    footer.style.fontSize = '10pt';
+    footer.style.color = '#6b7280';
+    footer.textContent = 'Generated by LinguaFlow';
+    
     // Add the clone to the document temporarily (hidden)
     clone.style.position = 'absolute';
     clone.style.left = '-9999px';
     document.body.appendChild(clone);
+    document.body.appendChild(pageNumberContainer);
+    document.body.appendChild(footer);
 
     // Create a canvas from the element
     const canvas = await html2canvas(clone, {
@@ -77,8 +280,10 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
       backgroundColor: '#ffffff',
     });
     
-    // Remove the clone from the document
+    // Remove the clone and page number container from the document
     document.body.removeChild(clone);
+    document.body.removeChild(pageNumberContainer);
+    document.body.removeChild(footer);
 
     // Create a PDF
     const pdf = new jsPDF({
@@ -109,7 +314,24 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
         pdfWidth,
         pdfHeight
       );
+      
+      // Add page number
+      pdf.setFontSize(10);
+      pdf.setTextColor(107, 114, 128); // Gray color
+      pdf.text(`Page ${i + 1} of ${pageCount}`, pdfWidth - 30, pageHeight - 10);
+      
+      // Add footer
+      pdf.text('Generated by LinguaFlow', 10, pageHeight - 10);
     }
+
+    // Add page number to first page
+    pdf.setPage(1);
+    pdf.setFontSize(10);
+    pdf.setTextColor(107, 114, 128); // Gray color
+    pdf.text(`Page 1 of ${pageCount}`, pdfWidth - 30, pageHeight - 10);
+    
+    // Add footer to first page
+    pdf.text('Generated by LinguaFlow', 10, pageHeight - 10);
 
     // Save the PDF
     pdf.save(`${fileName}.pdf`);
@@ -147,8 +369,11 @@ export const exportToWord = async (elementId: string, fileName: string = 'lesson
       toast.info('Preparing Word document export...');
     }
 
-    // Get the HTML content
-    const htmlContent = element.innerHTML;
+    // Create a clone of the element to modify for better Word formatting
+    const clone = element.cloneNode(true) as HTMLElement;
+    
+    // Get the lesson title
+    const lessonTitle = clone.querySelector('h1, h2, .title')?.textContent || 'Lesson Material';
     
     // Create a properly formatted HTML document that Word can open
     const wordHtml = `
@@ -169,22 +394,84 @@ export const exportToWord = async (elementId: string, fileName: string = 'lesson
         <![endif]-->
         <style>
           /* Word Document Styles */
+          @page {
+            size: 21cm 29.7cm;
+            margin: 2cm;
+          }
           body {
             font-family: 'Calibri', sans-serif;
-            font-size: 12pt;
+            font-size: 11pt;
             line-height: 1.5;
             color: #000000;
+          }
+          .title-page {
+            text-align: center;
+            page-break-after: always;
+          }
+          .title-page h1 {
+            font-size: 28pt;
+            color: #1e40af;
+            margin-top: 200pt;
+            margin-bottom: 16pt;
+          }
+          .title-page h2 {
+            font-size: 18pt;
+            color: #3b82f6;
+            margin-bottom: 40pt;
+          }
+          .title-page p {
+            font-size: 12pt;
+            color: #6b7280;
+          }
+          .toc {
+            page-break-after: always;
+          }
+          .toc h2 {
+            font-size: 18pt;
+            color: #1e40af;
+            margin-bottom: 12pt;
+          }
+          .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+          }
+          .toc li {
+            margin-bottom: 8pt;
+            font-size: 12pt;
+          }
+          .toc-level-2 {
+            padding-left: 12pt;
+          }
+          .toc-level-3 {
+            padding-left: 24pt;
           }
           h1, h2, h3, h4, h5, h6 {
             font-family: 'Calibri', sans-serif;
             font-weight: bold;
-            margin-top: 12pt;
-            margin-bottom: 6pt;
+            margin-top: 24pt;
+            margin-bottom: 12pt;
             page-break-after: avoid;
           }
-          h1 { font-size: 16pt; }
-          h2 { font-size: 14pt; }
-          h3 { font-size: 13pt; }
+          h1 { 
+            font-size: 20pt; 
+            color: #1e40af;
+            border-bottom: 2pt solid #1e40af;
+            padding-bottom: 4pt;
+          }
+          h2 { 
+            font-size: 16pt; 
+            color: #2563eb;
+            border-bottom: 1pt solid #2563eb;
+            padding-bottom: 2pt;
+          }
+          h3 { 
+            font-size: 14pt; 
+            color: #3b82f6;
+          }
+          h4 { 
+            font-size: 12pt; 
+            color: #000000;
+          }
           p { margin-bottom: 8pt; }
           ul, ol { margin-bottom: 10pt; }
           li { margin-bottom: 4pt; }
@@ -197,6 +484,10 @@ export const exportToWord = async (elementId: string, fileName: string = 'lesson
             border: 1px solid #ddd;
             padding: 8pt;
           }
+          th {
+            background-color: #f1f5f9;
+            font-weight: bold;
+          }
           img {
             max-width: 100%;
             height: auto;
@@ -206,6 +497,26 @@ export const exportToWord = async (elementId: string, fileName: string = 'lesson
             border-radius: 4px;
             margin-bottom: 16pt;
             padding: 12pt;
+            background-color: #f8fafc;
+          }
+          .exercise {
+            padding: 16pt;
+            margin-bottom: 20pt;
+            border-radius: 8px;
+          }
+          .exercise-even {
+            background-color: #f0f9ff;
+            border: 1px solid #bfdbfe;
+          }
+          .exercise-odd {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+          }
+          .footer {
+            font-size: 10pt;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 20pt;
           }
           /* Remove any background colors and gradients */
           [class*="bg-"] {
@@ -221,7 +532,40 @@ export const exportToWord = async (elementId: string, fileName: string = 'lesson
         </style>
       </head>
       <body>
-        ${htmlContent}
+        <!-- Title Page -->
+        <div class="title-page">
+          <h1>${lessonTitle}</h1>
+          <h2>LinguaFlow</h2>
+          <p>${new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}</p>
+        </div>
+        
+        <!-- Table of Contents -->
+        <div class="toc">
+          <h2>Contents</h2>
+          <ul>
+            ${Array.from(clone.querySelectorAll('h1, h2, h3, h4')).map((heading, index) => {
+              // Skip the title page heading
+              if (index === 0 && heading.textContent === lessonTitle) return '';
+              
+              const headingLevel = parseInt(heading.tagName.substring(1));
+              const className = headingLevel > 1 ? `toc-level-${headingLevel}` : '';
+              
+              return `<li class="${className}">${heading.textContent}</li>`;
+            }).join('')}
+          </ul>
+        </div>
+        
+        <!-- Main Content -->
+        ${clone.innerHTML}
+        
+        <!-- Footer -->
+        <div class="footer">
+          <p>Generated by LinguaFlow</p>
+        </div>
       </body>
       </html>
     `;
