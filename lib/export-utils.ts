@@ -84,8 +84,8 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
     titleHeader.style.fontWeight = 'bold';
     titleHeader.style.marginBottom = '16pt';
     titleHeader.style.background = 'linear-gradient(to right, #21c5f0, #d946ef)';
-    titleHeader.style.WebkitBackgroundClip = 'text';
-    titleHeader.style.WebkitTextFillColor = 'transparent';
+    titleHeader.style.webkitBackgroundClip = 'text';
+    titleHeader.style.webkitTextFillColor = 'transparent';
     titleHeader.style.backgroundClip = 'text';
     titleHeader.style.color = '#21c5f0'; // Fallback color
     
