@@ -11,8 +11,28 @@ export const metadata: Metadata = {
   title: "LinguaFlow - Hyper-Personalized & Multilingual Lesson Architect",
   description: "Create personalized language lessons for your students",
   icons: {
-    icon: '/linguaflowfavicon.png',
-    apple: '/linguaflowfavicon.png',
+    icon: [
+      {
+        url: '/linguaflowfavicon.png',
+        sizes: '32x32',
+        type: 'image/png'
+      },
+      {
+        url: '/linguaflowfavicon.png',
+        sizes: '192x192',
+        type: 'image/png'
+      },
+      {
+        url: '/linguaflowfavicon.png',
+        sizes: '512x512',
+        type: 'image/png'
+      }
+    ],
+    apple: {
+      url: '/linguaflowfavicon.png',
+      sizes: '180x180',
+      type: 'image/png'
+    }
   },
 };
 
@@ -25,6 +45,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/linguaflowfavicon.png" sizes="any" />
+        <link rel="apple-touch-icon" href="/linguaflowfavicon.png" sizes="180x180" />
       </head>
       <body className={inter.className}>
         <ThemeProvider
