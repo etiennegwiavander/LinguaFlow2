@@ -30,6 +30,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import LandingLayout from "@/components/landing/LandingLayout";
 
 const passwordSchema = z
   .string()
@@ -111,194 +112,196 @@ export default function SignUpPage() {
   );
 
   return (
-    <div className="page-container">
-      {/* Enhanced background effects */}
-      <div className="page-background"></div>
-      <div className="floating-elements"></div>
-      <div className="fixed top-40 right-20 w-32 h-32 bg-neon-400/20 rounded-full blur-xl animate-float pointer-events-none" style={{ animationDelay: '2s' }}></div>
-      <div className="fixed bottom-40 left-20 w-24 h-24 bg-purple-400/20 rounded-full blur-xl animate-float pointer-events-none" style={{ animationDelay: '4s' }}></div>
-      
-      <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
-        <Card className="w-full max-w-md cyber-card animate-scale-in">
-          <CardHeader className="space-y-2 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="relative">
-                <Languages className="h-10 w-10 text-cyber-400" />
-                <div className="absolute inset-0 bg-cyber-400 opacity-20 blur-xl"></div>
+    <LandingLayout>
+      <div className="page-container">
+        {/* Enhanced background effects */}
+        <div className="page-background"></div>
+        <div className="floating-elements"></div>
+        <div className="fixed top-40 right-20 w-32 h-32 bg-neon-400/20 rounded-full blur-xl animate-float pointer-events-none" style={{ animationDelay: '2s' }}></div>
+        <div className="fixed bottom-40 left-20 w-24 h-24 bg-purple-400/20 rounded-full blur-xl animate-float pointer-events-none" style={{ animationDelay: '4s' }}></div>
+        
+        <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+          <Card className="w-full max-w-md cyber-card animate-scale-in">
+            <CardHeader className="space-y-2 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="relative">
+                  <Languages className="h-10 w-10 text-cyber-400" />
+                  <div className="absolute inset-0 bg-cyber-400 opacity-20 blur-xl"></div>
+                </div>
               </div>
-            </div>
-            <CardTitle className="text-2xl font-bold">
-              Create an <span className="gradient-text">account</span>
-            </CardTitle>
-            <CardDescription>
-              Enter your email below to create your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="name@example.com"
-                          type="email"
-                          autoComplete="email"
-                          className="input-cyber focus-cyber"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
+              <CardTitle className="text-2xl font-bold">
+                Create an <span className="gradient-text">account</span>
+              </CardTitle>
+              <CardDescription>
+                Enter your email below to create your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
                           <Input
-                            placeholder="Create a password"
-                            type={showPassword ? "text" : "password"}
-                            autoComplete="new-password"
+                            placeholder="name@example.com"
+                            type="email"
+                            autoComplete="email"
                             className="input-cyber focus-cyber"
                             {...field}
                           />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent focus-cyber"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                            <span className="sr-only">
-                              {showPassword ? "Hide password" : "Show password"}
-                            </span>
-                          </Button>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              placeholder="Create a password"
+                              type={showPassword ? "text" : "password"}
+                              autoComplete="new-password"
+                              className="input-cyber focus-cyber"
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent focus-cyber"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <span className="sr-only">
+                                {showPassword ? "Hide password" : "Show password"}
+                              </span>
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <div className="space-y-2 text-sm">
+                          <Progress
+                            value={passwordStrength}
+                            className={`h-2 ${getStrengthColor(passwordStrength)}`}
+                          />
+                          <div className="grid grid-cols-1 gap-2">
+                            <PasswordRequirement
+                              met={password.length >= 8}
+                              text="At least 8 characters"
+                            />
+                            <PasswordRequirement
+                              met={/[A-Z]/.test(password)}
+                              text="One uppercase letter"
+                            />
+                            <PasswordRequirement
+                              met={/[0-9]/.test(password)}
+                              text="One number"
+                            />
+                            <PasswordRequirement
+                              met={/[^A-Za-z0-9]/.test(password)}
+                              text="One special character"
+                            />
+                          </div>
                         </div>
-                      </FormControl>
-                      <div className="space-y-2 text-sm">
-                        <Progress
-                          value={passwordStrength}
-                          className={`h-2 ${getStrengthColor(passwordStrength)}`}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              placeholder="Confirm your password"
+                              type={showConfirmPassword ? "text" : "password"}
+                              autoComplete="new-password"
+                              className="input-cyber focus-cyber"
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent focus-cyber"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <span className="sr-only">
+                                {showConfirmPassword ? "Hide password" : "Show password"}
+                              </span>
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="terms"
+                    render={({ field }) => (
+                      <div className="flex items-start space-x-2">
+                        <Checkbox
+                          id="terms"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="focus-cyber mt-1"
                         />
-                        <div className="grid grid-cols-1 gap-2">
-                          <PasswordRequirement
-                            met={password.length >= 8}
-                            text="At least 8 characters"
-                          />
-                          <PasswordRequirement
-                            met={/[A-Z]/.test(password)}
-                            text="One uppercase letter"
-                          />
-                          <PasswordRequirement
-                            met={/[0-9]/.test(password)}
-                            text="One number"
-                          />
-                          <PasswordRequirement
-                            met={/[^A-Za-z0-9]/.test(password)}
-                            text="One special character"
-                          />
-                        </div>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            placeholder="Confirm your password"
-                            type={showConfirmPassword ? "text" : "password"}
-                            autoComplete="new-password"
-                            className="input-cyber focus-cyber"
-                            {...field}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent focus-cyber"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                            <span className="sr-only">
-                              {showConfirmPassword ? "Hide password" : "Show password"}
-                            </span>
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="terms"
-                  render={({ field }) => (
-                    <div className="flex items-start space-x-2">
-                      <Checkbox
-                        id="terms"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="focus-cyber mt-1"
-                      />
-                      <Label
-                        htmlFor="terms"
-                        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        I agree to the{" "}
-                        <Link
-                          href="/terms"
-                          className="font-medium text-cyber-400 hover:text-cyber-500 hover:underline transition-colors"
+                        <Label
+                          htmlFor="terms"
+                          className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                          terms and conditions
-                        </Link>
-                      </Label>
-                    </div>
-                  )}
-                />
-                <Button type="submit" className="w-full btn-cyber hover-lift" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Create account"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter>
-            <p className="text-center w-full text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link
-                href="/auth/login"
-                className="font-medium text-cyber-400 hover:text-cyber-500 hover:underline transition-colors"
-              >
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
+                          I agree to the{" "}
+                          <Link
+                            href="/terms"
+                            className="font-medium text-cyber-400 hover:text-cyber-500 hover:underline transition-colors"
+                          >
+                            terms and conditions
+                          </Link>
+                        </Label>
+                      </div>
+                    )}
+                  />
+                  <Button type="submit" className="w-full btn-cyber hover-lift" disabled={isLoading}>
+                    {isLoading ? "Creating account..." : "Create account"}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+            <CardFooter>
+              <p className="text-center w-full text-sm text-muted-foreground">
+                Already have an account?{" "}
+                <Link
+                  href="/auth/login"
+                  className="font-medium text-cyber-400 hover:text-cyber-500 hover:underline transition-colors"
+                >
+                  Sign in
+                </Link>
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
-    </div>
+    </LandingLayout>
   );
 }

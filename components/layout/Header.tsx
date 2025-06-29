@@ -45,7 +45,7 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
   const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
   const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const fetchTutorProfile = async () => {
@@ -78,9 +78,7 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      router.push('/auth/login');
+      await signOut();
       toast.success('Logged out successfully');
     } catch (error: any) {
       toast.error(error.message || 'Failed to log out');
@@ -207,7 +205,7 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
                 <span>Profile</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-cyber-400/20" />
-              <DropdownMenuItem onClick={handleLogout} className="hover:bg-red-400/10 text-red-600 focus:bg-red-400/10">
+              <DropdownMenuItem onClick={handleLogout} className="hover:bg-red-400/10 text-red-600 focus:text-red-600 focus:bg-red-400/10">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

@@ -30,7 +30,9 @@ const UNPROTECTED_ROUTES = [
   '/auth/forgot-password',
   '/auth/deletion-scheduled',
   '/auth/recover-account',
-  '/calendar' // Added to prevent premature redirects during OAuth
+  '/calendar', // Added to prevent premature redirects during OAuth
+  '/terms',
+  '/privacy'
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
