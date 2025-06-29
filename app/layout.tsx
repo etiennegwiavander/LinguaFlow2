@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "Create personalized language lessons for your students",
   icons: {
     icon: '/favicon.ico',
-    apple: '/apple-icon.png',
+    apple: '/favicon.ico',
   },
 };
 
