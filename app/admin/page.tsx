@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import MainLayout from "@/components/main-layout";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { Shield, Users, BarChart, Zap, Search, AlertTriangle, CheckCircle2, XCircle, UserRound, Eye } from "lucide-react";
+import { Shield, Users, BarChart, Zap, Search, AlertTriangle, CheckCircle2, XCircle, UserRound, Eye, MoreHorizontal, UserCog, KeyRound, Trash2, ShieldAlert, ShieldCheck, Mail } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,6 +31,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -43,6 +51,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Tutor {
   id: string;
@@ -81,6 +99,9 @@ export default function AdminPage() {
   });
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [tutorToDelete, setTutorToDelete] = useState<string | null>(null);
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
 
   // Check if user is admin
   useEffect(() => {
@@ -233,20 +254,52 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteTutor = async (tutorId: string) => {
-    if (!confirm('Are you sure you want to delete this tutor? This action cannot be undone.')) {
-      return;
+  const handleToggleAdminStatus = async (tutorId: string, isAdmin: boolean) => {
+    try {
+      // In a real app, you would update the database
+      // For this demo, we'll just update the local state
+      setTutors(tutors.map(tutor => 
+        tutor.id === tutorId ? {...tutor, is_admin: !isAdmin} : tutor
+      ));
+      
+      toast.success(`Admin privileges ${isAdmin ? 'revoked' : 'granted'}`);
+      
+      // Update selected tutor if dialog is open
+      if (selectedTutor && selectedTutor.id === tutorId) {
+        setSelectedTutor({...selectedTutor, is_admin: !isAdmin});
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update admin status');
     }
+  };
 
+  const handleResetPassword = async (tutorId: string) => {
+    try {
+      // In a real app, you would implement password reset functionality
+      toast.success('Password reset email sent');
+      setIsResetPasswordDialogOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reset password');
+    }
+  };
+
+  const handleDeleteTutor = async (tutorId: string) => {
     try {
       // In a real app, you would delete from the database
       // For this demo, we'll just update the local state
       setTutors(tutors.filter(tutor => tutor.id !== tutorId));
       
       toast.success('Tutor deleted successfully');
+      setIsDeleteDialogOpen(false);
+      setIsProfileDialogOpen(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete tutor');
     }
+  };
+
+  const confirmDelete = (tutorId: string) => {
+    setTutorToDelete(tutorId);
+    setIsDeleteDialogOpen(true);
   };
 
   const getInitials = (name: string | null, email: string) => {
@@ -362,13 +415,15 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <div className="mb-4">
-                  <Input
-                    placeholder="Search tutors by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-md"
-                    prefix={<Search className="h-4 w-4 text-muted-foreground" />}
-                  />
+                  <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search tutors by name or email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
                 <div className="rounded-md border">
                   <Table>
@@ -390,17 +445,19 @@ export default function AdminPage() {
                         </TableRow>
                       ) : (
                         filteredTutors.map((tutor) => (
-                          <TableRow key={tutor.id}>
+                          <TableRow key={tutor.id} className="group">
                             <TableCell>
                               <div className="flex items-center space-x-3">
-                                <Avatar className="h-8 w-8">
+                                <Avatar className="h-8 w-8 transition-all duration-200 group-hover:ring-2 group-hover:ring-primary/30">
                                   <AvatarImage src={tutor.avatar_url || undefined} alt={tutor.name || tutor.email} />
                                   <AvatarFallback className="bg-primary/10">
                                     {getInitials(tutor.name, tutor.email)}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <p className="font-medium">{tutor.name || "Unnamed Tutor"}</p>
+                                  <p className="font-medium group-hover:text-primary transition-colors duration-200">
+                                    {tutor.name || "Unnamed Tutor"}
+                                  </p>
                                   <p className="text-sm text-muted-foreground">{tutor.email}</p>
                                 </div>
                               </div>
@@ -408,10 +465,20 @@ export default function AdminPage() {
                             <TableCell>
                               <Badge 
                                 variant={tutor.status === "active" ? "default" : "secondary"}
-                                className="capitalize"
+                                className={`capitalize ${tutor.status === "active" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : ""}`}
                               >
+                                {tutor.status === "active" ? (
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                                ) : (
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                )}
                                 {tutor.status}
                               </Badge>
+                              {tutor.is_admin && (
+                                <Badge variant="outline" className="ml-2 bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                                  Admin
+                                </Badge>
+                              )}
                             </TableCell>
                             <TableCell>{tutor.studentsCount}</TableCell>
                             <TableCell>{tutor.lessonsCount}</TableCell>
@@ -422,58 +489,110 @@ export default function AdminPage() {
                                     <TooltipTrigger asChild>
                                       <Button 
                                         variant="outline" 
-                                        size="sm"
+                                        size="icon"
                                         onClick={() => handleViewProfile(tutor)}
-                                        className="h-8 px-2 text-xs"
+                                        className="h-8 w-8 transition-all duration-200 hover:bg-primary/10 hover:text-primary"
                                       >
-                                        <Eye className="h-3.5 w-3.5 mr-1" />
-                                        <span>View Profile</span>
+                                        <Eye className="h-4 w-4" />
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>View tutor profile details</p>
+                                      <p>View Profile</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                                 
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant={tutor.status === "active" ? "destructive" : "default"}
-                                        size="sm"
-                                        onClick={() => handleStatusChange(
-                                          tutor.id, 
-                                          tutor.status === "active" ? "inactive" : "active"
-                                        )}
-                                        className="h-8 px-2 text-xs"
-                                      >
-                                        {tutor.status === "active" ? "Deactivate" : "Activate"}
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{tutor.status === "active" ? "Disable tutor account" : "Enable tutor account"}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => handleDeleteTutor(tutor.id)}
-                                        className="h-8 px-2 text-xs"
-                                      >
-                                        Delete
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Permanently delete tutor account</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                <DropdownMenu>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button 
+                                            variant="outline" 
+                                            size="icon"
+                                            className="h-8 w-8 transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+                                          >
+                                            <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>More Actions</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                  
+                                  <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuLabel>Tutor Actions</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    
+                                    <DropdownMenuItem 
+                                      onClick={() => handleViewProfile(tutor)}
+                                      className="cursor-pointer"
+                                    >
+                                      <UserRound className="mr-2 h-4 w-4" />
+                                      <span>View Profile</span>
+                                    </DropdownMenuItem>
+                                    
+                                    <DropdownMenuItem 
+                                      onClick={() => handleStatusChange(
+                                        tutor.id, 
+                                        tutor.status === "active" ? "inactive" : "active"
+                                      )}
+                                      className="cursor-pointer"
+                                    >
+                                      {tutor.status === "active" ? (
+                                        <>
+                                          <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                                          <span>Deactivate Account</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+                                          <span>Activate Account</span>
+                                        </>
+                                      )}
+                                    </DropdownMenuItem>
+                                    
+                                    <DropdownMenuItem 
+                                      onClick={() => handleToggleAdminStatus(tutor.id, tutor.is_admin)}
+                                      className="cursor-pointer"
+                                    >
+                                      {tutor.is_admin ? (
+                                        <>
+                                          <ShieldAlert className="mr-2 h-4 w-4 text-red-500" />
+                                          <span>Revoke Admin Access</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ShieldCheck className="mr-2 h-4 w-4 text-green-500" />
+                                          <span>Grant Admin Access</span>
+                                        </>
+                                      )}
+                                    </DropdownMenuItem>
+                                    
+                                    <DropdownMenuSeparator />
+                                    
+                                    <DropdownMenuItem 
+                                      onClick={() => {
+                                        setSelectedTutor(tutor);
+                                        setIsResetPasswordDialogOpen(true);
+                                      }}
+                                      className="cursor-pointer"
+                                    >
+                                      <KeyRound className="mr-2 h-4 w-4 text-amber-500" />
+                                      <span>Reset Password</span>
+                                    </DropdownMenuItem>
+                                    
+                                    <DropdownMenuItem 
+                                      onClick={() => confirmDelete(tutor.id)}
+                                      className="cursor-pointer text-red-600 focus:text-red-600"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      <span>Delete Account</span>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -497,12 +616,13 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search logs..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full"
+                      className="pl-10 w-full"
                     />
                   </div>
                   <Select value={logFilter} onValueChange={setLogFilter}>
@@ -584,11 +704,20 @@ export default function AdminPage() {
                     <h2 className="text-2xl font-bold">{selectedTutor.name || "Unnamed Tutor"}</h2>
                     <p className="text-muted-foreground">{selectedTutor.email}</p>
                     <div className="flex flex-wrap gap-2 mt-2 justify-center sm:justify-start">
-                      <Badge variant={selectedTutor.status === "active" ? "default" : "secondary"} className="capitalize">
+                      <Badge 
+                        variant={selectedTutor.status === "active" ? "default" : "secondary"} 
+                        className={`capitalize ${selectedTutor.status === "active" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : ""}`}
+                      >
+                        {selectedTutor.status === "active" ? (
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                        ) : (
+                          <XCircle className="w-3 h-3 mr-1" />
+                        )}
                         {selectedTutor.status}
                       </Badge>
                       {selectedTutor.is_admin && (
                         <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                          <ShieldCheck className="w-3 h-3 mr-1" />
                           Admin
                         </Badge>
                       )}
@@ -663,68 +792,170 @@ export default function AdminPage() {
                 {/* Admin Actions */}
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Admin Actions</h3>
-                  <div className="flex flex-wrap gap-3">
-                    <Button 
-                      variant={selectedTutor.status === "active" ? "destructive" : "default"}
-                      onClick={() => {
-                        handleStatusChange(
-                          selectedTutor.id, 
-                          selectedTutor.status === "active" ? "inactive" : "active"
-                        );
-                        setSelectedTutor({
-                          ...selectedTutor, 
-                          status: selectedTutor.status === "active" ? "inactive" : "active"
-                        });
-                      }}
-                    >
-                      {selectedTutor.status === "active" ? "Deactivate Account" : "Activate Account"}
-                    </Button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Card className="border border-amber-200 bg-amber-50/50 dark:bg-amber-900/10 dark:border-amber-800/50">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center">
+                          <UserCog className="h-4 w-4 mr-2 text-amber-600" />
+                          Account Management
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="flex flex-col gap-2">
+                          <Button 
+                            variant={selectedTutor.status === "active" ? "destructive" : "default"}
+                            size="sm"
+                            onClick={() => {
+                              handleStatusChange(
+                                selectedTutor.id, 
+                                selectedTutor.status === "active" ? "inactive" : "active"
+                              );
+                              setSelectedTutor({
+                                ...selectedTutor, 
+                                status: selectedTutor.status === "active" ? "inactive" : "active"
+                              });
+                            }}
+                            className="justify-start"
+                          >
+                            {selectedTutor.status === "active" ? (
+                              <>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Deactivate Account
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Activate Account
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setIsResetPasswordDialogOpen(true);
+                            }}
+                            className="justify-start"
+                          >
+                            <KeyRound className="h-4 w-4 mr-2 text-amber-600" />
+                            Reset Password
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                     
-                    <Button 
-                      variant={selectedTutor.is_admin ? "destructive" : "outline"}
-                      onClick={() => {
-                        // In a real app, you would update the database
-                        setSelectedTutor({...selectedTutor, is_admin: !selectedTutor.is_admin});
-                        toast.success(`Admin privileges ${selectedTutor.is_admin ? 'revoked' : 'granted'}`);
-                      }}
-                    >
-                      {selectedTutor.is_admin ? "Revoke Admin Access" : "Grant Admin Access"}
-                    </Button>
-                    
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        // In a real app, you would implement password reset functionality
-                        toast.success('Password reset email sent');
-                      }}
-                    >
-                      Reset Password
-                    </Button>
+                    <Card className="border border-purple-200 bg-purple-50/50 dark:bg-purple-900/10 dark:border-purple-800/50">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center">
+                          <Shield className="h-4 w-4 mr-2 text-purple-600" />
+                          Permissions
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="flex flex-col gap-2">
+                          <Button 
+                            variant={selectedTutor.is_admin ? "destructive" : "outline"}
+                            size="sm"
+                            onClick={() => {
+                              handleToggleAdminStatus(selectedTutor.id, selectedTutor.is_admin);
+                            }}
+                            className="justify-start"
+                          >
+                            {selectedTutor.is_admin ? (
+                              <>
+                                <ShieldAlert className="h-4 w-4 mr-2" />
+                                Revoke Admin Access
+                              </>
+                            ) : (
+                              <>
+                                <ShieldCheck className="h-4 w-4 mr-2 text-purple-600" />
+                                Grant Admin Access
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button 
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => confirmDelete(selectedTutor.id)}
+                            className="justify-start"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Account
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
               </div>
 
-              <DialogFooter>
-                <Button 
-                  variant="destructive"
-                  onClick={() => {
-                    handleDeleteTutor(selectedTutor.id);
-                    setIsProfileDialogOpen(false);
-                  }}
-                >
-                  Delete Account
-                </Button>
+              <DialogFooter className="mt-6 flex justify-between">
                 <Button 
                   variant="outline" 
                   onClick={() => setIsProfileDialogOpen(false)}
                 >
                   Close
                 </Button>
+                <Button 
+                  variant="default"
+                  onClick={() => {
+                    // In a real app, you would implement email functionality
+                    toast.success('Email sent to tutor');
+                  }}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Contact Tutor
+                </Button>
               </DialogFooter>
             </>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the tutor account
+              and remove all associated data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => tutorToDelete && handleDeleteTutor(tutorToDelete)}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Password Dialog */}
+      <AlertDialog open={isResetPasswordDialogOpen} onOpenChange={setIsResetPasswordDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Password</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will send a password reset email to the tutor. They will be able to set a new password.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedTutor && handleResetPassword(selectedTutor.id)}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Send Reset Email
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }
