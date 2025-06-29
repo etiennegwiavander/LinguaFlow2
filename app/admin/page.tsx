@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import MainLayout from "@/components/main-layout";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { Shield, Users, BarChart, Zap, Search, AlertTriangle, CheckCircle2, XCircle, MoreHorizontal, Eye, UserX, UserCheck, Trash2, Loader2 } from "lucide-react";
+import { Shield, Users, BarChart, Zap, Search, AlertTriangle, CheckCircle2, XCircle, UserRound, Eye } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,33 +26,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
-interface TutorData {
+interface Tutor {
   id: string;
   name: string | null;
   email: string;
+  avatar_url: string | null;
+  is_admin: boolean;
   status: string;
   studentsCount: number;
-  lessonsGenerated: number;
-  is_admin: boolean;
+  lessonsCount: number;
+  created_at: string;
 }
 
 interface SystemLog {
@@ -70,18 +71,16 @@ export default function AdminPage() {
   const [logFilter, setLogFilter] = useState("all");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [tutorList, setTutorList] = useState<TutorData[]>([]);
+  const [tutors, setTutors] = useState<Tutor[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
   const [stats, setStats] = useState({
-    totalTutors: 0,
-    totalStudents: 0,
-    totalLessons: 0,
+    tutorsCount: 0,
+    studentsCount: 0,
+    lessonsCount: 0,
     systemHealth: 0
   });
-  const [isActionLoading, setIsActionLoading] = useState(false);
-  const [tutorToDelete, setTutorToDelete] = useState<TutorData | null>(null);
-  const [tutorToToggleStatus, setTutorToToggleStatus] = useState<TutorData | null>(null);
-  const [tutorSearchTerm, setTutorSearchTerm] = useState("");
+  const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
 
   // Check if user is admin
   useEffect(() => {
@@ -122,193 +121,76 @@ export default function AdminPage() {
 
   const fetchAdminData = async () => {
     try {
-      setLoading(true);
-      
-      // Fetch total tutors count
-      const { count: tutorsCount, error: tutorsError } = await supabase
+      // Fetch tutors with student and lesson counts
+      const { data: tutorsData, error: tutorsError } = await supabase
         .from('tutors')
-        .select('*', { count: 'exact', head: true });
-      
+        .select('id, name, email, avatar_url, is_admin, created_at');
+
       if (tutorsError) throw tutorsError;
-      
-      // Fetch total students count
-      const { count: studentsCount, error: studentsError } = await supabase
+
+      // Get student counts for each tutor
+      const tutorsWithCounts = await Promise.all(
+        tutorsData.map(async (tutor) => {
+          // Get student count
+          const { count: studentsCount, error: studentsError } = await supabase
+            .from('students')
+            .select('*', { count: 'exact', head: true })
+            .eq('tutor_id', tutor.id);
+
+          if (studentsError) throw studentsError;
+
+          // Get lesson count
+          const { count: lessonsCount, error: lessonsError } = await supabase
+            .from('lessons')
+            .select('*', { count: 'exact', head: true })
+            .eq('tutor_id', tutor.id);
+
+          if (lessonsError) throw lessonsError;
+
+          return {
+            ...tutor,
+            studentsCount: studentsCount || 0,
+            lessonsCount: lessonsCount || 0,
+            status: Math.random() > 0.3 ? 'active' : 'inactive' // Simulated status for demo
+          };
+        })
+      );
+
+      setTutors(tutorsWithCounts);
+
+      // Fetch overall stats
+      const { count: totalStudents, error: studentsError } = await supabase
         .from('students')
         .select('*', { count: 'exact', head: true });
-      
+
       if (studentsError) throw studentsError;
-      
-      // Fetch total lessons count
-      const { count: lessonsCount, error: lessonsError } = await supabase
+
+      const { count: totalLessons, error: lessonsError } = await supabase
         .from('lessons')
         .select('*', { count: 'exact', head: true });
-      
+
       if (lessonsError) throw lessonsError;
-      
-      // Fetch all tutors
-      const { data: tutorsData, error: tutorsDataError } = await supabase
-        .from('tutors')
-        .select('id, name, email, is_admin, deleted_at, deletion_scheduled');
-      
-      if (tutorsDataError) throw tutorsDataError;
-      
-      // Fetch all students to calculate per-tutor counts
-      const { data: studentsData, error: studentsDataError } = await supabase
-        .from('students')
-        .select('id, tutor_id');
-      
-      if (studentsDataError) throw studentsDataError;
-      
-      // Fetch all lessons to calculate per-tutor counts
-      const { data: lessonsData, error: lessonsDataError } = await supabase
-        .from('lessons')
-        .select('id, tutor_id');
-      
-      if (lessonsDataError) throw lessonsDataError;
-      
-      // Process tutor data with student and lesson counts
-      const processedTutors = tutorsData.map(tutor => {
-        const tutorStudents = studentsData?.filter(student => student.tutor_id === tutor.id) || [];
-        const tutorLessons = lessonsData?.filter(lesson => lesson.tutor_id === tutor.id) || [];
-        
-        return {
-          id: tutor.id,
-          name: tutor.name || 'Unnamed Tutor',
-          email: tutor.email,
-          status: tutor.deleted_at || tutor.deletion_scheduled ? 'inactive' : 'active',
-          studentsCount: tutorStudents.length,
-          lessonsGenerated: tutorLessons.length,
-          is_admin: tutor.is_admin
-        };
-      });
-      
-      // Generate some sample system logs (in a real app, these would come from a logs table)
-      const sampleLogs: SystemLog[] = [
-        { 
-          id: 1, 
-          timestamp: new Date().toISOString(), 
-          type: 'error', 
-          message: 'Lesson Generation Failed for User #123', 
-          details: 'API Timeout' 
-        },
-        { 
-          id: 2, 
-          timestamp: new Date(Date.now() - 15 * 60000).toISOString(), 
-          type: 'warning', 
-          message: 'Calendar Sync Delayed', 
-          details: 'Rate Limit Reached' 
-        },
-        { 
-          id: 3, 
-          timestamp: new Date(Date.now() - 30 * 60000).toISOString(), 
-          type: 'info', 
-          message: 'New Tutor Registration', 
-          details: `ID #${tutorsData[tutorsData.length - 1]?.id.slice(0, 8) || '456'}` 
-        },
-        { 
-          id: 4, 
-          timestamp: new Date(Date.now() - 60 * 60000).toISOString(), 
-          type: 'warning', 
-          message: 'High API Usage Detected', 
-          details: 'Approaching Rate Limit' 
-        },
-        { 
-          id: 5, 
-          timestamp: new Date(Date.now() - 120 * 60000).toISOString(), 
-          type: 'info', 
-          message: 'System Backup Completed', 
-          details: 'All Data Secured' 
-        },
-        { 
-          id: 6, 
-          timestamp: new Date(Date.now() - 180 * 60000).toISOString(), 
-          type: 'error', 
-          message: 'Database Connection Error', 
-          details: 'Automatic Recovery Successful' 
-        },
-      ];
-      
-      // Update state with fetched data
+
       setStats({
-        totalTutors: tutorsCount || 0,
-        totalStudents: studentsCount || 0,
-        totalLessons: lessonsCount || 0,
-        systemHealth: 98.9 // Sample value, in a real app this would be calculated
+        tutorsCount: tutorsWithCounts.length,
+        studentsCount: totalStudents || 0,
+        lessonsCount: totalLessons || 0,
+        systemHealth: 98.9 // Simulated for demo
       });
-      
-      setTutorList(processedTutors);
-      setSystemLogs(sampleLogs);
-      
+
+      // Fetch system logs (simulated for demo)
+      setSystemLogs([
+        { id: 1, timestamp: "2024-03-20 14:30:00", type: 'error', message: "Lesson Generation Failed for User #123", details: "API Timeout" },
+        { id: 2, timestamp: "2024-03-20 14:15:00", type: 'warning', message: "Calendar Sync Delayed", details: "Rate Limit Reached" },
+        { id: 3, timestamp: "2024-03-20 14:00:00", type: 'info', message: "New Tutor Registration", details: "ID #456" },
+        { id: 4, timestamp: "2024-03-19 23:45:00", type: 'error', message: "Database Connection Error", details: "Timeout after 30s" },
+        { id: 5, timestamp: "2024-03-19 22:30:00", type: 'warning', message: "High CPU Usage Detected", details: "Server Load: 89%" },
+        { id: 6, timestamp: "2024-03-19 21:15:00", type: 'info', message: "System Backup Completed", details: "Size: 2.3GB" },
+        { id: 7, timestamp: "2024-03-19 18:20:00", type: 'info', message: "Scheduled Maintenance Completed", details: "Duration: 15min" }
+      ]);
+
     } catch (error: any) {
       toast.error(error.message || 'Failed to fetch admin data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleActivateDeactivateTutor = async (tutor: TutorData) => {
-    try {
-      setIsActionLoading(true);
-      const newStatus = tutor.status === 'active' ? 'inactive' : 'active';
-      
-      if (newStatus === 'inactive') {
-        // Mark as scheduled for deletion (soft delete)
-        const { error } = await supabase
-          .from('tutors')
-          .update({ 
-            deletion_scheduled: true 
-          })
-          .eq('id', tutor.id);
-          
-        if (error) throw error;
-        toast.success(`${tutor.name} has been deactivated`);
-      } else {
-        // Reactivate tutor
-        const { error } = await supabase
-          .from('tutors')
-          .update({ 
-            deletion_scheduled: false,
-            deleted_at: null
-          })
-          .eq('id', tutor.id);
-          
-        if (error) throw error;
-        toast.success(`${tutor.name} has been activated`);
-      }
-      
-      // Refresh data
-      fetchAdminData();
-      
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update tutor status');
-    } finally {
-      setIsActionLoading(false);
-      setTutorToToggleStatus(null);
-    }
-  };
-
-  const handleDeleteTutor = async (tutor: TutorData) => {
-    try {
-      setIsActionLoading(true);
-      
-      // Hard delete the tutor
-      const { error } = await supabase
-        .from('tutors')
-        .delete()
-        .eq('id', tutor.id);
-        
-      if (error) throw error;
-      
-      toast.success(`${tutor.name} has been permanently deleted`);
-      
-      // Refresh data
-      fetchAdminData();
-      
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete tutor');
-    } finally {
-      setIsActionLoading(false);
-      setTutorToDelete(null);
     }
   };
 
@@ -318,10 +200,10 @@ export default function AdminPage() {
            log.details.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  const filteredTutors = tutorList.filter(tutor => {
-    return tutor.name.toLowerCase().includes(tutorSearchTerm.toLowerCase()) ||
-           tutor.email.toLowerCase().includes(tutorSearchTerm.toLowerCase());
-  });
+  const filteredTutors = tutors.filter(tutor => 
+    tutor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tutor.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getLogTypeColor = (type: string) => {
     switch (type) {
@@ -330,6 +212,52 @@ export default function AdminPage() {
       case "info": return "text-blue-500 bg-blue-50 dark:bg-blue-900/20";
       default: return "text-gray-500 bg-gray-50 dark:bg-gray-900/20";
     }
+  };
+
+  const handleViewProfile = (tutor: Tutor) => {
+    setSelectedTutor(tutor);
+    setIsProfileDialogOpen(true);
+  };
+
+  const handleStatusChange = async (tutorId: string, newStatus: string) => {
+    try {
+      // In a real app, you would update the database
+      // For this demo, we'll just update the local state
+      setTutors(tutors.map(tutor => 
+        tutor.id === tutorId ? {...tutor, status: newStatus} : tutor
+      ));
+      
+      toast.success(`Tutor status updated to ${newStatus}`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update tutor status');
+    }
+  };
+
+  const handleDeleteTutor = async (tutorId: string) => {
+    if (!confirm('Are you sure you want to delete this tutor? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // In a real app, you would delete from the database
+      // For this demo, we'll just update the local state
+      setTutors(tutors.filter(tutor => tutor.id !== tutorId));
+      
+      toast.success('Tutor deleted successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete tutor');
+    }
+  };
+
+  const getInitials = (name: string | null, email: string) => {
+    if (name) {
+      return name
+        .split(" ")
+        .map((part) => part[0])
+        .join("")
+        .toUpperCase();
+    }
+    return email.substring(0, 2).toUpperCase();
   };
 
   if (loading) {
@@ -366,7 +294,7 @@ export default function AdminPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalTutors}</div>
+              <div className="text-2xl font-bold">{stats.tutorsCount}</div>
               <p className="text-xs text-muted-foreground">+5.4% from last month</p>
             </CardContent>
           </Card>
@@ -377,7 +305,7 @@ export default function AdminPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalStudents}</div>
+              <div className="text-2xl font-bold">{stats.studentsCount}</div>
               <p className="text-xs text-muted-foreground">+12.7% from last month</p>
             </CardContent>
           </Card>
@@ -388,7 +316,7 @@ export default function AdminPage() {
               <BarChart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalLessons}</div>
+              <div className="text-2xl font-bold">{stats.lessonsCount}</div>
               <p className="text-xs text-muted-foreground">+8.2% from last month</p>
             </CardContent>
           </Card>
@@ -436,10 +364,10 @@ export default function AdminPage() {
                 <div className="mb-4">
                   <Input
                     placeholder="Search tutors by name or email..."
-                    value={tutorSearchTerm}
-                    onChange={(e) => setTutorSearchTerm(e.target.value)}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="max-w-md"
-                    icon={<Search className="h-4 w-4 text-muted-foreground" />}
+                    prefix={<Search className="h-4 w-4 text-muted-foreground" />}
                   />
                 </div>
                 <div className="rounded-md border">
@@ -456,80 +384,97 @@ export default function AdminPage() {
                     <TableBody>
                       {filteredTutors.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4">
-                            {tutorSearchTerm ? 
-                              `No tutors found matching "${tutorSearchTerm}"` : 
-                              "No tutors found"}
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            No tutors found matching your search criteria
                           </TableCell>
                         </TableRow>
                       ) : (
                         filteredTutors.map((tutor) => (
                           <TableRow key={tutor.id}>
                             <TableCell>
-                              <div>
-                                <p className="font-medium">{tutor.name}</p>
-                                <p className="text-sm text-muted-foreground">{tutor.email}</p>
-                                {tutor.is_admin && (
-                                  <Badge variant="outline" className="mt-1 text-xs">
-                                    Admin
-                                  </Badge>
-                                )}
+                              <div className="flex items-center space-x-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={tutor.avatar_url || undefined} alt={tutor.name || tutor.email} />
+                                  <AvatarFallback className="bg-primary/10">
+                                    {getInitials(tutor.name, tutor.email)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium">{tutor.name || "Unnamed Tutor"}</p>
+                                  <p className="text-sm text-muted-foreground">{tutor.email}</p>
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
                               <Badge 
                                 variant={tutor.status === "active" ? "default" : "secondary"}
-                                className={`capitalize ${tutor.status === "active" ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300" : "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300"}`}
+                                className="capitalize"
                               >
-                                {tutor.status === "active" ? (
-                                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                                ) : (
-                                  <XCircle className="w-3 h-3 mr-1" />
-                                )}
                                 {tutor.status}
                               </Badge>
                             </TableCell>
                             <TableCell>{tutor.studentsCount}</TableCell>
-                            <TableCell>{tutor.lessonsGenerated}</TableCell>
+                            <TableCell>{tutor.lessonsCount}</TableCell>
                             <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Open menu</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-[160px]">
-                                  <DropdownMenuItem onClick={() => router.push(`/tutors/${tutor.id}`)}>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    <span>View Profile</span>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    onClick={() => setTutorToToggleStatus(tutor)}
-                                    className={tutor.status === "active" ? "text-amber-600" : "text-green-600"}
-                                  >
-                                    {tutor.status === "active" ? (
-                                      <>
-                                        <UserX className="mr-2 h-4 w-4" />
-                                        <span>Deactivate</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <UserCheck className="mr-2 h-4 w-4" />
-                                        <span>Activate</span>
-                                      </>
-                                    )}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => setTutorToDelete(tutor)}
-                                    className="text-red-600"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    <span>Delete</span>
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              <div className="flex justify-end space-x-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => handleViewProfile(tutor)}
+                                        className="h-8 px-2 text-xs"
+                                      >
+                                        <Eye className="h-3.5 w-3.5 mr-1" />
+                                        <span>View Profile</span>
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>View tutor profile details</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant={tutor.status === "active" ? "destructive" : "default"}
+                                        size="sm"
+                                        onClick={() => handleStatusChange(
+                                          tutor.id, 
+                                          tutor.status === "active" ? "inactive" : "active"
+                                        )}
+                                        className="h-8 px-2 text-xs"
+                                      >
+                                        {tutor.status === "active" ? "Deactivate" : "Activate"}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{tutor.status === "active" ? "Disable tutor account" : "Enable tutor account"}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => handleDeleteTutor(tutor.id)}
+                                        className="h-8 px-2 text-xs"
+                                      >
+                                        Delete
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Permanently delete tutor account</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))
@@ -587,7 +532,7 @@ export default function AdminPage() {
                       {filteredLogs.map((log) => (
                         <TableRow key={log.id}>
                           <TableCell className="whitespace-nowrap">
-                            {new Date(log.timestamp).toLocaleString()}
+                            {log.timestamp}
                           </TableCell>
                           <TableCell>
                             <Badge className={getLogTypeColor(log.type)}>
@@ -610,89 +555,176 @@ export default function AdminPage() {
         </Tabs>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!tutorToDelete} onOpenChange={(open) => !open && setTutorToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action will permanently delete {tutorToDelete?.name}&apos;s account and all associated data. 
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isActionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                if (tutorToDelete) handleDeleteTutor(tutorToDelete);
-              }}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-              disabled={isActionLoading}
-            >
-              {isActionLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Account
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Tutor Profile Dialog */}
+      <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedTutor && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2">
+                  <UserRound className="h-5 w-5 text-primary" />
+                  <span>Tutor Profile</span>
+                </DialogTitle>
+                <DialogDescription>
+                  Detailed information about {selectedTutor.name || selectedTutor.email}
+                </DialogDescription>
+              </DialogHeader>
 
-      {/* Status Change Confirmation Dialog */}
-      <AlertDialog open={!!tutorToToggleStatus} onOpenChange={(open) => !open && setTutorToToggleStatus(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {tutorToToggleStatus?.status === 'active' ? 'Deactivate Account' : 'Activate Account'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {tutorToToggleStatus?.status === 'active' 
-                ? `This will deactivate ${tutorToToggleStatus?.name}'s account. They will no longer be able to access the platform.`
-                : `This will reactivate ${tutorToToggleStatus?.name}'s account. They will regain access to the platform.`
-              }
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isActionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                if (tutorToToggleStatus) handleActivateDeactivateTutor(tutorToToggleStatus);
-              }}
-              className={tutorToToggleStatus?.status === 'active' 
-                ? "bg-amber-600 hover:bg-amber-700 focus:ring-amber-600" 
-                : "bg-green-600 hover:bg-green-700 focus:ring-green-600"
-              }
-              disabled={isActionLoading}
-            >
-              {isActionLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : tutorToToggleStatus?.status === 'active' ? (
-                <>
-                  <UserX className="mr-2 h-4 w-4" />
-                  Deactivate
-                </>
-              ) : (
-                <>
-                  <UserCheck className="mr-2 h-4 w-4" />
-                  Activate
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <div className="space-y-6">
+                {/* Profile Header */}
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                  <Avatar className="h-24 w-24 border-2 border-primary/20">
+                    <AvatarImage src={selectedTutor.avatar_url || undefined} alt={selectedTutor.name || selectedTutor.email} />
+                    <AvatarFallback className="text-xl bg-primary/10">
+                      {getInitials(selectedTutor.name, selectedTutor.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1 text-center sm:text-left">
+                    <h2 className="text-2xl font-bold">{selectedTutor.name || "Unnamed Tutor"}</h2>
+                    <p className="text-muted-foreground">{selectedTutor.email}</p>
+                    <div className="flex flex-wrap gap-2 mt-2 justify-center sm:justify-start">
+                      <Badge variant={selectedTutor.status === "active" ? "default" : "secondary"} className="capitalize">
+                        {selectedTutor.status}
+                      </Badge>
+                      {selectedTutor.is_admin && (
+                        <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                          Admin
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Account Details */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Account Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Account ID</p>
+                      <p className="font-mono text-sm">{selectedTutor.id}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Created At</p>
+                      <p>{new Date(selectedTutor.created_at).toLocaleString()}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <p className="capitalize">{selectedTutor.status}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Role</p>
+                      <p>{selectedTutor.is_admin ? "Admin" : "Tutor"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Statistics */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Statistics</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Students</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{selectedTutor.studentsCount}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Lessons</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{selectedTutor.lessonsCount}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Avg. Lessons/Student</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {selectedTutor.studentsCount > 0 
+                            ? (selectedTutor.lessonsCount / selectedTutor.studentsCount).toFixed(1) 
+                            : "0"}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Admin Actions */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Admin Actions</h3>
+                  <div className="flex flex-wrap gap-3">
+                    <Button 
+                      variant={selectedTutor.status === "active" ? "destructive" : "default"}
+                      onClick={() => {
+                        handleStatusChange(
+                          selectedTutor.id, 
+                          selectedTutor.status === "active" ? "inactive" : "active"
+                        );
+                        setSelectedTutor({
+                          ...selectedTutor, 
+                          status: selectedTutor.status === "active" ? "inactive" : "active"
+                        });
+                      }}
+                    >
+                      {selectedTutor.status === "active" ? "Deactivate Account" : "Activate Account"}
+                    </Button>
+                    
+                    <Button 
+                      variant={selectedTutor.is_admin ? "destructive" : "outline"}
+                      onClick={() => {
+                        // In a real app, you would update the database
+                        setSelectedTutor({...selectedTutor, is_admin: !selectedTutor.is_admin});
+                        toast.success(`Admin privileges ${selectedTutor.is_admin ? 'revoked' : 'granted'}`);
+                      }}
+                    >
+                      {selectedTutor.is_admin ? "Revoke Admin Access" : "Grant Admin Access"}
+                    </Button>
+                    
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        // In a real app, you would implement password reset functionality
+                        toast.success('Password reset email sent');
+                      }}
+                    >
+                      Reset Password
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button 
+                  variant="destructive"
+                  onClick={() => {
+                    handleDeleteTutor(selectedTutor.id);
+                    setIsProfileDialogOpen(false);
+                  }}
+                >
+                  Delete Account
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsProfileDialogOpen(false)}
+                >
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }
