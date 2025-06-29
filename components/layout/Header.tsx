@@ -202,7 +202,7 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-cyber-400/20" />
-              <DropdownMenuItem onClick={() => router.push('/profile')} className="hover:bg-cyber-400/10 focus-cyber">
+              <DropdownMenuItem onClick={() => router.push('/settings')} className="hover:bg-cyber-400/10 focus-cyber">
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
