@@ -138,7 +138,7 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
         {/* Welcome Message */}
         <div className="hidden md:flex items-center">
           <h1 className="text-lg sm:text-xl font-semibold">
-            Welcome back, <span className="gradient-text">{getDisplayName()}</span>
+            Welcome back Tutor, <span className="gradient-text">{getDisplayName()}</span>
           </h1>
         </div>
 
