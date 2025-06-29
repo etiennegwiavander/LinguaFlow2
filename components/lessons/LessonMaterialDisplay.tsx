@@ -1,13 +1,11 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { safeGetString, safeGetArray, debounce } from "@/lib/utils";
-import { showExportDialog } from "@/lib/export-utils";
+import { exportToPdf, exportToWord, showExportDialog } from "@/lib/export-utils";
 
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-// import {  } from "react";
-import { DetailedHTMLProps, HTMLAttributes, useState, useEffect, useRef } from 'react';
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { 
@@ -29,8 +27,8 @@ import {
   Eye,
   MessageCircle,
   Globe,
-  FileText,
-  Download
+  Download,
+  FileText
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -89,13 +87,15 @@ interface Lesson {
   student_id: string;
   tutor_id: string;
   date: string;
-  status: string;
+  status: 'upcoming' | 'completed' | 'cancelled';
   materials: string[];
   notes: string | null;
+  previous_challenges: string[] | null;
   generated_lessons: string[] | null;
   sub_topics: any[] | null;
   lesson_template_id: string | null;
   interactive_lesson_content: any | null;
+  created_at: string;
   student: {
     name: string;
     target_language: string;
@@ -217,7 +217,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     wordRect: null
   });
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
-  const lessonContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user || !lessonId) return;
@@ -526,18 +525,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
   };
 
   const handleExportLesson = () => {
-    if (!lessonContentRef.current) {
-      toast.error("Lesson content not found");
-      return;
-    }
+    if (!lesson) return;
     
-    // Generate a filename based on the lesson data
-    const fileName = lesson ? 
-      `${lesson.student.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}` : 
-      'lesson-material';
-    
-    // Show the export dialog
-    showExportDialog('lesson-content', fileName);
+    const fileName = `lesson-${lesson.student.name.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}`;
+    showExportDialog('lesson-content-container', fileName);
   };
 
   const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
@@ -1187,7 +1178,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     const sections = safeGetArray(template.template_json, 'sections');
 
     return (
-      <div className="space-y-6 max-w-4xl mx-auto" data-lesson-content ref={lessonContentRef} id="lesson-content">
+      <div id="lesson-content-container" className="space-y-6 max-w-4xl mx-auto" data-lesson-content>
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
           <div className="flex items-start space-x-2 flex-1">
             <CheckCircle2 className="w-5 h-5 text-green-600 mt-1" />
@@ -1225,7 +1216,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
           renderTemplateSection(section, 0)
         )}
         
-        <div className="flex flex-col sm:flex-row justify-center gap-4 pt-8">
+        <div className="flex justify-center pt-8 space-x-4">
           <Button 
             size="lg" 
             className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
@@ -1238,7 +1229,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
             className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
             onClick={handleExportLesson}
           >
-            <FileText className="w-5 h-5 mr-2" />
+            <Download className="w-5 h-5 mr-2" />
             Export Lesson
           </Button>
         </div>
@@ -1258,7 +1249,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
   // Fall back to basic lesson plan view if no interactive content
   return (
-    <div className="space-y-6" data-lesson-content ref={lessonContentRef} id="lesson-content">
+    <div id="lesson-content-container" className="space-y-6" data-lesson-content>
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2 gradient-text">
           Lesson for {lesson.student.name}
@@ -1370,7 +1361,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
               onClick={handleExportLesson}
             >
-              <Download className="w-5 h-5 mr-2" />
+              <FileText className="w-5 h-5 mr-2" />
               Export Lesson
             </Button>
           </div>

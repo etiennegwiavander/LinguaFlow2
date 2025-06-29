@@ -1,6 +1,5 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import HTMLtoDOCX from 'html-to-docx';
 
 /**
  * Exports the lesson content as a PDF file
@@ -23,9 +22,12 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
 
     // Create a clone of the element to modify for better PDF formatting
     const clone = element.cloneNode(true) as HTMLElement;
+    
+    // Apply styles for better PDF formatting
     clone.style.width = '210mm'; // A4 width
     clone.style.padding = '15mm';
     clone.style.backgroundColor = '#ffffff';
+    clone.style.color = '#000000';
     
     // Improve text formatting
     const textElements = clone.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, span');
@@ -33,6 +35,7 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
       (el as HTMLElement).style.fontSize = '12pt';
       (el as HTMLElement).style.lineHeight = '1.5';
       (el as HTMLElement).style.color = '#000000';
+      (el as HTMLElement).style.fontFamily = 'Arial, sans-serif';
     });
     
     // Improve heading formatting
@@ -40,6 +43,25 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
     headings.forEach(heading => {
       (heading as HTMLElement).style.pageBreakAfter = 'avoid';
       (heading as HTMLElement).style.pageBreakBefore = 'auto';
+      (heading as HTMLElement).style.marginTop = '16pt';
+      (heading as HTMLElement).style.marginBottom = '8pt';
+      (heading as HTMLElement).style.fontWeight = 'bold';
+    });
+    
+    // Improve card formatting
+    const cards = clone.querySelectorAll('.card, [class*="Card"]');
+    cards.forEach(card => {
+      (card as HTMLElement).style.border = '1px solid #e2e8f0';
+      (card as HTMLElement).style.borderRadius = '4px';
+      (card as HTMLElement).style.marginBottom = '16pt';
+      (card as HTMLElement).style.padding = '12pt';
+      (card as HTMLElement).style.backgroundColor = '#ffffff';
+    });
+    
+    // Remove any buttons or interactive elements
+    const buttons = clone.querySelectorAll('button, [role="button"]');
+    buttons.forEach(button => {
+      button.parentNode?.removeChild(button);
     });
     
     // Add the clone to the document temporarily (hidden)
@@ -106,7 +128,8 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
 };
 
 /**
- * Exports the lesson content as a Word document
+ * Exports the lesson content as a Word document by creating a downloadable HTML file
+ * This is a browser-compatible alternative to html-to-docx
  * @param elementId The ID of the element to export
  * @param fileName The name of the file to save
  */
@@ -127,69 +150,90 @@ export const exportToWord = async (elementId: string, fileName: string = 'lesson
     // Get the HTML content
     const htmlContent = element.innerHTML;
     
-    // Add proper styling for Word document
-    const styledHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              font-size: 12pt;
-              line-height: 1.5;
-              color: #000000;
-            }
-            h1, h2, h3, h4, h5, h6 {
-              margin-top: 12pt;
-              margin-bottom: 6pt;
-              page-break-after: avoid;
-            }
-            p {
-              margin-bottom: 8pt;
-            }
-            ul, ol {
-              margin-bottom: 10pt;
-            }
-            li {
-              margin-bottom: 4pt;
-            }
-            table {
-              border-collapse: collapse;
-              width: 100%;
-              margin-bottom: 10pt;
-            }
-            th, td {
-              border: 1px solid #ddd;
-              padding: 8pt;
-            }
-            img {
-              max-width: 100%;
-              height: auto;
-            }
-          </style>
-        </head>
-        <body>
-          ${htmlContent}
-        </body>
+    // Create a properly formatted HTML document that Word can open
+    const wordHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" 
+            xmlns:w="urn:schemas-microsoft-com:office:word" 
+            xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <title>${fileName}</title>
+        <!--[if gte mso 9]>
+        <xml>
+          <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+          </w:WordDocument>
+        </xml>
+        <![endif]-->
+        <style>
+          /* Word Document Styles */
+          body {
+            font-family: 'Calibri', sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #000000;
+          }
+          h1, h2, h3, h4, h5, h6 {
+            font-family: 'Calibri', sans-serif;
+            font-weight: bold;
+            margin-top: 12pt;
+            margin-bottom: 6pt;
+            page-break-after: avoid;
+          }
+          h1 { font-size: 16pt; }
+          h2 { font-size: 14pt; }
+          h3 { font-size: 13pt; }
+          p { margin-bottom: 8pt; }
+          ul, ol { margin-bottom: 10pt; }
+          li { margin-bottom: 4pt; }
+          table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 10pt;
+          }
+          th, td {
+            border: 1px solid #ddd;
+            padding: 8pt;
+          }
+          img {
+            max-width: 100%;
+            height: auto;
+          }
+          .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 16pt;
+            padding: 12pt;
+          }
+          /* Remove any background colors and gradients */
+          [class*="bg-"] {
+            background-color: transparent !important;
+          }
+          [class*="gradient-"] {
+            background-image: none !important;
+          }
+          /* Remove any interactive elements */
+          button, [role="button"] {
+            display: none !important;
+          }
+        </style>
+      </head>
+      <body>
+        ${htmlContent}
+      </body>
       </html>
     `;
 
-    // Convert HTML to DOCX
-    const docxBlob = await HTMLtoDOCX(styledHtml, null, {
-      title: fileName,
-      margin: {
-        top: 1440, // 1 inch in twips
-        right: 1440,
-        bottom: 1440,
-        left: 1440,
-      },
-    });
-
+    // Create a Blob with the HTML content
+    const blob = new Blob([wordHtml], { type: 'application/msword' });
+    
     // Create a download link
-    const url = URL.createObjectURL(docxBlob);
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${fileName}.docx`;
+    a.download = `${fileName}.doc`;
     document.body.appendChild(a);
     a.click();
     
