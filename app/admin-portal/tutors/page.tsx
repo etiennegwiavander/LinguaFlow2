@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Users, Search, Eye, MoreHorizontal, UserCog, KeyRound, Trash2, ShieldAlert, ShieldCheck, Mail, CheckCircle2, XCircle, UserRound, Loader2, Filter } from "lucide-react";
+import { Users, Search, Eye, MoreHorizontal, UserCog, KeyRound, Trash2, ShieldAlert, ShieldCheck, Mail, CheckCircle2, XCircle, UserRound, Loader2, Filter, Shield } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
