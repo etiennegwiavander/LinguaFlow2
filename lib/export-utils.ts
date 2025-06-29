@@ -25,7 +25,7 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
     
     // Apply styles for better PDF formatting
     clone.style.width = '210mm'; // A4 width
-    clone.style.padding = '0.7in 0.3in'; // Margins as requested: 0.7" top/bottom, 0.3" left/right
+    clone.style.padding = '0.7in 0.5in'; // Margins as requested: 0.7" top/bottom, 0.3" left/right
     clone.style.backgroundColor = '#ffffff';
     
     // Preserve the original styling by capturing all computed styles
