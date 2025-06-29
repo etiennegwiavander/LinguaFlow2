@@ -25,7 +25,7 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
     
     // Apply styles for better PDF formatting
     clone.style.width = '210mm'; // A4 width
-    clone.style.padding = '15mm'; // Margins
+    clone.style.padding = '0.7in 0.3in'; // Margins as requested: 0.7" top/bottom, 0.3" left/right
     clone.style.backgroundColor = '#ffffff';
     
     // Preserve the original styling by capturing all computed styles
@@ -260,23 +260,29 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
     document.body.removeChild(clone);
     document.body.removeChild(footer);
 
-    // Create a PDF
+    // Create a PDF with the specified margins
     const pdf = new jsPDF({
       orientation: 'portrait',
-      unit: 'mm',
+      unit: 'in',
       format: 'a4',
+      margins: {
+        top: 0.7,
+        bottom: 0.7,
+        left: 0.3,
+        right: 0.3
+      }
     });
 
     // Calculate the width and height to maintain aspect ratio
     const imgData = canvas.toDataURL('image/png');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfWidth = pdf.internal.pageSize.getWidth() - 0.6; // Subtract left and right margins (0.3" each)
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-    // Add the image to the PDF
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    // Add the image to the PDF with the specified margins
+    pdf.addImage(imgData, 'PNG', 0.3, 0.7, pdfWidth, pdfHeight);
 
     // If the content is longer than one page, add more pages
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    const pageHeight = pdf.internal.pageSize.getHeight() - 1.4; // Subtract top and bottom margins (0.7" each)
     const pageCount = Math.ceil(pdfHeight / pageHeight);
     
     for (let i = 1; i < pageCount; i++) {
@@ -284,8 +290,8 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
       pdf.addImage(
         imgData,
         'PNG',
-        0,
-        -(pageHeight * i),
+        0.3, // Left margin
+        0.7 - (pageHeight * i), // Top margin minus offset for current page
         pdfWidth,
         pdfHeight
       );
@@ -293,14 +299,14 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
       // Add page number
       pdf.setFontSize(9);
       pdf.setTextColor(100, 116, 139); // Neural color
-      pdf.text(`Page ${i + 1} of ${pageCount}`, pdfWidth / 2, pageHeight - 10, { align: 'center' });
+      pdf.text(`Page ${i + 1} of ${pageCount}`, pdf.internal.pageSize.getWidth() / 2, pdf.internal.pageSize.getHeight() - 0.4, { align: 'center' });
     }
 
     // Add page number to first page
     pdf.setPage(1);
     pdf.setFontSize(9);
     pdf.setTextColor(100, 116, 139); // Neural color
-    pdf.text(`Page 1 of ${pageCount}`, pdfWidth / 2, pageHeight - 10, { align: 'center' });
+    pdf.text(`Page 1 of ${pageCount}`, pdf.internal.pageSize.getWidth() / 2, pdf.internal.pageSize.getHeight() - 0.4, { align: 'center' });
 
     // Save the PDF
     pdf.save(`${fileName}.pdf`);
@@ -366,7 +372,10 @@ export const exportToWord = async (elementId: string, fileName: string = 'lesson
           /* Word Document Styles that match LinguaFlow design */
           @page {
             size: 21cm 29.7cm;
-            margin: 2cm;
+            margin-top: 0.7in;
+            margin-bottom: 0.7in;
+            margin-left: 0.3in;
+            margin-right: 0.3in;
           }
           body {
             font-family: 'Calibri', 'Arial', sans-serif;
@@ -374,6 +383,7 @@ export const exportToWord = async (elementId: string, fileName: string = 'lesson
             line-height: 1.5;
             color: #1e293b; /* Neural-900 color */
             background-color: #ffffff;
+            margin: 0.7in 0.3in; /* Top/bottom 0.7", left/right 0.3" */
           }
           /* Title page with LinguaFlow gradient styling */
           .title-page {
