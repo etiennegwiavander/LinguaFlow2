@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import MainLayout from "@/components/main-layout";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { Shield, Users, BarChart, Zap, Search, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Shield, Users, BarChart, Zap, Search, AlertTriangle, CheckCircle2, XCircle, MoreHorizontal, Eye, UserX, UserCheck, Trash2, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
@@ -61,6 +78,10 @@ export default function AdminPage() {
     totalLessons: 0,
     systemHealth: 0
   });
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [tutorToDelete, setTutorToDelete] = useState<TutorData | null>(null);
+  const [tutorToToggleStatus, setTutorToToggleStatus] = useState<TutorData | null>(null);
+  const [tutorSearchTerm, setTutorSearchTerm] = useState("");
 
   // Check if user is admin
   useEffect(() => {
@@ -225,9 +246,10 @@ export default function AdminPage() {
     }
   };
 
-  const handleActivateDeactivateTutor = async (tutorId: string, currentStatus: string) => {
+  const handleActivateDeactivateTutor = async (tutor: TutorData) => {
     try {
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      setIsActionLoading(true);
+      const newStatus = tutor.status === 'active' ? 'inactive' : 'active';
       
       if (newStatus === 'inactive') {
         // Mark as scheduled for deletion (soft delete)
@@ -236,10 +258,10 @@ export default function AdminPage() {
           .update({ 
             deletion_scheduled: true 
           })
-          .eq('id', tutorId);
+          .eq('id', tutor.id);
           
         if (error) throw error;
-        toast.success('Tutor deactivated successfully');
+        toast.success(`${tutor.name} has been deactivated`);
       } else {
         // Reactivate tutor
         const { error } = await supabase
@@ -248,10 +270,10 @@ export default function AdminPage() {
             deletion_scheduled: false,
             deleted_at: null
           })
-          .eq('id', tutorId);
+          .eq('id', tutor.id);
           
         if (error) throw error;
-        toast.success('Tutor activated successfully');
+        toast.success(`${tutor.name} has been activated`);
       }
       
       // Refresh data
@@ -259,30 +281,34 @@ export default function AdminPage() {
       
     } catch (error: any) {
       toast.error(error.message || 'Failed to update tutor status');
+    } finally {
+      setIsActionLoading(false);
+      setTutorToToggleStatus(null);
     }
   };
 
-  const handleDeleteTutor = async (tutorId: string) => {
-    if (!confirm('Are you sure you want to delete this tutor? This action cannot be undone.')) {
-      return;
-    }
-
+  const handleDeleteTutor = async (tutor: TutorData) => {
     try {
+      setIsActionLoading(true);
+      
       // Hard delete the tutor
       const { error } = await supabase
         .from('tutors')
         .delete()
-        .eq('id', tutorId);
+        .eq('id', tutor.id);
         
       if (error) throw error;
       
-      toast.success('Tutor deleted successfully');
+      toast.success(`${tutor.name} has been permanently deleted`);
       
       // Refresh data
       fetchAdminData();
       
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete tutor');
+    } finally {
+      setIsActionLoading(false);
+      setTutorToDelete(null);
     }
   };
 
@@ -290,6 +316,11 @@ export default function AdminPage() {
     if (logFilter !== "all" && log.type !== logFilter) return false;
     return log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
            log.details.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  const filteredTutors = tutorList.filter(tutor => {
+    return tutor.name.toLowerCase().includes(tutorSearchTerm.toLowerCase()) ||
+           tutor.email.toLowerCase().includes(tutorSearchTerm.toLowerCase());
   });
 
   const getLogTypeColor = (type: string) => {
@@ -402,6 +433,15 @@ export default function AdminPage() {
                 </Button>
               </CardHeader>
               <CardContent>
+                <div className="mb-4">
+                  <Input
+                    placeholder="Search tutors by name or email..."
+                    value={tutorSearchTerm}
+                    onChange={(e) => setTutorSearchTerm(e.target.value)}
+                    className="max-w-md"
+                    icon={<Search className="h-4 w-4 text-muted-foreground" />}
+                  />
+                </div>
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
@@ -414,46 +454,82 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {tutorList.length === 0 ? (
+                      {filteredTutors.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-4">
-                            No tutors found
+                            {tutorSearchTerm ? 
+                              `No tutors found matching "${tutorSearchTerm}"` : 
+                              "No tutors found"}
                           </TableCell>
                         </TableRow>
                       ) : (
-                        tutorList.map((tutor) => (
+                        filteredTutors.map((tutor) => (
                           <TableRow key={tutor.id}>
                             <TableCell>
                               <div>
                                 <p className="font-medium">{tutor.name}</p>
                                 <p className="text-sm text-muted-foreground">{tutor.email}</p>
+                                {tutor.is_admin && (
+                                  <Badge variant="outline" className="mt-1 text-xs">
+                                    Admin
+                                  </Badge>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
                               <Badge 
                                 variant={tutor.status === "active" ? "default" : "secondary"}
-                                className="capitalize"
+                                className={`capitalize ${tutor.status === "active" ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300" : "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300"}`}
                               >
+                                {tutor.status === "active" ? (
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                                ) : (
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                )}
                                 {tutor.status}
                               </Badge>
                             </TableCell>
                             <TableCell>{tutor.studentsCount}</TableCell>
                             <TableCell>{tutor.lessonsGenerated}</TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" className="mr-2">View</Button>
-                              <Button 
-                                variant={tutor.status === "active" ? "destructive" : "default"}
-                                className="mr-2"
-                                onClick={() => handleActivateDeactivateTutor(tutor.id, tutor.status)}
-                              >
-                                {tutor.status === "active" ? "Deactivate" : "Activate"}
-                              </Button>
-                              <Button 
-                                variant="destructive"
-                                onClick={() => handleDeleteTutor(tutor.id)}
-                              >
-                                Delete
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Open menu</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-[160px]">
+                                  <DropdownMenuItem onClick={() => router.push(`/tutors/${tutor.id}`)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    <span>View Profile</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => setTutorToToggleStatus(tutor)}
+                                    className={tutor.status === "active" ? "text-amber-600" : "text-green-600"}
+                                  >
+                                    {tutor.status === "active" ? (
+                                      <>
+                                        <UserX className="mr-2 h-4 w-4" />
+                                        <span>Deactivate</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <UserCheck className="mr-2 h-4 w-4" />
+                                        <span>Activate</span>
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => setTutorToDelete(tutor)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </TableCell>
                           </TableRow>
                         ))
@@ -533,6 +609,90 @@ export default function AdminPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!tutorToDelete} onOpenChange={(open) => !open && setTutorToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete {tutorToDelete?.name}&apos;s account and all associated data. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (tutorToDelete) handleDeleteTutor(tutorToDelete);
+              }}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              disabled={isActionLoading}
+            >
+              {isActionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Account
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={!!tutorToToggleStatus} onOpenChange={(open) => !open && setTutorToToggleStatus(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {tutorToToggleStatus?.status === 'active' ? 'Deactivate Account' : 'Activate Account'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {tutorToToggleStatus?.status === 'active' 
+                ? `This will deactivate ${tutorToToggleStatus?.name}'s account. They will no longer be able to access the platform.`
+                : `This will reactivate ${tutorToToggleStatus?.name}'s account. They will regain access to the platform.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (tutorToToggleStatus) handleActivateDeactivateTutor(tutorToToggleStatus);
+              }}
+              className={tutorToToggleStatus?.status === 'active' 
+                ? "bg-amber-600 hover:bg-amber-700 focus:ring-amber-600" 
+                : "bg-green-600 hover:bg-green-700 focus:ring-green-600"
+              }
+              disabled={isActionLoading}
+            >
+              {isActionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : tutorToToggleStatus?.status === 'active' ? (
+                <>
+                  <UserX className="mr-2 h-4 w-4" />
+                  Deactivate
+                </>
+              ) : (
+                <>
+                  <UserCheck className="mr-2 h-4 w-4" />
+                  Activate
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }
