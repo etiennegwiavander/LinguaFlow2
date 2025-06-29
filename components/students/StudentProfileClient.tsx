@@ -59,7 +59,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import StudentForm from "@/components/students/StudentForm";
 import LessonMaterialDisplay from "@/components/lessons/LessonMaterialDisplay";
 import SubTopicSelectionDialog from "@/components/students/SubTopicSelectionDialog";
@@ -109,9 +111,10 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [interactiveGenerationProgress, setInteractiveGenerationProgress] = useState("");
   const [isSubTopicDialogOpen, setIsSubTopicDialogOpen] = useState(false);
   const [isImprovementAreasDialogOpen, setIsImprovementAreasDialogOpen] = useState(false);
+  
+  // State for editing lesson plans
   const [editingLessonIndex, setEditingLessonIndex] = useState<number | null>(null);
   const [editedLessonPlan, setEditedLessonPlan] = useState<LessonPlan | null>(null);
-  const [isEditingLessonPlan, setIsEditingLessonPlan] = useState(false);
   const [isSavingLessonPlan, setIsSavingLessonPlan] = useState(false);
 
 
@@ -164,7 +167,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
             setGeneratedLessons(parsedLessons);
             setHasGeneratedBefore(true);
           } catch (parseError) {
-            // Error handling
+            // Handle parse error
           }
         }
       } else {
@@ -182,17 +185,15 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         setShowOnboarding(true);
       }
     } catch (error) {
-      // Error handling
+      // Handle error
     } finally {
       setLoadingUpcomingLesson(false);
     }
   };
 
-
   useEffect(() => {
     loadUpcomingLesson();
   }, [student.id]);
-
 
   const handleGenerateLessons = async () => {
     setIsGenerating(true);
@@ -289,7 +290,6 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     }
   };
 
-
   const copyToClipboard = async (content: string, type: string) => {
     try {
       await navigator.clipboard.writeText(content);
@@ -298,7 +298,6 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       toast.error('Failed to copy to clipboard');
     }
   };
-
 
   const copyLessonPlan = async (lesson: LessonPlan) => {
     const content = `
@@ -320,7 +319,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     await copyToClipboard(content, 'Lesson plan');
   };
 
-
   const handleUseLessonPlan = async (lessonIndex: number) => {
     if (!upcomingLesson) {
       toast.error('No lesson available to generate interactive material for');
@@ -338,7 +336,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     // Open the sub-topic selection dialog
     setIsSubTopicDialogOpen(true);
   };
-
 
   const handleSelectSubTopic = async (subTopic: SubTopic) => {
     if (!upcomingLesson) {
@@ -419,14 +416,13 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     }
   };
 
-
-  const handleEditLessonPlan = (lessonIndex: number) => {
-    setEditingLessonIndex(lessonIndex);
-    setEditedLessonPlan({...generatedLessons[lessonIndex]});
-    setIsEditingLessonPlan(true);
+  // Handle editing a lesson plan
+  const handleEditLessonPlan = (index: number) => {
+    setEditingLessonIndex(index);
+    setEditedLessonPlan({...generatedLessons[index]});
   };
 
-
+  // Handle saving edited lesson plan
   const handleSaveLessonPlan = async () => {
     if (editingLessonIndex === null || !editedLessonPlan || !upcomingLesson) {
       return;
@@ -435,38 +431,46 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     setIsSavingLessonPlan(true);
 
     try {
-      // Update the lesson plan in the state
+      // Create a copy of the generated lessons
       const updatedLessons = [...generatedLessons];
+      // Update the edited lesson
       updatedLessons[editingLessonIndex] = editedLessonPlan;
-      setGeneratedLessons(updatedLessons);
 
-      // Update the lesson plan in the database
-      const updatedLessonStrings = updatedLessons.map(lesson => JSON.stringify(lesson));
-      
+      // Convert to string format for storage
+      const lessonStrings = updatedLessons.map(lesson => JSON.stringify(lesson));
+
+      // Update the database
       const { error } = await supabase
         .from('lessons')
         .update({
-          generated_lessons: updatedLessonStrings
+          generated_lessons: lessonStrings
         })
         .eq('id', upcomingLesson.id);
 
       if (error) throw error;
 
-      // Update the upcoming lesson state
+      // Update local state
+      setGeneratedLessons(updatedLessons);
       setUpcomingLesson({
         ...upcomingLesson,
-        generated_lessons: updatedLessonStrings
+        generated_lessons: lessonStrings
       });
 
       toast.success('Lesson plan updated successfully');
-      setIsEditingLessonPlan(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to update lesson plan');
     } finally {
       setIsSavingLessonPlan(false);
+      setEditingLessonIndex(null);
+      setEditedLessonPlan(null);
     }
   };
 
+  // Handle canceling edit
+  const handleCancelEdit = () => {
+    setEditingLessonIndex(null);
+    setEditedLessonPlan(null);
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -475,15 +479,12 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     return 'Good evening';
   };
 
-
   const getDisplayName = () => {
     return student.name.split(' ')[0]; // First name only
   };
 
-
   const languageInfo = getLanguageInfo(student.target_language);
   const nativeLanguageInfo = student.native_language ? getLanguageInfo(student.native_language) : null;
-
 
   const getButtonText = () => {
     if (isGenerating) {
@@ -503,7 +504,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     return hasGeneratedBefore ? 'Generate New Lesson Ideas' : 'Generate Lesson Ideas';
   };
 
-
   const getButtonIcon = () => {
     if (isGenerating) {
       return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
@@ -513,17 +513,14 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
       <Target className="mr-2 h-4 w-4" />;
   };
 
-
   const getProgressMessage = () => {
     if (generationProgress) return generationProgress;
     if (isGenerating) return "This may take a moment...";
     return "";
   };
 
-
   // Get sub-topics directly from upcomingLesson
   const availableSubTopics = upcomingLesson?.sub_topics || [];
-
 
   return (
     <MainLayout>
@@ -566,7 +563,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           </Button>
         </div>
 
-
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           
@@ -592,7 +588,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               <span className="sm:hidden">Profile</span>
             </TabsTrigger>
           </TabsList>
-
 
           {/* AI Lesson Architect Tab */}
           <TabsContent value="ai-architect" className="space-y-6 animate-scale-in">
@@ -637,7 +632,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     </AlertDescription>
                   </Alert>
                 )}
-
 
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-cyber-400/20">
                   <div className="space-y-2 flex-1">
@@ -697,7 +691,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                 </div>
 
 
-
                 {generatedLessons.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -723,6 +716,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     
                     <Accordion type="single" collapsible className="w-full">
                       {generatedLessons.map((lesson, index) => {
+                        const isEditing = editingLessonIndex === index;
+                        
                         return (
                           <AccordionItem key={index} value={`lesson-${index}`}>
                             <AccordionTrigger className="text-left hover:no-underline">
@@ -740,7 +735,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                   size="sm" 
                                   className="flex-1 min-w-[120px] bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
                                   onClick={() => handleUseLessonPlan(index)}
-                                  disabled={!upcomingLesson || isGeneratingInteractive || !availableSubTopics.length}
+                                  disabled={!upcomingLesson || isGeneratingInteractive || !availableSubTopics.length || isEditing}
                                 >
                                   {isGeneratingInteractive ? (
                                     <>
@@ -754,30 +749,66 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                     </>
                                   )}
                                 </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
-                                  onClick={() => handleEditLessonPlan(index)}
-                                >
-                                  <Edit className="w-4 h-4 mr-2" />
-                                  Edit Plan
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => copyLessonPlan(lesson)}
-                                  className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
-                                >
-                                  <Copy className="w-4 h-4 mr-2" />
-                                  Copy to Clipboard
-                                </Button>
-                                <Button variant="outline" size="sm" className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10">
-                                  <FileText className="w-4 h-4 mr-2" />
-                                  Export
-                                </Button>
+                                {isEditing ? (
+                                  <>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
+                                      onClick={handleCancelEdit}
+                                    >
+                                      <X className="w-4 h-4 mr-2" />
+                                      Cancel
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="flex-1 min-w-[120px] border-green-400/30 bg-green-50/50 hover:bg-green-100/50 text-green-700"
+                                      onClick={handleSaveLessonPlan}
+                                      disabled={isSavingLessonPlan}
+                                    >
+                                      {isSavingLessonPlan ? (
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      ) : (
+                                        <Save className="w-4 h-4 mr-2" />
+                                      )}
+                                      Save Changes
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
+                                      onClick={() => handleEditLessonPlan(index)}
+                                      disabled={isEditing}
+                                    >
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      Edit Plan
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => copyLessonPlan(lesson)}
+                                      className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
+                                      disabled={isEditing}
+                                    >
+                                      <Copy className="w-4 h-4 mr-2" />
+                                      Copy to Clipboard
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
+                                      disabled={isEditing}
+                                    >
+                                      <FileText className="w-4 h-4 mr-2" />
+                                      Export
+                                    </Button>
+                                  </>
+                                )}
                               </div>
-
 
                               {/* Interactive Generation Progress */}
                               {isGeneratingInteractive && (
@@ -787,121 +818,102 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                 </div>
                               )}
 
-
-                              {/* Lesson Plan Editing UI */}
-                              {isEditingLessonPlan && editingLessonIndex === index && editedLessonPlan && (
-                                <div className="space-y-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
-                                  <div className="space-y-2">
-                                    <Label htmlFor="lesson-title" className="font-medium">Lesson Title</Label>
-                                    <input
-                                      id="lesson-title"
-                                      value={editedLessonPlan.title}
-                                      onChange={(e) => setEditedLessonPlan({...editedLessonPlan, title: e.target.value})}
-                                      className="w-full p-2 rounded-md border border-cyber-400/30 focus:border-cyber-400 focus:ring-cyber-400/20 bg-white/50 dark:bg-gray-900/50"
-                                    />
+                              {isEditing && editedLessonPlan ? (
+                                <div className="grid gap-6 md:grid-cols-2">
+                                  <div className="space-y-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
+                                    <div className="space-y-2">
+                                      <Label htmlFor="lesson-title" className="font-medium">Lesson Title</Label>
+                                      <Input
+                                        id="lesson-title"
+                                        value={editedLessonPlan.title}
+                                        onChange={(e) => setEditedLessonPlan({
+                                          ...editedLessonPlan,
+                                          title: e.target.value
+                                        })}
+                                        className="border-cyber-400/30 focus:border-cyber-400"
+                                      />
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                      <Label htmlFor="lesson-objectives" className="font-medium flex items-center">
+                                        <Target className="w-4 h-4 mr-2 text-blue-600" />
+                                        Lesson Objectives
+                                      </Label>
+                                      <Textarea
+                                        id="lesson-objectives"
+                                        value={editedLessonPlan.objectives.join('\n')}
+                                        onChange={(e) => setEditedLessonPlan({
+                                          ...editedLessonPlan,
+                                          objectives: e.target.value.split('\n').filter(line => line.trim() !== '')
+                                        })}
+                                        className="min-h-[150px] border-cyber-400/30 focus:border-cyber-400"
+                                        placeholder="Enter one objective per line"
+                                      />
+                                      <p className="text-xs text-muted-foreground">Enter one objective per line</p>
+                                    </div>
                                   </div>
                                   
-                                  <div className="space-y-2">
-                                    <Label htmlFor="lesson-objectives" className="font-medium flex items-center">
-                                      <Target className="w-4 h-4 mr-2 text-blue-600" />
-                                      Objectives
-                                    </Label>
-                                    <Textarea
-                                      id="lesson-objectives"
-                                      value={editedLessonPlan.objectives.join('\n')}
-                                      onChange={(e) => setEditedLessonPlan({
-                                        ...editedLessonPlan, 
-                                        objectives: e.target.value.split('\n').filter(line => line.trim() !== '')
-                                      })}
-                                      className="min-h-[100px] border-cyber-400/30 focus:border-cyber-400"
-                                      placeholder="Enter each objective on a new line"
-                                    />
+                                  <div className="space-y-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
+                                    <div className="space-y-2">
+                                      <Label htmlFor="lesson-activities" className="font-medium flex items-center">
+                                        <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
+                                        Activities
+                                      </Label>
+                                      <Textarea
+                                        id="lesson-activities"
+                                        value={editedLessonPlan.activities.join('\n')}
+                                        onChange={(e) => setEditedLessonPlan({
+                                          ...editedLessonPlan,
+                                          activities: e.target.value.split('\n').filter(line => line.trim() !== '')
+                                        })}
+                                        className="min-h-[150px] border-cyber-400/30 focus:border-cyber-400"
+                                        placeholder="Enter one activity per line"
+                                      />
+                                      <p className="text-xs text-muted-foreground">Enter one activity per line</p>
+                                    </div>
                                   </div>
                                   
-                                  <div className="space-y-2">
-                                    <Label htmlFor="lesson-activities" className="font-medium flex items-center">
-                                      <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
-                                      Activities
-                                    </Label>
-                                    <Textarea
-                                      id="lesson-activities"
-                                      value={editedLessonPlan.activities.join('\n')}
-                                      onChange={(e) => setEditedLessonPlan({
-                                        ...editedLessonPlan, 
-                                        activities: e.target.value.split('\n').filter(line => line.trim() !== '')
-                                      })}
-                                      className="min-h-[100px] border-cyber-400/30 focus:border-cyber-400"
-                                      placeholder="Enter each activity on a new line"
-                                    />
+                                  <div className="space-y-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
+                                    <div className="space-y-2">
+                                      <Label htmlFor="lesson-materials" className="font-medium flex items-center">
+                                        <Book className="w-4 h-4 mr-2 text-green-600" />
+                                        Materials Needed
+                                      </Label>
+                                      <Textarea
+                                        id="lesson-materials"
+                                        value={editedLessonPlan.materials.join('\n')}
+                                        onChange={(e) => setEditedLessonPlan({
+                                          ...editedLessonPlan,
+                                          materials: e.target.value.split('\n').filter(line => line.trim() !== '')
+                                        })}
+                                        className="min-h-[150px] border-cyber-400/30 focus:border-cyber-400"
+                                        placeholder="Enter one material per line"
+                                      />
+                                      <p className="text-xs text-muted-foreground">Enter one material per line</p>
+                                    </div>
                                   </div>
                                   
-                                  <div className="space-y-2">
-                                    <Label htmlFor="lesson-materials" className="font-medium flex items-center">
-                                      <Book className="w-4 h-4 mr-2 text-green-600" />
-                                      Materials
-                                    </Label>
-                                    <Textarea
-                                      id="lesson-materials"
-                                      value={editedLessonPlan.materials.join('\n')}
-                                      onChange={(e) => setEditedLessonPlan({
-                                        ...editedLessonPlan, 
-                                        materials: e.target.value.split('\n').filter(line => line.trim() !== '')
-                                      })}
-                                      className="min-h-[100px] border-cyber-400/30 focus:border-cyber-400"
-                                      placeholder="Enter each material on a new line"
-                                    />
-                                  </div>
-                                  
-                                  <div className="space-y-2">
-                                    <Label htmlFor="lesson-assessment" className="font-medium flex items-center">
-                                      <GraduationCap className="w-4 h-4 mr-2 text-orange-600" />
-                                      Assessment
-                                    </Label>
-                                    <Textarea
-                                      id="lesson-assessment"
-                                      value={editedLessonPlan.assessment.join('\n')}
-                                      onChange={(e) => setEditedLessonPlan({
-                                        ...editedLessonPlan, 
-                                        assessment: e.target.value.split('\n').filter(line => line.trim() !== '')
-                                      })}
-                                      className="min-h-[100px] border-cyber-400/30 focus:border-cyber-400"
-                                      placeholder="Enter each assessment item on a new line"
-                                    />
-                                  </div>
-                                  
-                                  <div className="flex justify-end space-x-2 pt-2">
-                                    <Button 
-                                      variant="outline" 
-                                      onClick={() => setIsEditingLessonPlan(false)}
-                                      className="border-cyber-400/30 hover:bg-cyber-400/10"
-                                    >
-                                      <X className="w-4 h-4 mr-2" />
-                                      Cancel
-                                    </Button>
-                                    <Button 
-                                      onClick={handleSaveLessonPlan}
-                                      disabled={isSavingLessonPlan}
-                                      className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
-                                    >
-                                      {isSavingLessonPlan ? (
-                                        <>
-                                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                          Saving...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Save className="w-4 h-4 mr-2" />
-                                          Save Changes
-                                        </>
-                                      )}
-                                    </Button>
+                                  <div className="space-y-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
+                                    <div className="space-y-2">
+                                      <Label htmlFor="lesson-assessment" className="font-medium flex items-center">
+                                        <GraduationCap className="w-4 h-4 mr-2 text-orange-600" />
+                                        Assessment Ideas
+                                      </Label>
+                                      <Textarea
+                                        id="lesson-assessment"
+                                        value={editedLessonPlan.assessment.join('\n')}
+                                        onChange={(e) => setEditedLessonPlan({
+                                          ...editedLessonPlan,
+                                          assessment: e.target.value.split('\n').filter(line => line.trim() !== '')
+                                        })}
+                                        className="min-h-[150px] border-cyber-400/30 focus:border-cyber-400"
+                                        placeholder="Enter one assessment idea per line"
+                                      />
+                                      <p className="text-xs text-muted-foreground">Enter one assessment idea per line</p>
+                                    </div>
                                   </div>
                                 </div>
-                              )}
-
-
-                              {/* Lesson Plan Content (shown when not editing) */}
-                              {(!isEditingLessonPlan || editingLessonIndex !== index) && (
+                              ) : (
                                 <div className="grid gap-6 md:grid-cols-2">
                                   <div>
                                     <h4 className="font-medium mb-3 flex items-center">
@@ -918,7 +930,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                     </ul>
                                   </div>
 
-
                                   <div>
                                     <h4 className="font-medium mb-3 flex items-center">
                                       <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
@@ -934,7 +945,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                     </ul>
                                   </div>
 
-
                                   <div>
                                     <h4 className="font-medium mb-3 flex items-center">
                                       <Book className="w-4 h-4 mr-2 text-green-600" />
@@ -949,7 +959,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                       ))}
                                     </ul>
                                   </div>
-
 
                                   <div>
                                     <h4 className="font-medium mb-3 flex items-center">
@@ -974,7 +983,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     </Accordion>
                   </div>
                 )}
-
 
                 {generatedLessons.length === 0 && !isGenerating && (
                   <div className="text-center py-12 border-2 border-dashed border-cyber-400/20 rounded-lg">
@@ -1006,7 +1014,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               </CardContent>
             </Card>
           </TabsContent>
-
 
           {/* Lesson Material Tab */}
           <TabsContent value="lesson-material" className="space-y-6 animate-scale-in">
@@ -1047,7 +1054,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               </CardContent>
             </Card>
           </TabsContent>
-
 
           {/* Lesson History Tab */}
           <TabsContent value="history" className="space-y-6 animate-scale-in">
@@ -1123,7 +1129,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     )}
                   </div>
 
-
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-lg">Last Lesson</h3>
@@ -1137,9 +1142,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </div>
                 </div>
 
-
                 <Separator className="bg-cyber-400/20" />
-
 
                 <div>
                   <h3 className="font-medium mb-4 text-lg">Lesson Statistics</h3>
@@ -1188,7 +1191,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                         </p>
                       </div>
 
-
                       <div>
                         <h4 className="font-medium mb-2">Learning Styles</h4>
                         <div className="flex flex-wrap gap-2">
@@ -1201,7 +1203,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       </div>
                     </div>
                   </div>
-
 
                   <div>
                     <h3 className="font-medium mb-3 text-lg">Language Details</h3>
@@ -1232,9 +1233,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </div>
                 </div>
 
-
                 <Separator className="bg-cyber-400/20" />
-
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -1293,9 +1292,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </div>
                 </div>
 
-
                 <Separator className="bg-cyber-400/20" />
-
 
                 <div>
                   <h3 className="font-medium mb-2">Additional Notes</h3>
@@ -1309,9 +1306,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
             </Card>
           </TabsContent>
 
-
         </Tabs>
-
 
         <StudentForm
           open={isFormOpen}
@@ -1323,7 +1318,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
             window.location.reload();
           }}
         />
-
 
         <SubTopicSelectionDialog
           open={isSubTopicDialogOpen}
