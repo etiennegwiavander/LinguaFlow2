@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { safeGetString, safeGetArray, debounce } from "@/lib/utils";
-import { exportToPdf, exportToWord, showExportDialog } from "@/lib/export-utils";
+import { showExportDialog } from "@/lib/export-utils";
 
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -29,7 +29,7 @@ import {
   Eye,
   MessageCircle,
   Globe,
-  FileDown,
+  FileText,
   Download
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -165,41 +165,22 @@ const parseDialogueLine = (line: string): { character: string; text: string } =>
 
 // Helper function to get content from info_card sections
 const getInfoCardContent = (section: TemplateSection): string => {
-  console.log('🔍 DEBUG: getInfoCardContent called with section:', {
-    id: safeGetString(section, 'id'),
-    type: safeGetString(section, 'type'),
-    title: safeGetString(section, 'title'),
-    ai_placeholder: safeGetString(section, 'ai_placeholder'),
-    content_type: safeGetString(section, 'content_type'),
-    fullSection: section,
-    allKeys: Object.keys(section)
-  });
-
   // Check for content in section.content
   const directContent = safeGetString(section, 'content');
   if (directContent) {
-    console.log('✅ Found content in section.content:', directContent.substring(0, 100) + '...');
     return directContent;
-  } else {
-    console.log('❌ No content found in section.content:', directContent);
   }
 
   // Check for content in the ai_placeholder field (this should contain the actual content)
   const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
   if (aiPlaceholderKey && (section as any)[aiPlaceholderKey]) {
-    console.log('✅ Found content in ai_placeholder field:', (section as any)[aiPlaceholderKey]);
     return safeStringify((section as any)[aiPlaceholderKey]);
-  } else {
-    console.log('❌ No content found in ai_placeholder field');
   }
 
   // Check for content in items array
   const items = safeGetArray(section, 'items');
   if (items.length > 0) {
-    console.log('✅ Found content in items array:', items);
     return items.map(item => `• ${safeStringify(item)}`).join('\n');
-  } else {
-    console.log('❌ No content found in items array');
   }
 
   // Check for content in other common fields
@@ -207,26 +188,15 @@ const getInfoCardContent = (section: TemplateSection): string => {
   for (const field of commonContentFields) {
     const fieldContent = safeGetString(section, field);
     if (fieldContent) {
-      console.log(`✅ Found content in ${field} field:`, fieldContent);
       return fieldContent;
     }
   }
-  console.log('❌ No content found in any common fields');
-
-  // Debug: Log all available fields
-  console.log('🔍 All available fields in section:', Object.keys(section).map(key => ({
-    key,
-    value: (section as any)[key],
-    type: typeof (section as any)[key]
-  })));
 
   // Check if there's a 'text' field specifically (this might be where the AI content is stored)
   if ((section as any).text) {
-    console.log('✅ Found content in text field:', (section as any).text);
     return safeStringify((section as any).text);
   }
 
-  console.log('❌ No content found anywhere in section');
   return '';
 };
 
@@ -278,19 +248,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
           throw new Error('Lesson not found');
         }
 
-        console.log('🔍 DEBUG: Lesson data fetched:', {
-          id: lessonData.id,
-          hasInteractiveContent: !!lessonData.interactive_lesson_content,
-          interactiveContentType: typeof lessonData.interactive_lesson_content,
-          interactiveContent: lessonData.interactive_lesson_content
-        });
-
         setLesson(lessonData as Lesson);
 
         // Check if we have interactive lesson content
         if (lessonData.interactive_lesson_content) {
-          console.log('🔍 DEBUG: Interactive lesson content found:', lessonData.interactive_lesson_content);
-          
           // If we have a lesson template ID, fetch the template structure
           if (lessonData.lesson_template_id) {
             const { data: templateData, error: templateError } = await supabase
@@ -300,20 +261,13 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               .single();
 
             if (templateError) {
-              console.error('⚠️ Could not fetch lesson template:', templateError);
+              console.error('Could not fetch lesson template:', templateError);
             } else {
               // Use the interactive content as the template JSON
               const finalTemplate = {
                 ...templateData,
                 template_json: lessonData.interactive_lesson_content
               } as LessonTemplate;
-              
-              console.log('🔍 DEBUG: Final template created:', {
-                templateId: finalTemplate.id,
-                templateName: finalTemplate.name,
-                sectionsCount: finalTemplate.template_json.sections?.length,
-                sections: finalTemplate.template_json.sections
-              });
               
               setTemplate(finalTemplate);
             }
@@ -338,7 +292,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               );
               setGeneratedLessons(parsedLessons);
             } catch (parseError) {
-              console.error('❌ Error parsing generated lessons:', parseError);
+              console.error('Error parsing generated lessons:', parseError);
               setError('Failed to parse lesson content');
               return;
             }
@@ -353,7 +307,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               .single();
 
             if (templateError) {
-              console.error('⚠️ Could not fetch lesson template:', templateError);
+              console.error('Could not fetch lesson template:', templateError);
             } else {
               setTemplate(templateData as LessonTemplate);
             }
@@ -572,15 +526,18 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
   };
 
   const handleExportLesson = () => {
-    if (!lesson) {
-      toast.error('No lesson data available to export');
+    if (!lessonContentRef.current) {
+      toast.error("Lesson content not found");
       return;
     }
-
-    const fileName = `${lesson.student.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}`;
     
-    // Show export dialog
-    showExportDialog('lesson-content-container', fileName);
+    // Generate a filename based on the lesson data
+    const fileName = lesson ? 
+      `${lesson.student.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}` : 
+      'lesson-material';
+    
+    // Show the export dialog
+    showExportDialog('lesson-content', fileName);
   };
 
   const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
@@ -608,12 +565,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     const sectionId = safeGetString(section, 'id', 'unknown-section');
     const sectionType = safeGetString(section, 'type', 'unknown');
 
-    console.log('🔍 DEBUG: Rendering section:', {
-      id: sectionId,
-      type: sectionType,
-      title: safeGetString(section, 'title', '')
-    });
-
     switch (sectionType) {
       case 'title':
         return (
@@ -638,15 +589,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
       case 'info_card':
         const objectives = safeGetArray(section, 'items');
         const cardContent = getInfoCardContent(section);
-
-        console.log('🔍 DEBUG: info_card section processing:', {
-          sectionId,
-          title: safeGetString(section, 'title', 'Information'),
-          cardContent: cardContent.length > 50 ? cardContent.substring(0, 50) + '...' : cardContent,
-          cardContentLength: cardContent.length,
-          objectives: objectives,
-          objectivesLength: objectives.length
-        });
 
         return (
           <Card key={sectionId} className={`mb-6 floating-card glass-effect border-cyber-400/20 ${getBgColor(section.background_color_var)}`}>
@@ -774,53 +716,52 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
         
         // Define explicit components for ReactMarkdown
         const components = {
-  p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className="mb-4 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
-      {children}
-    </p>
-  ),
-  ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
-    <ul className="list-disc list-inside mb-4 space-y-2" {...props}>
-      {children}
-    </ul>
-  ),
-  ol: ({ children, ...props }: React.OlHTMLAttributes<HTMLOListElement>) => (
-    <ol className="list-decimal list-inside mb-4 space-y-2" {...props}>
-      {children}
-    </ol>
-  ),
-  li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
-    <li className="mb-1" onDoubleClick={handleTextDoubleClick} {...props}>
-      {children}
-    </li>
-  ),
-  strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <strong className="font-bold text-gray-900 dark:text-gray-100" {...props}>
-      {children}
-    </strong>
-  ),
-  em: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <em className="italic" {...props}>
-      {children}
-    </em>
-  ),
-  h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-    <h1 className="text-2xl font-bold mb-4" {...props}>
-      {children}
-    </h1>
-  ),
-  h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-    <h2 className="text-xl font-bold mb-3" {...props}>
-      {children}
-    </h2>
-  ),
-  h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-    <h3 className="text-lg font-bold mb-2" {...props}>
-      {children}
-    </h3>
-  ),
-};
-
+          p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+            <p className="mb-4 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
+              {children}
+            </p>
+          ),
+          ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
+            <ul className="list-disc list-inside mb-4 space-y-2" {...props}>
+              {children}
+            </ul>
+          ),
+          ol: ({ children, ...props }: React.OlHTMLAttributes<HTMLOListElement>) => (
+            <ol className="list-decimal list-inside mb-4 space-y-2" {...props}>
+              {children}
+            </ol>
+          ),
+          li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
+            <li className="mb-1" onDoubleClick={handleTextDoubleClick} {...props}>
+              {children}
+            </li>
+          ),
+          strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+            <strong className="font-bold text-gray-900 dark:text-gray-100" {...props}>
+              {children}
+            </strong>
+          ),
+          em: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+            <em className="italic" {...props}>
+              {children}
+            </em>
+          ),
+          h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+            <h1 className="text-2xl font-bold mb-4" {...props}>
+              {children}
+            </h1>
+          ),
+          h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+            <h2 className="text-xl font-bold mb-3" {...props}>
+              {children}
+            </h2>
+          ),
+          h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+            <h3 className="text-lg font-bold mb-2" {...props}>
+              {children}
+            </h3>
+          ),
+        };
 
         return (
           <div className="prose prose-sm max-w-none">
@@ -1246,55 +1187,45 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     const sections = safeGetArray(template.template_json, 'sections');
 
     return (
-      <div className="space-y-6 max-w-4xl mx-auto" data-lesson-content ref={lessonContentRef} id="lesson-content-container">
-<div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-  <div className="flex items-start space-x-2 flex-1">
-    <CheckCircle2 className="w-5 h-5 text-green-600 mt-1" />
-    <div>
-      <h3 className="font-semibold text-green-800 dark:text-green-200">
-        Interactive Lesson Material Ready
-      </h3>
-      <p className="text-sm text-green-700 dark:text-green-300">
-        This lesson has been personalized for {lesson.student.name} using the {template.name} template.
-      </p>
-    </div>
-  </div>
+      <div className="space-y-6 max-w-4xl mx-auto" data-lesson-content ref={lessonContentRef} id="lesson-content">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="flex items-start space-x-2 flex-1">
+            <CheckCircle2 className="w-5 h-5 text-green-600 mt-1" />
+            <div>
+              <h3 className="font-semibold text-green-800 dark:text-green-200">
+                Interactive Lesson Material Ready
+              </h3>
+              <p className="text-sm text-green-700 dark:text-green-300">
+                This lesson has been personalized for {lesson.student.name} using the {template.name} template.
+              </p>
+            </div>
+          </div>
 
-  <div className="mt-4 lg:mt-0 lg:ml-4 w-full lg:w-auto flex flex-col sm:flex-row gap-2">
-    {studentNativeLanguage && (
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="flex items-center justify-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
-        onClick={handleTranslationRequest}
-        disabled={isTranslating}
-      >
-        {isTranslating ? (
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-        ) : (
-          <Globe className="w-4 h-4 mr-2" />
-        )}
-        <span>Translate Text</span>
-      </Button>
-    )}
-    
-    <Button 
-      variant="outline"
-      size="sm"
-      className="flex items-center justify-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
-      onClick={handleExportLesson}
-    >
-      <Download className="w-4 h-4 mr-2" />
-      <span>Export Lesson</span>
-    </Button>
-  </div>
-</div>
+          {studentNativeLanguage && (
+            <div className="mt-4 lg:mt-0 lg:ml-4 w-full lg:w-auto">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full flex items-center justify-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
+                onClick={handleTranslationRequest}
+                disabled={isTranslating}
+              >
+                {isTranslating ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Globe className="w-4 h-4 mr-2" />
+                )}
+                <span>Double-click text to translate</span>
+              </Button>
+            </div>
+          )}
+        </div>
 
         {sections.map((section, index) => 
           renderTemplateSection(section, 0)
         )}
         
-        <div className="flex justify-center pt-8 space-x-4">
+        <div className="flex flex-col sm:flex-row justify-center gap-4 pt-8">
           <Button 
             size="lg" 
             className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
@@ -1307,7 +1238,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
             className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
             onClick={handleExportLesson}
           >
-            <FileDown className="w-5 h-5 mr-2" />
+            <FileText className="w-5 h-5 mr-2" />
             Export Lesson
           </Button>
         </div>
@@ -1327,7 +1258,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
   // Fall back to basic lesson plan view if no interactive content
   return (
-    <div className="space-y-6" data-lesson-content ref={lessonContentRef} id="lesson-content-container">
+    <div className="space-y-6" data-lesson-content ref={lessonContentRef} id="lesson-content">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2 gradient-text">
           Lesson for {lesson.student.name}
@@ -1343,18 +1274,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
             </Badge>
           )}
         </div>
-      </div>
-
-      <div className="flex justify-end mb-4">
-        <Button 
-          variant="outline"
-          size="sm"
-          className="flex items-center justify-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
-          onClick={handleExportLesson}
-        >
-          <Download className="w-4 h-4 mr-2" />
-          <span>Export Lesson</span>
-        </Button>
       </div>
 
       {generatedLessons.length > 0 ? (
@@ -1444,6 +1363,17 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               </CardContent>
             </Card>
           ))}
+          
+          <div className="flex justify-center pt-4">
+            <Button 
+              size="lg" 
+              className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+              onClick={handleExportLesson}
+            >
+              <Download className="w-5 h-5 mr-2" />
+              Export Lesson
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="text-center py-12">
