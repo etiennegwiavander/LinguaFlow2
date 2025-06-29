@@ -31,6 +31,14 @@ import {
   GraduationCap,
   Play,
   X,
+  FileText,
+  Presentation,
+  BarChart,
+  LineChart,
+  School,
+  Laptop,
+  Briefcase,
+  Headphones,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -159,6 +167,104 @@ export default function HomePage() {
     },
   ];
 
+  // New content for "What You Can Create" section
+  const creationExamples = [
+    {
+      icon: FileText,
+      title: "Personalized Lesson Plans",
+      description: "Generate complete, ready-to-teach lesson plans tailored to each student's learning style, level, and goals.",
+      color: "text-blue-500",
+      bgColor: "bg-blue-100",
+    },
+    {
+      icon: Presentation,
+      title: "Interactive Exercises",
+      description: "Create engaging activities, dialogues, and exercises that adapt to your student's progress and interests.",
+      color: "text-purple-500",
+      bgColor: "bg-purple-100",
+    },
+    {
+      icon: BarChart,
+      title: "Progress Reports",
+      description: "Generate detailed progress reports that track improvement areas and highlight achievements for each student.",
+      color: "text-green-500",
+      bgColor: "bg-green-100",
+    },
+    {
+      icon: MessageSquare,
+      title: "Conversation Prompts",
+      description: "Access culturally relevant discussion topics and conversation starters for natural language practice.",
+      color: "text-amber-500",
+      bgColor: "bg-amber-100",
+    },
+    {
+      icon: LineChart,
+      title: "Learning Analytics",
+      description: "Visualize student progress over time with comprehensive analytics and actionable insights.",
+      color: "text-indigo-500",
+      bgColor: "bg-indigo-100",
+    },
+    {
+      icon: Sparkles,
+      title: "Custom Vocabulary Lists",
+      description: "Generate targeted vocabulary lists based on student interests, profession, or specific learning goals.",
+      color: "text-pink-500",
+      bgColor: "bg-pink-100",
+    },
+  ];
+
+  // New content for "Who Benefits" section
+  const userPersonas = [
+    {
+      icon: School,
+      title: "Private Language Tutors",
+      description: "Save hours of preparation time while delivering higher quality, personalized lessons that keep students engaged and coming back.",
+      benefits: [
+        "Reduce lesson prep time by 70%",
+        "Increase student retention rates",
+        "Scale your tutoring business effortlessly"
+      ],
+      color: "text-cyan-500",
+      bgColor: "bg-cyan-100",
+    },
+    {
+      icon: Briefcase,
+      title: "Language Schools & Academies",
+      description: "Standardize teaching quality across all instructors while still providing personalized learning experiences for every student.",
+      benefits: [
+        "Ensure consistent teaching quality",
+        "Customize curriculum for different markets",
+        "Track student progress across multiple teachers"
+      ],
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-100",
+    },
+    {
+      icon: Laptop,
+      title: "Online Language Educators",
+      description: "Deliver premium virtual learning experiences with interactive materials designed specifically for digital environments.",
+      benefits: [
+        "Create engaging virtual lessons",
+        "Generate materials optimized for screen sharing",
+        "Integrate with popular online teaching platforms"
+      ],
+      color: "text-violet-500",
+      bgColor: "bg-violet-100",
+    },
+    {
+      icon: Headphones,
+      title: "Specialized Language Coaches",
+      description: "Create highly targeted lessons for specific purposes like business English, academic preparation, or industry-specific terminology.",
+      benefits: [
+        "Generate niche content for specialized fields",
+        "Customize materials for exam preparation",
+        "Create industry-specific vocabulary resources"
+      ],
+      color: "text-rose-500",
+      bgColor: "bg-rose-100",
+    },
+  ];
+
   return (
     <LandingLayout>
       {/* Bolt Button */}
@@ -202,9 +308,14 @@ export default function HomePage() {
               <span className="text-foreground/80">in Seconds</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-muted-foreground mb-4 max-w-3xl mx-auto leading-relaxed">
               Create engaging, AI-powered lesson plans tailored to each student's unique learning style. 
               Transform your teaching with intelligent content generation.
+            </p>
+            
+            {/* New tagline that summarizes core value */}
+            <p className="text-lg md:text-xl text-cyber-500 dark:text-cyber-400 font-medium mb-8 max-w-2xl mx-auto">
+              The ultimate AI teaching assistant that saves you hours of prep time while delivering better results for your students.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
@@ -316,9 +427,48 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How It Works Section */}
+      {/* NEW SECTION: What You Can Create */}
       <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-cyber-50/30 to-neon-50/20 dark:from-cyber-900/20 dark:to-neon-900/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-neural-50 via-cyber-50/30 to-neon-50/20 dark:from-neural-900 dark:via-neural-800 dark:to-neural-900"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-blue-400/20 to-cyan-400/20 text-blue-600 dark:text-blue-400 border-blue-400/30">
+              <FileText className="w-3 h-3 mr-1" />
+              Powerful Outputs
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+              What You Can <span className="gradient-text">Create</span>
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              LinguaFlow generates a wide range of teaching materials to make your lessons more effective and engaging.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {creationExamples.map((item, index) => (
+              <Card key={index} className="floating-card glass-effect border-0 hover:border-cyber-400/30 transition-all duration-300 group">
+                <CardHeader>
+                  <div className={`w-12 h-12 rounded-lg ${item.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    <item.icon className={`w-6 h-6 ${item.color}`} />
+                  </div>
+                  <CardTitle className="text-xl group-hover:text-cyber-400 transition-colors duration-300">
+                    {item.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base leading-relaxed">
+                    {item.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-24 bg-muted/30 relative overflow-hidden">
+        <div className="absolute inset-0 grid-background opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 text-emerald-600 dark:text-emerald-400 border-emerald-400/30">
@@ -385,6 +535,56 @@ export default function HomePage() {
                   </CardContent>
                 </Card>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* NEW SECTION: Who Benefits from LinguaFlow? */}
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-neural-50 via-cyber-50/30 to-neon-50/20 dark:from-neural-900 dark:via-neural-800 dark:to-neural-900"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 text-cyan-600 dark:text-cyan-400 border-cyan-400/30">
+              <Users className="w-3 h-3 mr-1" />
+              Perfect For You
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+              Who Benefits from <span className="gradient-text">LinguaFlow?</span>
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Our platform is designed to support language educators at every level, from independent tutors to large institutions.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {userPersonas.map((persona, index) => (
+              <Card key={index} className="floating-card glass-effect border-0 hover:border-cyber-400/30 transition-all duration-300 group">
+                <CardHeader>
+                  <div className={`w-12 h-12 rounded-lg ${persona.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    <persona.icon className={`w-6 h-6 ${persona.color}`} />
+                  </div>
+                  <CardTitle className="text-xl group-hover:text-cyber-400 transition-colors duration-300">
+                    {persona.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CardDescription className="text-base leading-relaxed">
+                    {persona.description}
+                  </CardDescription>
+                  <div className="space-y-2 pt-2">
+                    <p className="font-medium text-sm text-foreground">Key Benefits:</p>
+                    <ul className="space-y-1">
+                      {persona.benefits.map((benefit, i) => (
+                        <li key={i} className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm">{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
