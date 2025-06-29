@@ -1276,6 +1276,13 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
             <CheckCircle2 className="w-5 h-5 mr-2" />
             Complete Lesson
           </Button>
+          <Button 
+            size="lg" 
+            className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+          >
+            <CheckCircle2 className="w-5 h-5 mr-2" />
+            Export Lesson
+          </Button>
         </div>
 
         {/* Translation Popup */}
