@@ -25,6 +25,7 @@ const nextConfig = {
           ...config.resolve.alias,
           'bufferutil': false,
           'utf-8-validate': false,
+          'html-to-docx': false,
         };
 
         // Ensure fallbacks for Node.js modules
@@ -59,6 +60,11 @@ const nextConfig = {
     config.plugins.push(
       new webpack.IgnorePlugin({
         checkResource(resource, context) {
+          // Ignore html-to-docx on client side
+          if (!isServer && resource === 'html-to-docx') {
+            return true;
+          }
+          
           // Ignore Deno-specific imports when requested from supabase/functions
           if (context && context.includes('supabase/functions')) {
             return resource.startsWith('jsr:') || resource.startsWith('npm:');
