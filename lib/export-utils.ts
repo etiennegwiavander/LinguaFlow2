@@ -260,17 +260,11 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
     document.body.removeChild(clone);
     document.body.removeChild(footer);
 
-    // Create a PDF with the specified margins
+    // Create a PDF with A4 format - removed the invalid margins property
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'in',
-      format: 'a4',
-      margins: {
-        top: 0.7,
-        bottom: 0.7,
-        left: 0.3,
-        right: 0.3
-      }
+      format: 'a4'
     });
 
     // Calculate the width and height to maintain aspect ratio
