@@ -8,35 +8,25 @@ export default function Footer() {
 
   const footerLinks = {
     product: [
-      { label: "Features", href: "#features" },
+      { label: "Features", href: "/#features" },
       { label: "Pricing", href: "/pricing" },
       { label: "FAQ", href: "/faq" },
     ],
     company: [
-      { label: "About", href: "#about" },
-      // { label: "Blog", href: "#blog" },
-      // { label: "Careers", href: "#careers" },
-      { label: "Contact", href: "#contact" },
+      { label: "About", href: "/#about" },
+      { label: "Contact", href: "mailto:support@linguaflow.com" },
     ],
     legal: [
       { label: "Privacy Policy", href: "/privacy" },
       { label: "Terms of Service", href: "/terms" },
-      { label: "Cookie Policy", href: "#cookies" },
-      // { label: "GDPR", href: "#gdpr" },
-    ],
-    support: [ 
-      { label: "Help Center", href: "#help" },
-      { label: "Documentation", href: "#docs" },
-      // { label: "API Reference", href: "#api" },
-      // { label: "Status", href: "#status" },
     ],
   };
 
   const socialLinks = [
-    { icon: Github, href: "https://github.com/etiennegwiavander", label: "GitHub" },
-    { icon: Twitter, href: "https://teams.live.com/l/message/19:19564ad44a2eb7802749fea8ef8d1bc6c774003fb03f7681f922269bba575bda@oneToOne.skype/1750916943331?context=%7B%22contextType%22%3A%22chat%22%7D", label: "X" },
-    { icon: Linkedin, href: "www.linkedin.com/in/etienne-gwiavander-lakiebukeh", label: "LinkedIn" },
-    { icon: Mail, href: "gwiavanderetienne2@mail.com", label: "Email" },
+    { icon: Github, href: "https://github.com", label: "GitHub" },
+    { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
+    { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
+    { icon: Mail, href: "mailto:support@linguaflow.com", label: "Email" },
   ];
 
   return (
@@ -46,7 +36,7 @@ export default function Footer() {
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyber-400 to-transparent"></div>
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center space-x-2 group mb-4">
@@ -57,7 +47,7 @@ export default function Footer() {
               <span className="text-xl font-bold gradient-text">LinguaFlow</span>
             </Link>
             <p className="text-gray-300 mb-6 max-w-sm">
-              Revolutionizing language leaning with AI-powered personalized lessons. 
+              Revolutionizing language learning with AI-powered personalized lessons. 
               Create engaging, interactive lesson materials tailored to each student's unique learning journey.
             </p>
             <div className="flex space-x-4">
@@ -95,22 +85,6 @@ export default function Footer() {
             <h3 className="text-white font-semibold mb-4">Company</h3>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-gray-300 hover:text-cyber-400 transition-colors duration-300 text-sm"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-semibold mb-4">Support</h3>
-            <ul className="space-y-3">
-              {footerLinks.support.map((link) => (
                 <li key={link.label}>
                   <Link
                     href={link.href}
