@@ -32,7 +32,15 @@ export const metadata: Metadata = {
       url: '/linguaflowfavicon.png',
       sizes: '180x180',
       type: 'image/png'
-    }
+    },
+    shortcut: { url: '/linguaflowfavicon.png' },
+    other: [
+      {
+        rel: 'icon',
+        url: '/linguaflowfavicon.png',
+        sizes: '16x16 32x32 48x48 64x64 96x96 128x128 256x256'
+      }
+    ]
   },
 };
 
@@ -46,6 +54,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/linguaflowfavicon.png" sizes="any" />
         <link rel="apple-touch-icon" href="/linguaflowfavicon.png" sizes="180x180" />
+        <link rel="shortcut icon" href="/linguaflowfavicon.png" />
       </head>
       <body className={inter.className}>
         <ThemeProvider
