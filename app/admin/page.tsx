@@ -28,19 +28,23 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-// Sample data for demonstration
-const tutors = [
-  { id: 1, name: "John Doe", email: "john@example.com", status: "active", studentsCount: 15, lessonsGenerated: 45 },
-  { id: 2, name: "Jane Smith", email: "jane@example.com", status: "inactive", studentsCount: 8, lessonsGenerated: 23 },
-  // Add more sample tutors as needed
-];
+interface TutorData {
+  id: string;
+  name: string | null;
+  email: string;
+  status: string;
+  studentsCount: number;
+  lessonsGenerated: number;
+  is_admin: boolean;
+}
 
-const systemLogs = [
-  { id: 1, timestamp: "2024-03-20 14:30:00", type: "error", message: "Lesson Generation Failed for User #123", details: "API Timeout" },
-  { id: 2, timestamp: "2024-03-20 14:15:00", type: "warning", message: "Calendar Sync Delayed", details: "Rate Limit Reached" },
-  { id: 3, timestamp: "2024-03-20 14:00:00", type: "info", message: "New Tutor Registration", details: "ID #456" },
-  // Add more sample logs as needed
-];
+interface SystemLog {
+  id: number;
+  timestamp: string;
+  type: 'error' | 'warning' | 'info';
+  message: string;
+  details: string;
+}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -49,6 +53,14 @@ export default function AdminPage() {
   const [logFilter, setLogFilter] = useState("all");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [tutorList, setTutorList] = useState<TutorData[]>([]);
+  const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
+  const [stats, setStats] = useState({
+    totalTutors: 0,
+    totalStudents: 0,
+    totalLessons: 0,
+    systemHealth: 0
+  });
 
   // Check if user is admin
   useEffect(() => {
@@ -75,6 +87,7 @@ export default function AdminPage() {
         }
 
         setIsAdmin(true);
+        fetchAdminData();
       } catch (error: any) {
         toast.error('Failed to verify admin status');
         router.push("/");
@@ -85,6 +98,193 @@ export default function AdminPage() {
 
     checkAdminStatus();
   }, [user, router]);
+
+  const fetchAdminData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch total tutors count
+      const { count: tutorsCount, error: tutorsError } = await supabase
+        .from('tutors')
+        .select('*', { count: 'exact', head: true });
+      
+      if (tutorsError) throw tutorsError;
+      
+      // Fetch total students count
+      const { count: studentsCount, error: studentsError } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true });
+      
+      if (studentsError) throw studentsError;
+      
+      // Fetch total lessons count
+      const { count: lessonsCount, error: lessonsError } = await supabase
+        .from('lessons')
+        .select('*', { count: 'exact', head: true });
+      
+      if (lessonsError) throw lessonsError;
+      
+      // Fetch all tutors
+      const { data: tutorsData, error: tutorsDataError } = await supabase
+        .from('tutors')
+        .select('id, name, email, is_admin, deleted_at, deletion_scheduled');
+      
+      if (tutorsDataError) throw tutorsDataError;
+      
+      // Fetch all students to calculate per-tutor counts
+      const { data: studentsData, error: studentsDataError } = await supabase
+        .from('students')
+        .select('id, tutor_id');
+      
+      if (studentsDataError) throw studentsDataError;
+      
+      // Fetch all lessons to calculate per-tutor counts
+      const { data: lessonsData, error: lessonsDataError } = await supabase
+        .from('lessons')
+        .select('id, tutor_id');
+      
+      if (lessonsDataError) throw lessonsDataError;
+      
+      // Process tutor data with student and lesson counts
+      const processedTutors = tutorsData.map(tutor => {
+        const tutorStudents = studentsData?.filter(student => student.tutor_id === tutor.id) || [];
+        const tutorLessons = lessonsData?.filter(lesson => lesson.tutor_id === tutor.id) || [];
+        
+        return {
+          id: tutor.id,
+          name: tutor.name || 'Unnamed Tutor',
+          email: tutor.email,
+          status: tutor.deleted_at || tutor.deletion_scheduled ? 'inactive' : 'active',
+          studentsCount: tutorStudents.length,
+          lessonsGenerated: tutorLessons.length,
+          is_admin: tutor.is_admin
+        };
+      });
+      
+      // Generate some sample system logs (in a real app, these would come from a logs table)
+      const sampleLogs: SystemLog[] = [
+        { 
+          id: 1, 
+          timestamp: new Date().toISOString(), 
+          type: 'error', 
+          message: 'Lesson Generation Failed for User #123', 
+          details: 'API Timeout' 
+        },
+        { 
+          id: 2, 
+          timestamp: new Date(Date.now() - 15 * 60000).toISOString(), 
+          type: 'warning', 
+          message: 'Calendar Sync Delayed', 
+          details: 'Rate Limit Reached' 
+        },
+        { 
+          id: 3, 
+          timestamp: new Date(Date.now() - 30 * 60000).toISOString(), 
+          type: 'info', 
+          message: 'New Tutor Registration', 
+          details: `ID #${tutorsData[tutorsData.length - 1]?.id.slice(0, 8) || '456'}` 
+        },
+        { 
+          id: 4, 
+          timestamp: new Date(Date.now() - 60 * 60000).toISOString(), 
+          type: 'warning', 
+          message: 'High API Usage Detected', 
+          details: 'Approaching Rate Limit' 
+        },
+        { 
+          id: 5, 
+          timestamp: new Date(Date.now() - 120 * 60000).toISOString(), 
+          type: 'info', 
+          message: 'System Backup Completed', 
+          details: 'All Data Secured' 
+        },
+        { 
+          id: 6, 
+          timestamp: new Date(Date.now() - 180 * 60000).toISOString(), 
+          type: 'error', 
+          message: 'Database Connection Error', 
+          details: 'Automatic Recovery Successful' 
+        },
+      ];
+      
+      // Update state with fetched data
+      setStats({
+        totalTutors: tutorsCount || 0,
+        totalStudents: studentsCount || 0,
+        totalLessons: lessonsCount || 0,
+        systemHealth: 98.9 // Sample value, in a real app this would be calculated
+      });
+      
+      setTutorList(processedTutors);
+      setSystemLogs(sampleLogs);
+      
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to fetch admin data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleActivateDeactivateTutor = async (tutorId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      
+      if (newStatus === 'inactive') {
+        // Mark as scheduled for deletion (soft delete)
+        const { error } = await supabase
+          .from('tutors')
+          .update({ 
+            deletion_scheduled: true 
+          })
+          .eq('id', tutorId);
+          
+        if (error) throw error;
+        toast.success('Tutor deactivated successfully');
+      } else {
+        // Reactivate tutor
+        const { error } = await supabase
+          .from('tutors')
+          .update({ 
+            deletion_scheduled: false,
+            deleted_at: null
+          })
+          .eq('id', tutorId);
+          
+        if (error) throw error;
+        toast.success('Tutor activated successfully');
+      }
+      
+      // Refresh data
+      fetchAdminData();
+      
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update tutor status');
+    }
+  };
+
+  const handleDeleteTutor = async (tutorId: string) => {
+    if (!confirm('Are you sure you want to delete this tutor? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Hard delete the tutor
+      const { error } = await supabase
+        .from('tutors')
+        .delete()
+        .eq('id', tutorId);
+        
+      if (error) throw error;
+      
+      toast.success('Tutor deleted successfully');
+      
+      // Refresh data
+      fetchAdminData();
+      
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete tutor');
+    }
+  };
 
   const filteredLogs = systemLogs.filter(log => {
     if (logFilter !== "all" && log.type !== logFilter) return false;
@@ -135,7 +335,7 @@ export default function AdminPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">127</div>
+              <div className="text-2xl font-bold">{stats.totalTutors}</div>
               <p className="text-xs text-muted-foreground">+5.4% from last month</p>
             </CardContent>
           </Card>
@@ -146,7 +346,7 @@ export default function AdminPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">3,842</div>
+              <div className="text-2xl font-bold">{stats.totalStudents}</div>
               <p className="text-xs text-muted-foreground">+12.7% from last month</p>
             </CardContent>
           </Card>
@@ -157,7 +357,7 @@ export default function AdminPage() {
               <BarChart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">24,389</div>
+              <div className="text-2xl font-bold">{stats.totalLessons}</div>
               <p className="text-xs text-muted-foreground">+8.2% from last month</p>
             </CardContent>
           </Card>
@@ -168,7 +368,7 @@ export default function AdminPage() {
               <Shield className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-500">98.9%</div>
+              <div className="text-2xl font-bold text-green-500">{stats.systemHealth}%</div>
               <p className="text-xs text-muted-foreground">API Uptime</p>
             </CardContent>
           </Card>
@@ -214,36 +414,50 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {tutors.map((tutor) => (
-                        <TableRow key={tutor.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{tutor.name}</p>
-                              <p className="text-sm text-muted-foreground">{tutor.email}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={tutor.status === "active" ? "default" : "secondary"}
-                              className="capitalize"
-                            >
-                              {tutor.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{tutor.studentsCount}</TableCell>
-                          <TableCell>{tutor.lessonsGenerated}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" className="mr-2">View</Button>
-                            <Button 
-                              variant={tutor.status === "active" ? "destructive" : "default"}
-                              className="mr-2"
-                            >
-                              {tutor.status === "active" ? "Deactivate" : "Activate"}
-                            </Button>
-                            <Button variant="destructive">Delete</Button>
+                      {tutorList.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4">
+                            No tutors found
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        tutorList.map((tutor) => (
+                          <TableRow key={tutor.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{tutor.name}</p>
+                                <p className="text-sm text-muted-foreground">{tutor.email}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={tutor.status === "active" ? "default" : "secondary"}
+                                className="capitalize"
+                              >
+                                {tutor.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{tutor.studentsCount}</TableCell>
+                            <TableCell>{tutor.lessonsGenerated}</TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" className="mr-2">View</Button>
+                              <Button 
+                                variant={tutor.status === "active" ? "destructive" : "default"}
+                                className="mr-2"
+                                onClick={() => handleActivateDeactivateTutor(tutor.id, tutor.status)}
+                              >
+                                {tutor.status === "active" ? "Deactivate" : "Activate"}
+                              </Button>
+                              <Button 
+                                variant="destructive"
+                                onClick={() => handleDeleteTutor(tutor.id)}
+                              >
+                                Delete
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -297,7 +511,7 @@ export default function AdminPage() {
                       {filteredLogs.map((log) => (
                         <TableRow key={log.id}>
                           <TableCell className="whitespace-nowrap">
-                            {log.timestamp}
+                            {new Date(log.timestamp).toLocaleString()}
                           </TableCell>
                           <TableCell>
                             <Badge className={getLogTypeColor(log.type)}>
