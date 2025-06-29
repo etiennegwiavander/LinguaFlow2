@@ -84,6 +84,7 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
     titleHeader.style.fontWeight = 'bold';
     titleHeader.style.marginBottom = '16pt';
     titleHeader.style.background = 'linear-gradient(to right, #21c5f0, #d946ef)';
+    // Fix: Use lowercase property names for webkit prefixed properties
     titleHeader.style.webkitBackgroundClip = 'text';
     titleHeader.style.webkitTextFillColor = 'transparent';
     titleHeader.style.backgroundClip = 'text';
@@ -260,7 +261,7 @@ export const exportToPdf = async (elementId: string, fileName: string = 'lesson-
     document.body.removeChild(clone);
     document.body.removeChild(footer);
 
-    // Create a PDF with A4 format - removed the invalid margins property
+    // Create a PDF with A4 format
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'in',
