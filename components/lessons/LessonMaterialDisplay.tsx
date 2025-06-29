@@ -2,11 +2,12 @@
 
 import React from 'react';
 import { safeGetString, safeGetArray, debounce } from "@/lib/utils";
+import { exportToPdf, exportToWord, showExportDialog } from "@/lib/export-utils";
 
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 // import {  } from "react";
-import { DetailedHTMLProps, HTMLAttributes, useState, useEffect } from 'react';
+import { DetailedHTMLProps, HTMLAttributes, useState, useEffect, useRef } from 'react';
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { 
@@ -27,7 +28,9 @@ import {
   PenTool,
   Eye,
   MessageCircle,
-  Globe
+  Globe,
+  FileDown,
+  Download
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -244,6 +247,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     wordRect: null
   });
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
+  const lessonContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user || !lessonId) return;
@@ -565,6 +569,18 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     } finally {
       setIsTranslating(false);
     }
+  };
+
+  const handleExportLesson = () => {
+    if (!lesson) {
+      toast.error('No lesson data available to export');
+      return;
+    }
+
+    const fileName = `${lesson.student.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}`;
+    
+    // Show export dialog
+    showExportDialog('lesson-content-container', fileName);
   };
 
   const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
@@ -1230,7 +1246,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     const sections = safeGetArray(template.template_json, 'sections');
 
     return (
-      <div className="space-y-6 max-w-4xl mx-auto" data-lesson-content>
+      <div className="space-y-6 max-w-4xl mx-auto" data-lesson-content ref={lessonContentRef} id="lesson-content-container">
 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
   <div className="flex items-start space-x-2 flex-1">
     <CheckCircle2 className="w-5 h-5 text-green-600 mt-1" />
@@ -1244,12 +1260,12 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     </div>
   </div>
 
-  {studentNativeLanguage && (
-    <div className="mt-4 lg:mt-0 lg:ml-4 w-full lg:w-auto">
+  <div className="mt-4 lg:mt-0 lg:ml-4 w-full lg:w-auto flex flex-col sm:flex-row gap-2">
+    {studentNativeLanguage && (
       <Button 
         variant="outline" 
         size="sm" 
-        className="w-full flex items-center justify-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
+        className="flex items-center justify-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
         onClick={handleTranslationRequest}
         disabled={isTranslating}
       >
@@ -1258,17 +1274,27 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
         ) : (
           <Globe className="w-4 h-4 mr-2" />
         )}
-        <span>Double-click text to translate</span>
+        <span>Translate Text</span>
       </Button>
-    </div>
-  )}
+    )}
+    
+    <Button 
+      variant="outline"
+      size="sm"
+      className="flex items-center justify-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
+      onClick={handleExportLesson}
+    >
+      <Download className="w-4 h-4 mr-2" />
+      <span>Export Lesson</span>
+    </Button>
+  </div>
 </div>
 
         {sections.map((section, index) => 
           renderTemplateSection(section, 0)
         )}
         
-        <div className="flex justify-center pt-8">
+        <div className="flex justify-center pt-8 space-x-4">
           <Button 
             size="lg" 
             className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
@@ -1279,8 +1305,9 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
           <Button 
             size="lg" 
             className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+            onClick={handleExportLesson}
           >
-            <CheckCircle2 className="w-5 h-5 mr-2" />
+            <FileDown className="w-5 h-5 mr-2" />
             Export Lesson
           </Button>
         </div>
@@ -1300,7 +1327,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
   // Fall back to basic lesson plan view if no interactive content
   return (
-    <div className="space-y-6" data-lesson-content>
+    <div className="space-y-6" data-lesson-content ref={lessonContentRef} id="lesson-content-container">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2 gradient-text">
           Lesson for {lesson.student.name}
@@ -1316,6 +1343,18 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
             </Badge>
           )}
         </div>
+      </div>
+
+      <div className="flex justify-end mb-4">
+        <Button 
+          variant="outline"
+          size="sm"
+          className="flex items-center justify-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
+          onClick={handleExportLesson}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          <span>Export Lesson</span>
+        </Button>
       </div>
 
       {generatedLessons.length > 0 ? (
