@@ -13,7 +13,7 @@ export default function Footer() {
       { label: "FAQ", href: "/faq" },
     ],
     company: [
-      { label: "About", href: "/#about" },
+      { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
     ],
     legal: [
