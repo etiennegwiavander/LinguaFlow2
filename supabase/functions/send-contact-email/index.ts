@@ -43,18 +43,14 @@ serve(async (req) => {
       )
     }
 
-    // Parse the request body
+    // Parse the request body directly using req.json()
     let formData: ContactFormData
     try {
-      const body = await req.text()
-      if (!body) {
-        throw new Error('Empty request body')
-      }
-      formData = JSON.parse(body)
+      formData = await req.json()
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError)
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        JSON.stringify({ error: 'Invalid JSON in request body', details: parseError.message }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
