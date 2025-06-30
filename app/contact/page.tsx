@@ -1,19 +1,20 @@
-'use client';
+"use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Mail, Send, Loader2, MapPin, Phone, Clock, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import LandingLayout from "@/components/landing/LandingLayout";
 
-// Define the schema for the contact form using Zod
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
@@ -22,10 +23,8 @@ const formSchema = z.object({
 });
 
 export default function ContactPage() {
-  // State to manage the submission loading status
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize react-hook-form with Zod resolver
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -36,22 +35,31 @@ export default function ContactPage() {
     },
   });
 
-  /**
-   * Handles the form submission.
-   * Opens the user's default email client with pre-filled information.
-   * @param {z.infer<typeof formSchema>} values - The validated form data.
-   */
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true); // Set loading state to true
-
+    setIsSubmitting(true);
+    
     try {
-      // Construct the mailto URL with form data
-      const mailtoUrl = `mailto:linguaflowservices@gmail.com?subject=${encodeURIComponent(values.subject)}&body=${encodeURIComponent(
+      // Construct mailto URL with form data
+      const mailtoUrl = `mailto:linguaflowservices@gmail.com?subject=${encodeURIComponent(
+        values.subject
+      )}&body=${encodeURIComponent(
         `Name: ${values.name}\nEmail: ${values.email}\n\n${values.message}`
       )}`;
 
-      // Open the mailto URL in a new window/tab
-      window.open(mailtoUrl, '_blank');
+      // Create a hidden anchor element
+      const link = document.createElement('a');
+      link.href = mailtoUrl;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      
+      // Simulate a delay for the loading animation
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Click the link programmatically
+      link.click();
+      
+      // Remove the link from the DOM
+      document.body.removeChild(link);
 
       // Show success message
       toast.success("Thank you for your message! Your email client should have opened with your message details.");
@@ -59,16 +67,14 @@ export default function ContactPage() {
       // Reset the form
       form.reset();
     } catch (error) {
-      // Show error message if something goes wrong
-      toast.error("There was a problem opening your email client. Please try again or email us directly.");
+      toast.error("There was a problem sending your message. Please try again.");
     } finally {
-      setIsSubmitting(false); // Reset loading state
+      setIsSubmitting(false);
     }
   }
 
   return (
-    // Replaced LandingLayout with a div that provides similar basic styling
-    <div className="min-h-screen bg-background text-foreground font-inter antialiased">
+    <LandingLayout>
       {/* Hero Section */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-neural-50 via-cyber-50/30 to-neon-50/20 dark:from-neural-900 dark:via-neural-800 dark:to-neural-900"></div>
@@ -275,7 +281,7 @@ export default function ContactPage() {
               <div className="mt-8 p-6 bg-gradient-to-br from-cyber-50/30 to-neon-50/20 dark:from-cyber-900/20 dark:to-neon-900/10 rounded-lg border border-cyber-400/20">
                 <h3 className="font-semibold text-lg mb-3">Frequently Asked Questions</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Looking for quick answers? Check out our <a href="/faq" className="text-cyber-400 hover:underline">FAQ page</a> for answers to common questions.
+                  Looking for quick answers? Check out our <Link href="/faq" className="text-cyber-400 hover:underline">FAQ page</Link> for answers to common questions.
                 </p>
               </div>
             </div>
@@ -311,6 +317,6 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
-    </div>
+    </LandingLayout>
   );
 }
