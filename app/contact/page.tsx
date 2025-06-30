@@ -39,35 +39,30 @@ export default function ContactPage() {
     setIsSubmitting(true);
     
     try {
-      // Construct mailto URL with form data
-      const mailtoUrl = `mailto:linguaflowservices@gmail.com?subject=${encodeURIComponent(
-        values.subject
-      )}&body=${encodeURIComponent(
-        `Name: ${values.name}\nEmail: ${values.email}\n\n${values.message}`
-      )}`;
-
-      // Create a hidden anchor element
-      const link = document.createElement('a');
-      link.href = mailtoUrl;
-      link.style.display = 'none';
-      document.body.appendChild(link);
+      // Call the Supabase Edge Function
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-contact-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Include the anon key for authentication
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify(values)
+      });
       
-      // Simulate a delay for the loading animation
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const data = await response.json();
       
-      // Click the link programmatically
-      link.click();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send message');
+      }
       
-      // Remove the link from the DOM
-      document.body.removeChild(link);
-
       // Show success message
-      toast.success("Thank you for your message! Your email client should have opened with your message details.");
+      toast.success("Thank you for your message! We'll get back to you soon.");
       
       // Reset the form
       form.reset();
-    } catch (error) {
-      toast.error("There was a problem sending your message. Please try again.");
+    } catch (error: any) {
+      toast.error(error.message || "There was a problem sending your message. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
