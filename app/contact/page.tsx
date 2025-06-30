@@ -53,7 +53,13 @@ export default function ContactPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send message');
+        // Handle domain verification error specifically
+        if (data.details?.statusCode === 403 && data.details?.error?.includes('domain is not verified')) {
+          toast.error("We're currently experiencing email delivery issues. Please contact us directly at linguaflowservices@gmail.com for immediate assistance.");
+        } else {
+          throw new Error(data.error || 'Failed to send message');
+        }
+        return;
       }
       
       // Show success message
@@ -62,7 +68,8 @@ export default function ContactPage() {
       // Reset the form
       form.reset();
     } catch (error: any) {
-      toast.error(error.message || "There was a problem sending your message. Please try again.");
+      // Fallback error handling
+      toast.error("We're currently experiencing technical difficulties. Please contact us directly at linguaflowservices@gmail.com for immediate assistance.");
     } finally {
       setIsSubmitting(false);
     }
@@ -280,35 +287,6 @@ export default function ContactPage() {
                 </p>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Map Section */}
-      <section className="py-16 bg-muted/30 relative overflow-hidden">
-        <div className="absolute inset-0 grid-background opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">
-              Visit Our <span className="gradient-text">Office</span>
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              We're located in the heart of San Francisco's tech district. Feel free to stop by during business hours!
-            </p>
-          </div>
-          
-          <div className="rounded-lg overflow-hidden shadow-lg border border-cyber-400/20">
-            <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d50470.77791667087!2d-122.43913217832036!3d37.77492951404477!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x80859a6d00690021%3A0x4a501367f076adff!2sSan%20Francisco%2C%20CA!5e0!3m2!1sen!2sus!4v1656543301403!5m2!1sen!2sus" 
-              width="100%" 
-              height="450" 
-              style={{ border: 0 }} 
-              allowFullScreen 
-              loading="lazy" 
-              referrerPolicy="no-referrer-when-downgrade"
-              title="LinguaFlow Office Location"
-              className="w-full"
-            ></iframe>
           </div>
         </div>
       </section>
