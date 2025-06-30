@@ -38,43 +38,31 @@ export default function ContactPage() {
 
   /**
    * Handles the form submission.
-   * Sends the form data to a Next.js API route for email processing.
+   * Opens the user's default email client with pre-filled information.
    * @param {z.infer<typeof formSchema>} values - The validated form data.
    */
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true); // Set loading state to true
 
     try {
-      // Make a POST request to the Next.js API route
-      // Note: In a true Canvas environment without a Next.js server,
-      // this fetch to '/api/contact' would fail unless a mock API is provided
-      // or an external email service is directly integrated (e.g., via Firebase Functions).
-      // For this exercise, we assume a server-side endpoint will handle it.
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values), // Send form data as JSON
-      });
+      // Construct the mailto URL with form data
+      const mailtoUrl = `mailto:linguaflowservices@gmail.com?subject=${encodeURIComponent(values.subject)}&body=${encodeURIComponent(
+        `Name: ${values.name}\nEmail: ${values.email}\n\n${values.message}`
+      )}`;
 
-      // Parse the JSON response from the API
-      const result = await response.json();
+      // Open the mailto URL in a new window/tab
+      window.open(mailtoUrl, '_blank');
 
-      if (response.ok) {
-        // Show success message if the API call was successful
-        toast.success(result.message || "Your message has been sent successfully!");
-        form.reset(); // Reset the form fields
-      } else {
-        // Show error message if the API call failed
-        toast.error(result.message || "There was a problem sending your message. Please try again.");
-      }
+      // Show success message
+      toast.success("Thank you for your message! Your email client should have opened with your message details.");
+      
+      // Reset the form
+      form.reset();
     } catch (error) {
-      // Catch any network or unexpected errors
-      console.error("Error submitting form:", error);
-      toast.error("An unexpected error occurred. Please try again later.");
+      // Show error message if something goes wrong
+      toast.error("There was a problem opening your email client. Please try again or email us directly.");
     } finally {
-      setIsSubmitting(false); // Reset loading state to false
+      setIsSubmitting(false); // Reset loading state
     }
   }
 
