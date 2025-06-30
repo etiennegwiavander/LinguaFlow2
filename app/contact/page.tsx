@@ -1,16 +1,17 @@
+'use client';
+
 import { useState } from "react";
-// Removed: import Link from "next/link"; // Replaced with <a> tag
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Mail, Send, Loader2, MapPin, Phone, Clock, MessageSquare } from "lucide-react";
-import { Button } from "./ui/button"; // Assuming ui components are relative or available globally
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"; // Assuming ui components are relative or available globally
-import { Input } from "./ui/input"; // Assuming ui components are relative or available globally
-import { Textarea } from "./ui/textarea"; // Assuming ui components are relative or available globally
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form"; // Assuming ui components are relative or available globally
-import { Badge } from "./ui/badge"; // Assuming ui components are relative or available globally
-import { toast } from "sonner"; // Assuming sonner is available globally or managed separately
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 // Define the schema for the contact form using Zod
 const formSchema = z.object({
