@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import MainLayout from "@/components/main-layout";
 import LessonCard from "@/components/dashboard/LessonCard";
 import StatsCard from "@/components/dashboard/StatsCard";
+import CalendarStatusCard from "@/components/dashboard/CalendarStatusCard";
 import { Clock, Calendar, Sparkles, Loader2, TrendingUp, Users, BarChart3, ExternalLink, RefreshCcw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
@@ -333,12 +335,15 @@ export default function DashboardPage() {
               Quick Stats
             </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat, index) => (
               <div key={stat.id} className="animate-scale-in" style={{ animationDelay: `${0.2 + index * 0.1}s` }}>
                 <StatsCard stat={stat} />
               </div>
             ))}
+            <div className="animate-scale-in" style={{ animationDelay: '0.5s' }}>
+              <CalendarStatusCard />
+            </div>
           </div>
         </section>
 

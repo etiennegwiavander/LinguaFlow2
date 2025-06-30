@@ -22,6 +22,9 @@ export interface GoogleTokens {
   expires_at: string;
   scope: string;
   email?: string;
+  channel_id?: string;
+  resource_id?: string;
+  channel_expiration?: string;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +35,13 @@ export interface TokenData {
   expires_at: string;
   scope: string;
   email?: string;
+}
+
+export interface WebhookStatus {
+  active: boolean;
+  channel_id?: string;
+  expiration?: string;
+  hours_until_expiration?: number;
 }
 
 export class GoogleCalendarService {
@@ -273,6 +283,33 @@ export class GoogleCalendarService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    // Get the channel information to stop the webhook
+    const { data: tokenData, error: tokenError } = await supabase
+      .from('google_tokens')
+      .select('access_token, channel_id, resource_id')
+      .eq('tutor_id', user.id)
+      .single();
+
+    if (!tokenError && tokenData && tokenData.channel_id && tokenData.resource_id) {
+      try {
+        // Stop the webhook channel
+        await fetch('https://www.googleapis.com/calendar/v3/channels/stop', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${tokenData.access_token}`,
+          },
+          body: JSON.stringify({
+            id: tokenData.channel_id,
+            resourceId: tokenData.resource_id,
+          }),
+        });
+      } catch (error) {
+        // Just log the error, don't throw, as we still want to delete the tokens
+        console.error('Failed to stop webhook channel:', error);
+      }
+    }
+
     // Delete tokens and events
     await Promise.all([
       supabase.from('google_tokens').delete().eq('tutor_id', user.id),
@@ -288,6 +325,7 @@ export class GoogleCalendarService {
     email?: string;
     last_sync?: string;
     expires_at?: string;
+    webhook_status?: WebhookStatus;
   }> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { connected: false };
@@ -295,7 +333,7 @@ export class GoogleCalendarService {
     // Use maybeSingle() instead of single() to handle cases where no record exists
     const { data: tokenData, error } = await supabase
       .from('google_tokens')
-      .select('expires_at, updated_at, email')
+      .select('expires_at, updated_at, email, channel_id, channel_expiration')
       .eq('tutor_id', user.id)
       .maybeSingle();
 
@@ -304,11 +342,28 @@ export class GoogleCalendarService {
       return { connected: false };
     }
 
+    // Calculate webhook status
+    let webhookStatus: WebhookStatus | undefined;
+    
+    if (tokenData.channel_id && tokenData.channel_expiration) {
+      const now = new Date();
+      const expiration = new Date(tokenData.channel_expiration);
+      const hoursUntilExpiration = (expiration.getTime() - now.getTime()) / (1000 * 60 * 60);
+      
+      webhookStatus = {
+        active: expiration > now,
+        channel_id: tokenData.channel_id,
+        expiration: tokenData.channel_expiration,
+        hours_until_expiration: hoursUntilExpiration,
+      };
+    }
+
     return {
       connected: true,
       email: tokenData.email,
       last_sync: tokenData.updated_at,
       expires_at: tokenData.expires_at,
+      webhook_status: webhookStatus,
     };
   }
 }

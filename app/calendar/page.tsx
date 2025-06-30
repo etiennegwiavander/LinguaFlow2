@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MainLayout from "@/components/main-layout";
-import { Calendar, RefreshCcw, CheckCircle, XCircle, Clock, AlertCircle, ExternalLink, Info } from "lucide-react";
+import { Calendar, RefreshCcw, CheckCircle, XCircle, Clock, AlertCircle, ExternalLink, Info, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,12 @@ export default function CalendarPage() {
     email?: string;
     last_sync?: string;
     expires_at?: string;
+    webhook_status?: {
+      active: boolean;
+      channel_id?: string;
+      expiration?: string;
+      hours_until_expiration?: number;
+    };
   }>({ connected: false });
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -259,6 +265,44 @@ export default function CalendarPage() {
     return "badge-error";
   };
 
+  const getWebhookStatusBadge = () => {
+    const webhookStatus = connectionStatus.webhook_status;
+    
+    if (!webhookStatus) {
+      return (
+        <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-600 dark:text-yellow-400">
+          <Zap className="w-3 h-3 mr-1" />
+          Standard Sync
+        </Badge>
+      );
+    }
+    
+    if (!webhookStatus.active) {
+      return (
+        <Badge variant="outline" className="text-xs border-red-400 text-red-600 dark:text-red-400">
+          <XCircle className="w-3 h-3 mr-1" />
+          Real-time Sync Expired
+        </Badge>
+      );
+    }
+    
+    if (webhookStatus.hours_until_expiration && webhookStatus.hours_until_expiration < 24) {
+      return (
+        <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-600 dark:text-yellow-400">
+          <Clock className="w-3 h-3 mr-1" />
+          Real-time Sync Renewing Soon
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge variant="outline" className="text-xs border-green-400 text-green-600 dark:text-green-400">
+        <Zap className="w-3 h-3 mr-1" />
+        Real-time Sync Active
+      </Badge>
+    );
+  };
+
   // Sort events by start time and filter to upcoming events only
   const upcomingEvents = events
     .filter(event => {
@@ -375,6 +419,11 @@ export default function CalendarPage() {
                         ({connectionStatus.email})
                       </span>
                     )}
+                    {isConnected && connectionStatus.webhook_status && (
+                      <div className="ml-2">
+                        {getWebhookStatusBadge()}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -428,6 +477,44 @@ export default function CalendarPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Webhook Status */}
+                {connectionStatus.webhook_status && (
+                  <div className="p-4 border rounded-lg border-cyber-400/30 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm">
+                    <h3 className="text-sm font-medium mb-2 flex items-center">
+                      <Zap className="h-4 w-4 mr-2 text-cyber-400" />
+                      Real-time Sync Status
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <p className="font-medium">
+                          {connectionStatus.webhook_status.active ? (
+                            <span className="text-green-500">Active</span>
+                          ) : (
+                            <span className="text-red-500">Inactive</span>
+                          )}
+                        </p>
+                      </div>
+                      {connectionStatus.webhook_status.expiration && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Expires</p>
+                          <p className="font-medium">
+                            {format(new Date(connectionStatus.webhook_status.expiration), "PPp")}
+                            {connectionStatus.webhook_status.hours_until_expiration !== undefined && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                ({Math.round(connectionStatus.webhook_status.hours_until_expiration)} hours)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Real-time sync automatically updates your calendar when changes are made in Google Calendar.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

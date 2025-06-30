@@ -1,304 +1,312 @@
-import { serve } from "jsr:@std/http@0.224.0/server"
-import { createClient } from 'npm:@supabase/supabase-js@2'
+// Follow Deno Edge Function conventions
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.39.7";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
 
-interface CalendarEvent {
-  id: string;
-  summary: string;
-  description?: string;
-  start: {
-    dateTime?: string;
-    date?: string;
-  };
-  end: {
-    dateTime?: string;
-    date?: string;
-  };
-  location?: string;
-  attendees?: Array<{
-    email: string;
-    displayName?: string;
-    responseStatus?: string;
-  }>;
-}
-
-async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: string, newExpiresAt: string }> {
-  console.log(`[${new Date().toISOString()}] Attempting to refresh access token...`);
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      client_id: Deno.env.get('GOOGLE_CLIENT_ID') ?? '',
-      client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '',
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    }),
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[${new Date().toISOString()}] Failed to refresh access token: Status ${response.status}, Error: ${errorText}`);
-    throw new Error(`Failed to refresh access token: ${errorText}`);
-  }
-
-  const data = await response.json();
-  const newExpiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString();
-  console.log(`[${new Date().toISOString()}] Access token refreshed successfully. New expiry: ${newExpiresAt}`);
-  return {
-    accessToken: data.access_token,
-    newExpiresAt: newExpiresAt
-  };
-}
-
-async function fetchCalendarEvents(accessToken: string, timeMin?: string, timeMax?: string): Promise<CalendarEvent[]> {
-  // Set dynamic date range: current time to 2 weeks from now
-  const now = new Date();
-  const twoWeeksFromNow = new Date(now.getTime() + (14 * 24 * 60 * 60 * 1000));
-  
-  const minTime = timeMin || now.toISOString();
-  const maxTime = timeMax || twoWeeksFromNow.toISOString();
-  
-  console.log(`[${new Date().toISOString()}] Fetching calendar events from ${minTime} to ${maxTime}...`);
-  
-  const params = new URLSearchParams({
-    timeMin: minTime,
-    timeMax: maxTime,
-    singleEvents: 'true',
-    orderBy: 'startTime',
-    maxResults: '250', // Increased limit
-  })
-
-  // Fetch from all calendars the user has access to
-  const calendars = ['primary'];
-  
-  // Try to get calendar list to include all calendars
-  try {
-    const calendarListResponse = await fetch(
-      'https://www.googleapis.com/calendar/v3/users/me/calendarList',
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    
-    if (calendarListResponse.ok) {
-      const calendarListData = await calendarListResponse.json();
-      console.log(`[${new Date().toISOString()}] Found ${calendarListData.items?.length || 0} calendars`);
-      
-      // Add all accessible calendars to the list
-      if (calendarListData.items) {
-        calendars.length = 0; // Clear the array
-        calendarListData.items.forEach((calendar: any) => {
-          if (calendar.accessRole === 'owner' || calendar.accessRole === 'reader' || calendar.accessRole === 'writer') {
-            calendars.push(calendar.id);
-          }
-        });
-      }
-    }
-  } catch (error) {
-    console.log(`[${new Date().toISOString()}] Could not fetch calendar list, using primary calendar only:`, error);
-  }
-
-  console.log(`[${new Date().toISOString()}] Fetching events from ${calendars.length} calendars:`, calendars);
-
-  // Fetch events from all calendars
-  const allEvents: CalendarEvent[] = [];
-  
-  for (const calendarId of calendars) {
-    try {
-      const response = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      console.log(`[${new Date().toISOString()}] Calendar ${calendarId} API response status: ${response.status} ${response.statusText}`);
-      
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error(`[${new Date().toISOString()}] Failed to fetch events from calendar ${calendarId}: Status ${response.status}, Error: ${errorData}`);
-        continue; // Skip this calendar and continue with others
-      }
-
-      const data = await response.json();
-      const events = data.items || [];
-      console.log(`[${new Date().toISOString()}] Calendar ${calendarId} returned ${events.length} events`);
-      
-      // Add calendar ID to each event for tracking
-      events.forEach((event: CalendarEvent) => {
-        event.calendarId = calendarId;
-      });
-      
-      allEvents.push(...events);
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] Error fetching events from calendar ${calendarId}:`, error);
-      continue;
-    }
-  }
-
-  console.log(`[${new Date().toISOString()}] Total events fetched from all calendars: ${allEvents.length}`);
-  
-  // Log sample events for debugging
-  if (allEvents.length > 0) {
-    console.log(`[${new Date().toISOString()}] Sample events:`, JSON.stringify(allEvents.slice(0, 3), null, 2));
-  }
-  
-  return allEvents;
+interface SyncCalendarRequest {
+  tutor_id?: string;
+  triggered_by_webhook?: boolean;
+  channel_id?: string;
+  resource_id?: string;
 }
 
 serve(async (req) => {
-  console.log(`[${new Date().toISOString()}] Sync-calendar function started for URL: ${req.url}`);
-  if (req.method === 'OPTIONS') {
-    console.log(`[${new Date().toISOString()}] Handling OPTIONS request.`);
-    return new Response(null, { headers: corsHeaders })
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SERVICE_ROLE_KEY') ?? ''
-    )
-    console.log(`[${new Date().toISOString()}] Supabase client created.`);
-
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      console.error(`[${new Date().toISOString()}] No authorization header provided.`);
-      throw new Error('No authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    console.log(`[${new Date().toISOString()}] Attempting to authenticate user with token.`);
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     
-    if (authError || !user) {
-      console.error(`[${new Date().toISOString()}] Authentication failed: ${authError?.message || 'User not found'}`);
-      throw new Error('Invalid token');
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Missing Supabase environment variables");
     }
-    console.log(`[${new Date().toISOString()}] User authenticated: ${user.id}`);
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get stored Google tokens
-    console.log(`[${new Date().toISOString()}] Fetching Google tokens for user: ${user.id}`);
-    const { data: tokenData, error: tokenError } = await supabaseClient
-      .from('google_tokens')
-      .select('*')
-      .eq('tutor_id', user.id)
-      .single()
+    // Get request body
+    const requestData: SyncCalendarRequest = await req.json();
+    
+    // Get user ID from auth token or request body
+    let tutorId: string;
+    
+    if (requestData.tutor_id) {
+      // If tutor_id is provided in the request (e.g., from webhook or admin)
+      tutorId = requestData.tutor_id;
+    } else {
+      // Otherwise, get it from the auth token
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        throw new Error("Missing Authorization header");
+      }
+      
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      
+      if (userError || !user) {
+        throw new Error("Invalid or expired token");
+      }
+      
+      tutorId = user.id;
+    }
+
+    // Get Google tokens for the tutor
+    const { data: tokenData, error: tokenError } = await supabase
+      .from("google_tokens")
+      .select("*")
+      .eq("tutor_id", tutorId)
+      .single();
 
     if (tokenError || !tokenData) {
-      console.error(`[${new Date().toISOString()}] No Google Calendar connection found for user: ${user.id}, Error: ${tokenError?.message || 'No data'}`);
-      throw new Error('No Google Calendar connection found. Please connect your calendar first.');
+      throw new Error("No Google Calendar connection found");
     }
-    console.log(`[${new Date().toISOString()}] Google tokens retrieved. Expires at: ${tokenData.expires_at}`);
 
-    let accessToken = tokenData.access_token
-    const expiresAt = new Date(tokenData.expires_at)
+    // Check if token is expired and refresh if needed
+    const now = new Date();
+    const expiresAt = new Date(tokenData.expires_at);
+    let accessToken = tokenData.access_token;
+    
+    if (expiresAt <= now) {
+      // Token is expired, refresh it
+      const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: Deno.env.get("GOOGLE_CLIENT_ID") || "",
+          client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET") || "",
+          refresh_token: tokenData.refresh_token,
+          grant_type: "refresh_token",
+        }),
+      });
 
-    // Check if token needs refresh
-    if (expiresAt <= new Date()) {
-      console.log(`[${new Date().toISOString()}] Access token expired (${expiresAt.toISOString()}), attempting to refresh...`);
-      try {
-        const { accessToken: newAccessToken, newExpiresAt } = await refreshAccessToken(tokenData.refresh_token);
-        accessToken = newAccessToken;
-        
-        // Update the access token in database
-        console.log(`[${new Date().toISOString()}] Updating access token in database for user: ${user.id}`);
-        const { error: updateTokenError } = await supabaseClient
-          .from('google_tokens')
-          .update({
-            access_token: accessToken,
-            expires_at: newExpiresAt,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('tutor_id', user.id)
-        
-        if (updateTokenError) {
-          console.error(`[${new Date().toISOString()}] Failed to update access token in DB: ${updateTokenError.message}`);
-          throw new Error('Failed to update access token in database.');
-        }
-        console.log(`[${new Date().toISOString()}] Access token updated in database.`);
-      } catch (refreshError: any) {
-        console.error(`[${new Date().toISOString()}] Failed to refresh access token: ${refreshError.message}`);
-        throw new Error(`Failed to refresh access token. Please reconnect your Google Calendar: ${refreshError.message}`);
+      if (!refreshResponse.ok) {
+        const refreshError = await refreshResponse.json();
+        throw new Error(`Failed to refresh token: ${JSON.stringify(refreshError)}`);
       }
-    } else {
-      console.log(`[${new Date().toISOString()}] Access token is still valid. Expires: ${expiresAt.toISOString()}`);
-    }
 
-    // Fetch calendar events with dynamic 2-week range
-    console.log(`[${new Date().toISOString()}] Calling fetchCalendarEvents with current access token.`);
-    const events = await fetchCalendarEvents(accessToken)
-    console.log(`[${new Date().toISOString()}] Received ${events.length} events from Google Calendar.`);
-
-    // Process and store events
-    console.log(`[${new Date().toISOString()}] Processing events for database upsert.`);
-    const processedEvents = events.map(event => ({
-      tutor_id: user.id,
-      google_event_id: event.id,
-      summary: event.summary || 'Untitled Event',
-      description: event.description || null,
-      start_time: event.start.dateTime || event.start.date,
-      end_time: event.end.dateTime || event.end.date,
-      location: event.location || null,
-      // Ensure attendees is stored as JSON string if it exists
-      attendees: event.attendees ? JSON.stringify(event.attendees) : null,
-    }))
-    console.log(`[${new Date().toISOString()}] Finished processing ${processedEvents.length} events.`);
-
-    // Upsert events to avoid duplicates
-    if (processedEvents.length > 0) {
-      console.log(`[${new Date().toISOString()}] Attempting to upsert ${processedEvents.length} events into database...`);
-      const { error: upsertError } = await supabaseClient
-        .from('calendar_events')
-        .upsert(processedEvents, {
-          onConflict: 'tutor_id,google_event_id'
+      const refreshData = await refreshResponse.json();
+      accessToken = refreshData.access_token;
+      
+      // Calculate new expiration time
+      const expiresIn = refreshData.expires_in || 3600; // Default to 1 hour
+      const newExpiresAt = new Date(now.getTime() + expiresIn * 1000);
+      
+      // Update token in database
+      await supabase
+        .from("google_tokens")
+        .update({
+          access_token: accessToken,
+          expires_at: newExpiresAt.toISOString(),
+          updated_at: now.toISOString(),
         })
-
-      if (upsertError) {
-        console.error(`[${new Date().toISOString()}] Failed to store calendar events in DB: ${upsertError.message}`);
-        throw new Error(`Failed to store calendar events: ${upsertError.message}`);
-      }
-      console.log(`[${new Date().toISOString()}] Successfully upserted ${processedEvents.length} events.`);
-    } else {
-      console.log(`[${new Date().toISOString()}] No events to upsert.`);
+        .eq("tutor_id", tutorId);
     }
 
-    console.log(`[${new Date().toISOString()}] Calendar sync completed successfully.`);
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Successfully synced ${processedEvents.length} calendar events`,
-        events_count: processedEvents.length,
-        last_sync: new Date().toISOString()
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    )
+    // Determine if we need to set up or renew a webhook channel
+    const shouldSetupWebhook = 
+      !tokenData.channel_id || 
+      !tokenData.channel_expiration || 
+      new Date(tokenData.channel_expiration) <= new Date(now.getTime() + 24 * 60 * 60 * 1000); // Expires within 24 hours
 
-  } catch (error: any) {
-    console.error(`[${new Date().toISOString()}] Calendar sync error caught in main block: ${error.message}`);
+    // Set up webhook if needed
+    if (shouldSetupWebhook && !requestData.triggered_by_webhook) {
+      await setupWebhookChannel(supabase, supabaseUrl, tutorId, accessToken);
+    }
+
+    // Determine time range for calendar sync
+    // If triggered by webhook, use a smaller time range for efficiency
+    const timeMin = new Date();
+    timeMin.setDate(timeMin.getDate() - (requestData.triggered_by_webhook ? 7 : 30)); // 7 days for webhook, 30 days for manual
+    
+    const timeMax = new Date();
+    timeMax.setDate(timeMax.getDate() + 90); // 90 days into the future
+    
+    // Fetch events from Google Calendar
+    const calendarResponse = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=2500`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!calendarResponse.ok) {
+      const calendarError = await calendarResponse.json();
+      throw new Error(`Failed to fetch calendar events: ${JSON.stringify(calendarError)}`);
+    }
+
+    const calendarData = await calendarResponse.json();
+    const events = calendarData.items || [];
+
+    // Process events
+    const processedEvents = events.map((event: any) => ({
+      tutor_id: tutorId,
+      google_event_id: event.id,
+      summary: event.summary || "Untitled Event",
+      description: event.description || null,
+      start_time: event.start?.dateTime || event.start?.date,
+      end_time: event.end?.dateTime || event.end?.date,
+      location: event.location || null,
+      attendees: event.attendees || null,
+      updated_at: now.toISOString(),
+    }));
+
+    // Get existing events from database
+    const { data: existingEvents, error: existingEventsError } = await supabase
+      .from("calendar_events")
+      .select("google_event_id")
+      .eq("tutor_id", tutorId);
+
+    if (existingEventsError) {
+      throw new Error(`Failed to fetch existing events: ${existingEventsError.message}`);
+    }
+
+    // Create a map of existing event IDs for quick lookup
+    const existingEventIds = new Set(existingEvents.map((e) => e.google_event_id));
+
+    // Split events into new and existing
+    const newEvents = processedEvents.filter((e) => !existingEventIds.has(e.google_event_id));
+    const updatedEvents = processedEvents.filter((e) => existingEventIds.has(e.google_event_id));
+
+    // Insert new events
+    if (newEvents.length > 0) {
+      const { error: insertError } = await supabase
+        .from("calendar_events")
+        .insert(newEvents);
+
+      if (insertError) {
+        throw new Error(`Failed to insert new events: ${insertError.message}`);
+      }
+    }
+
+    // Update existing events
+    for (const event of updatedEvents) {
+      const { error: updateError } = await supabase
+        .from("calendar_events")
+        .update({
+          summary: event.summary,
+          description: event.description,
+          start_time: event.start_time,
+          end_time: event.end_time,
+          location: event.location,
+          attendees: event.attendees,
+          updated_at: event.updated_at,
+        })
+        .eq("tutor_id", tutorId)
+        .eq("google_event_id", event.google_event_id);
+
+      if (updateError) {
+        console.error(`Failed to update event ${event.google_event_id}: ${updateError.message}`);
+      }
+    }
+
+    // Return success response
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Internal server error' 
+      JSON.stringify({
+        success: true,
+        events_count: processedEvents.length,
+        new_events_count: newEvents.length,
+        updated_events_count: updatedEvents.length,
+        last_sync: now.toISOString(),
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Calendar sync error:", error);
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message || "An unknown error occurred",
+      }),
+      {
         status: 400,
-      },
-    )
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
-})
+});
+
+// Function to set up a webhook channel with Google Calendar
+async function setupWebhookChannel(supabase: any, supabaseUrl: string, tutorId: string, accessToken: string) {
+  try {
+    // Generate a unique channel ID
+    const channelId = crypto.randomUUID();
+    
+    // Set expiration to 7 days from now (maximum allowed by Google)
+    const expirationTime = new Date();
+    expirationTime.setDate(expirationTime.getDate() + 7);
+    
+    // Create the webhook channel
+    const webhookResponse = await fetch(
+      "https://www.googleapis.com/calendar/v3/calendars/primary/events/watch",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          id: channelId,
+          type: "web_hook",
+          address: `${supabaseUrl}/functions/v1/google-webhook-receiver`,
+          expiration: expirationTime.getTime().toString(),
+        }),
+      }
+    );
+
+    if (!webhookResponse.ok) {
+      const webhookError = await webhookResponse.json();
+      throw new Error(`Failed to create webhook: ${JSON.stringify(webhookError)}`);
+    }
+
+    const webhookData = await webhookResponse.json();
+    
+    // Update the google_tokens table with the webhook channel information
+    const { error: updateError } = await supabase
+      .from("google_tokens")
+      .update({
+        channel_id: webhookData.id,
+        resource_id: webhookData.resourceId,
+        channel_expiration: new Date(parseInt(webhookData.expiration)).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("tutor_id", tutorId);
+
+    if (updateError) {
+      throw new Error(`Failed to update token with webhook info: ${updateError.message}`);
+    }
+
+    console.log(`Webhook channel created for tutor ${tutorId}, expires at ${new Date(parseInt(webhookData.expiration)).toISOString()}`);
+    
+    return webhookData;
+  } catch (error) {
+    console.error("Error setting up webhook channel:", error);
+    // Don't throw here, just log the error and continue
+    // This allows the calendar sync to proceed even if webhook setup fails
+    return null;
+  }
+}
