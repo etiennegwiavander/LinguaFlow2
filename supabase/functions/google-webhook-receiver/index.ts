@@ -1,118 +1,147 @@
-// Follow Deno Edge Function conventions
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.39.7";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-goog-channel-id, x-goog-resource-id, x-goog-resource-state, x-goog-message-number, x-goog-resource-uri",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight request
   if (req.method === "OPTIONS") {
     return new Response(null, {
-      status: 204,
       headers: corsHeaders,
+      status: 204,
     });
   }
 
   try {
-    // Create Supabase client with service role key
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Missing Supabase environment variables");
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Create Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
 
-    // Extract Google Calendar webhook headers
+    // Get headers from the request
     const channelId = req.headers.get("x-goog-channel-id");
     const resourceId = req.headers.get("x-goog-resource-id");
     const resourceState = req.headers.get("x-goog-resource-state");
     const messageNumber = req.headers.get("x-goog-message-number");
-    
-    console.log(`Received webhook: channelId=${channelId}, resourceState=${resourceState}, messageNumber=${messageNumber}`);
-    
+
     if (!channelId || !resourceId) {
-      throw new Error("Missing required Google webhook headers");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Missing required headers" 
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400 
+        }
+      );
     }
 
     // Find the tutor associated with this channel
-    const { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError } = await supabaseClient
       .from("google_tokens")
       .select("tutor_id")
       .eq("channel_id", channelId)
       .single();
 
     if (tokenError || !tokenData) {
-      console.error("Error finding token data:", tokenError);
-      throw new Error(`No token found for channel ID: ${channelId}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Channel not found" 
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404 
+        }
+      );
     }
 
-    const tutorId = tokenData.tutor_id;
-    
     // Log the webhook event
-    await supabase.from("calendar_webhook_logs").insert({
-      tutor_id: tutorId,
-      channel_id: channelId,
-      resource_id: resourceId,
-      resource_state: resourceState,
-      message_number: messageNumber,
-      headers: Object.fromEntries(req.headers.entries()),
-    });
+    const { data: logData, error: logError } = await supabaseClient
+      .from("calendar_webhook_logs")
+      .insert({
+        tutor_id: tokenData.tutor_id,
+        channel_id: channelId,
+        resource_id: resourceId,
+        resource_state: resourceState,
+        message_number: messageNumber,
+        headers: Object.fromEntries(req.headers.entries())
+      })
+      .select()
+      .single();
 
-    // Only trigger sync for 'sync' or 'exists' resource states
-    // 'sync' is sent when the channel is created, 'exists' when a change occurs
+    if (logError) {
+      console.error("Error logging webhook:", logError);
+    }
+
+    // If this is a sync message, trigger a calendar sync
     if (resourceState === "sync" || resourceState === "exists") {
-      // Call the sync-calendar function to update the calendar events
-      const syncResponse = await fetch(`${supabaseUrl}/functions/v1/sync-calendar`, {
+      // No need to do anything for sync messages
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Sync notification received" 
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200 
+        }
+      );
+    }
+
+    // For change notifications, trigger a sync
+    if (resourceState === "change") {
+      // Call the sync-calendar function
+      const response = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/sync-calendar`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${supabaseServiceKey}`,
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
         },
         body: JSON.stringify({
-          tutor_id: tutorId,
-          triggered_by_webhook: true,
-          channel_id: channelId,
-          resource_id: resourceId,
+          tutor_id: tokenData.tutor_id,
+          webhook_triggered: true
         }),
       });
 
-      if (!syncResponse.ok) {
-        const errorData = await syncResponse.json();
+      if (!response.ok) {
+        const errorData = await response.json();
         console.error("Error syncing calendar:", errorData);
-        throw new Error(`Failed to sync calendar: ${JSON.stringify(errorData)}`);
       }
     }
 
-    // Respond to Google with 200 OK to acknowledge receipt
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
-    });
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: "Webhook processed successfully" 
+      }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200 
+      }
+    );
   } catch (error) {
     console.error("Webhook error:", error);
-    
-    // Always return 200 OK to Google to prevent retries
-    // Log the error internally but don't expose details to the caller
     return new Response(
-      JSON.stringify({
-        success: false,
-        message: "Webhook processed with errors",
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || "Internal server error" 
       }),
-      {
-        status: 200, // Always return 200 to Google
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500 
       }
     );
   }

@@ -1,7 +1,6 @@
-// Follow Deno and Supabase Edge Function conventions
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.39.7";
-import * as bcrypt from "https://deno.land/x/bcrypt@v1.1.0/mod.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import * as bcrypt from "npm:bcrypt@5.1.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,8 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-serve(async (req: Request) => {
-  // Handle CORS preflight requests
+serve(async (req) => {
+  // Handle CORS preflight request
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: corsHeaders,
@@ -18,62 +17,124 @@ serve(async (req: Request) => {
     });
   }
 
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 405,
-    });
-  }
-
   try {
+    // Get request body
     const { username, password } = await req.json();
 
+    // Validate input
     if (!username || !password) {
-      return new Response(JSON.stringify({ error: 'Username and password are required' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Username and password are required" 
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400 
+        }
+      );
     }
 
-    // Initialize Supabase client with service role key
-    const supabaseAdmin = createClient(
+    // Create Supabase client
+    const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
     );
 
-    // Query the admin_credentials table
-    const { data, error } = await supabaseAdmin
-      .from('admin_credentials')
-      .select('hashed_password')
-      .eq('username', username)
+    // Get admin credentials from database
+    const { data: adminData, error: adminError } = await supabaseClient
+      .from("admin_credentials")
+      .select("*")
+      .eq("username", username)
       .single();
 
-    if (error || !data) {
-      return new Response(JSON.stringify({ success: false, error: 'Invalid username or password' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      });
+    if (adminError || !adminData) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Invalid username or password" 
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401 
+        }
+      );
     }
 
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, data.hashed_password);
+    // Compare password with hashed password in database
+    const passwordMatch = await bcrypt.compare(password, adminData.hashed_password);
 
-    if (isPasswordValid) {
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    } else {
-      return new Response(JSON.stringify({ success: false, error: 'Invalid username or password' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      });
+    if (!passwordMatch) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Invalid username or password" 
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401 
+        }
+      );
     }
+
+    // Get tutor data
+    const { data: tutorData, error: tutorError } = await supabaseClient
+      .from("tutors")
+      .select("id, name, email, avatar_url, is_admin")
+      .eq("is_admin", true)
+      .eq("email", adminData.username)
+      .single();
+
+    if (tutorError || !tutorData) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Admin account not found in tutors table" 
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404 
+        }
+      );
+    }
+
+    // Create admin session
+    const adminSession = {
+      loggedIn: true,
+      username: adminData.username,
+      tutorId: tutorData.id,
+      name: tutorData.name,
+      email: tutorData.email,
+      avatar_url: tutorData.avatar_url,
+      timestamp: Date.now()
+    };
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        session: adminSession 
+      }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200 
+      }
+    );
   } catch (error) {
-    console.error("Admin login function error:", error);
-    return new Response(JSON.stringify({ success: false, error: 'Internal server error' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || "Internal server error" 
+      }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500 
+      }
+    );
   }
 });
