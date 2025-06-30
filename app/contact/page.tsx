@@ -45,8 +45,20 @@ export default function ContactPage() {
         `Name: ${values.name}\nEmail: ${values.email}\n\n${values.message}`
       )}`;
 
-      // Open the user's email client
-      window.open(mailtoUrl, "_blank");
+      // Open the user's email client without navigating away from the page
+      const newWindow = window.open(mailtoUrl, '_blank');
+      
+      // If popup is blocked or fails to open
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        // Fallback - create a temporary link and click it
+        const link = document.createElement('a');
+        link.href = mailtoUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
 
       // Show success message
       toast.success("Thank you for your message! Your email client should have opened with your message details.");
