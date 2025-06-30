@@ -37,6 +37,7 @@ export default function ContactPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    
     try {
       // Construct mailto URL with form data
       const mailtoUrl = `mailto:linguaflowservices@gmail.com?subject=${encodeURIComponent(
@@ -45,20 +46,20 @@ export default function ContactPage() {
         `Name: ${values.name}\nEmail: ${values.email}\n\n${values.message}`
       )}`;
 
-      // Open the user's email client without navigating away from the page
-      const newWindow = window.open(mailtoUrl, '_blank');
+      // Create a hidden anchor element
+      const link = document.createElement('a');
+      link.href = mailtoUrl;
+      link.style.display = 'none';
+      document.body.appendChild(link);
       
-      // If popup is blocked or fails to open
-      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-        // Fallback - create a temporary link and click it
-        const link = document.createElement('a');
-        link.href = mailtoUrl;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
+      // Simulate a delay for the loading animation
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Click the link programmatically
+      link.click();
+      
+      // Remove the link from the DOM
+      document.body.removeChild(link);
 
       // Show success message
       toast.success("Thank you for your message! Your email client should have opened with your message details.");
