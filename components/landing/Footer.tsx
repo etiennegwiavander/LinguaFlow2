@@ -14,7 +14,7 @@ export default function Footer() {
     ],
     company: [
       { label: "About", href: "/#about" },
-      { label: "Contact", href: "mailto:support@linguaflow.com" },
+      { label: "Contact", href: "/contact" },
     ],
     legal: [
       { label: "Privacy Policy", href: "/privacy" },
@@ -26,7 +26,7 @@ export default function Footer() {
     { icon: Github, href: "https://github.com", label: "GitHub" },
     { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
     { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
-    { icon: Mail, href: "mailto:support@linguaflow.com", label: "Email" },
+    { icon: Mail, href: "mailto:linguaflowservices@gmail.com", label: "Email" },
   ];
 
   return (
