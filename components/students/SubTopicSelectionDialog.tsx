@@ -85,10 +85,7 @@ function SubTopicSelectionDialogContent({
   const [isCompletingLesson, setIsCompletingLesson] = useState(false);
   const { completedSubTopics, isSubTopicCompleted, markSubTopicComplete } = useContext(ProgressContext);
 
-  // Debug: Log the completed sub-topics whenever they change
-  useEffect(() => {
-    console.log('🔍 Dialog - Current completed sub-topics:', completedSubTopics);
-  }, [completedSubTopics]);
+  // Track completed sub-topics (debug logs removed to prevent console spam)
 
   // Update edited sub-topics when props change
   useEffect(() => {
@@ -205,7 +202,8 @@ function SubTopicSelectionDialogContent({
               const categoryColor = getCategoryColor(subTopic.category);
               const isCompleted = isSubTopicCompleted(subTopic.id);
               
-              console.log('🎨 Rendering sub-topic:', subTopic.title, 'ID:', subTopic.id, 'isCompleted:', isCompleted);
+              // Only log completed sub-topics for debugging (reduced noise)
+              // if (isCompleted) console.log('✅ Completed:', subTopic.title);
               
               return (
                 <Card 

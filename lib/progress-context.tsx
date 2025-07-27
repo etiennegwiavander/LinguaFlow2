@@ -27,20 +27,31 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
 
   // Function to initialize completed sub-topics from lesson data
   const initializeFromLessonData = useCallback((lessonData: any) => {
-    if (lessonData?.interactive_lesson_content) {
-      // If there's interactive content, we can assume at least one sub-topic was completed
-      // This is a simple approach - you might want to store more detailed completion data
-      const completedIds: string[] = [];
-      
-      // You can enhance this logic based on how you want to track completion
-      // For now, we'll mark any sub-topic that has been used to create interactive material
-      if (lessonData.interactive_lesson_content.selected_sub_topic?.id) {
-        completedIds.push(lessonData.interactive_lesson_content.selected_sub_topic.id);
-      }
-      
+    // Prevent infinite loops by checking if we already have this data
+    if (!lessonData?.interactive_lesson_content) {
+      return;
+    }
+    
+    const completedIds: string[] = [];
+    
+    // Method 1: Check for selected_sub_topic in interactive content
+    if (lessonData.interactive_lesson_content.selected_sub_topic?.id) {
+      completedIds.push(lessonData.interactive_lesson_content.selected_sub_topic.id);
+    }
+    
+    // Method 2: Check for sub_topic_id field (alternative storage method)
+    if (lessonData.interactive_lesson_content.sub_topic_id) {
+      completedIds.push(lessonData.interactive_lesson_content.sub_topic_id);
+    }
+    
+    if (completedIds.length > 0) {
       setCompletedSubTopics(prev => {
-        const combined = [...prev, ...completedIds];
-        return Array.from(new Set(combined)); // Remove duplicates
+        // Only update if the new IDs are not already in the array
+        const newIds = completedIds.filter(id => !prev.includes(id));
+        if (newIds.length === 0) {
+          return prev; // No new IDs, don't update state
+        }
+        return Array.from(new Set([...prev, ...newIds]));
       });
     }
   }, []);
@@ -59,9 +70,7 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
   }, []);
 
   const isSubTopicCompleted = useCallback((subTopicId: string) => {
-    const isCompleted = completedSubTopics.includes(subTopicId);
-    console.log('🔍 Checking completion for sub-topic:', subTopicId, 'Result:', isCompleted, 'All completed:', completedSubTopics);
-    return isCompleted;
+    return completedSubTopics.includes(subTopicId);
   }, [completedSubTopics]);
 
   const resetProgress = useCallback(() => {

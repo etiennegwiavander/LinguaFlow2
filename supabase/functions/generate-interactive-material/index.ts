@@ -430,7 +430,11 @@ serve(async (req) => {
     const { data: updatedLesson, error: updateError } = await supabaseClient
       .from('lessons')
       .update({
-        interactive_lesson_content: filledTemplate,
+        interactive_lesson_content: {
+          ...filledTemplate,
+          selected_sub_topic: selected_sub_topic,
+          created_at: new Date().toISOString()
+        },
         lesson_template_id: selectedTemplate?.id || null
       })
       .eq('id', lesson_id)

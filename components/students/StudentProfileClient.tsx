@@ -113,7 +113,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [interactiveGenerationProgress, setInteractiveGenerationProgress] = useState("");
   const [isSubTopicDialogOpen, setIsSubTopicDialogOpen] = useState(false);
   const [isImprovementAreasDialogOpen, setIsImprovementAreasDialogOpen] = useState(false);
-  
+
   // State for editing lesson plans
   const [editingLessonIndex, setEditingLessonIndex] = useState<number | null>(null);
   const [editedLessonPlan, setEditedLessonPlan] = useState<LessonPlan | null>(null);
@@ -166,7 +166,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         // If the lesson has generated content, parse and display it
         if (lesson.generated_lessons && lesson.generated_lessons.length > 0) {
           try {
-            const parsedLessons = lesson.generated_lessons.map((lessonStr: string) => 
+            const parsedLessons = lesson.generated_lessons.map((lessonStr: string) =>
               JSON.parse(lessonStr)
             );
             setGeneratedLessons(parsedLessons);
@@ -203,7 +203,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const handleGenerateLessons = async () => {
     setIsGenerating(true);
     setGenerationProgress("Analyzing learning profile...");
-    
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -218,7 +218,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-lesson-plan`;
 
       let requestBody;
-      
+
       if (upcomingLesson) {
         // Update existing lesson
         requestBody = {
@@ -242,24 +242,24 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
       if (!response.ok) {
         const errorText = await response.text();
-        
+
         let errorData;
         try {
           errorData = JSON.parse(errorText);
         } catch {
           errorData = { error: errorText };
         }
-        
+
         throw new Error(errorData.error || `HTTP ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
-      
+
       if (result.success && result.lessons) {
         setGeneratedLessons(result.lessons);
         setHasGeneratedBefore(true);
         setShowOnboarding(false);
-        
+
         // If we updated an existing lesson, refresh the upcoming lesson data
         if (result.updated && upcomingLesson) {
           setUpcomingLesson({
@@ -269,12 +269,12 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
             lesson_template_id: result.lesson_template_id || upcomingLesson.lesson_template_id
           });
         }
-        
+
         // If we created a new lesson, we might want to refresh the upcoming lesson
         if (result.created) {
           await loadUpcomingLesson();
         }
-        
+
         const actionText = result.updated ? 'regenerated' : 'generated';
         toast.success(`AI lesson plans ${actionText} successfully with ${result.sub_topics?.length || 0} sub-topics!`);
       } else {
@@ -320,7 +320,7 @@ ${lesson.materials.map(mat => `• ${mat}`).join('\n')}
 ASSESSMENT:
 ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     `.trim();
-    
+
     await copyToClipboard(content, 'Lesson plan');
   };
 
@@ -364,7 +364,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
       setTimeout(() => setInteractiveGenerationProgress("Personalizing content for " + student.name + "..."), 3000);
 
       const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-interactive-material`;
-      
+
       const requestBody = {
         lesson_id: upcomingLesson.id,
         selected_sub_topic: subTopic
@@ -381,24 +381,24 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
       if (!response.ok) {
         const errorText = await response.text();
-        
+
         let errorData;
         try {
           errorData = JSON.parse(errorText);
         } catch {
           errorData = { error: errorText };
         }
-        
+
         throw new Error(errorData.error || `Failed to generate interactive material: ${errorText}`);
       }
 
       const result = await response.json();
-      
+
       if (result.success) {
         // Mark the sub-topic as completed
         console.log('🎯 SUCCESS: Interactive material created for sub-topic:', subTopic.id, subTopic.title);
         markSubTopicComplete(subTopic.id);
-        
+
         // Update the upcoming lesson state with the new interactive content
         setUpcomingLesson({
           ...upcomingLesson,
@@ -412,7 +412,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         // Set the selected lesson ID and switch to the lesson material tab
         setSelectedLessonId(upcomingLesson.id);
         setActiveTab("lesson-material");
-        
+
         toast.success(`Interactive lesson material created successfully for "${subTopic.title}" using ${result.template_name}!`);
       } else {
         throw new Error(result.error || 'Failed to generate interactive material');
@@ -428,7 +428,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
   // Handle editing a lesson plan
   const handleEditLessonPlan = (index: number) => {
     setEditingLessonIndex(index);
-    setEditedLessonPlan({...generatedLessons[index]});
+    setEditedLessonPlan({ ...generatedLessons[index] });
   };
 
   // Handle saving edited lesson plan
@@ -499,17 +499,17 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     if (isGenerating) {
       return upcomingLesson?.generated_lessons ? 'Regenerating...' : 'Generating...';
     }
-    
+
     if (upcomingLesson) {
       const lessonDate = new Date(upcomingLesson.date).toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric'
       });
-      return upcomingLesson.generated_lessons ? 
-        `Regenerate Ideas for Next Lesson (${lessonDate})` : 
+      return upcomingLesson.generated_lessons ?
+        `Regenerate Ideas for Next Lesson (${lessonDate})` :
         `Generate Ideas for Next Lesson (${lessonDate})`;
     }
-    
+
     return hasGeneratedBefore ? 'Generate New Lesson Ideas' : 'Generate Lesson Ideas';
   };
 
@@ -517,8 +517,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
     if (isGenerating) {
       return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
     }
-    return upcomingLesson?.generated_lessons ? 
-      <RefreshCw className="mr-2 h-4 w-4" /> : 
+    return upcomingLesson?.generated_lessons ?
+      <RefreshCw className="mr-2 h-4 w-4" /> :
       <Target className="mr-2 h-4 w-4" />;
   };
 
@@ -563,7 +563,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               </div>
             </div>
           </div>
-          <Button 
+          <Button
             onClick={() => setIsFormOpen(true)}
             className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
           >
@@ -574,7 +574,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          
+
           <TabsList className="grid w-full grid-cols-4 glass-effect border-cyber-400/20">
             <TabsTrigger value="ai-architect" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <Brain className="h-4 w-4" />
@@ -585,12 +585,12 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Lesson Material</span>
               <span className="sm:hidden">Material</span>
-            </TabsTrigger>            
+            </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <History className="h-4 w-4" />
               <span className="hidden sm:inline">Lesson History</span>
               <span className="sm:hidden">History</span>
-            </TabsTrigger>            
+            </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Learning Profile</span>
@@ -642,66 +642,157 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   </Alert>
                 )}
 
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-cyber-400/20">
-                  <div className="space-y-2 flex-1">
-                    <p className="font-medium">
-                      {upcomingLesson ? 
-                        `Generate lesson ideas with focused sub-topics for ${student.name}'s upcoming lesson` :
-                        `Generate new lesson ideas with sub-topics tailored to ${student.name}'s learning style and goals`
-                      }
-                    </p>
-                    {upcomingLesson && (
-                      <p className="text-sm text-muted-foreground flex items-center">
-                        <Clock className="w-4 h-4 mr-1" />
-                        Scheduled for {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
-                          weekday: 'long',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Generate 5 personalized lesson plans with focused sub-topics based on {student.name}'s profile
-                    </p>
-                    {isGenerating && (
-                      <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                        <span>{getProgressMessage()}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-4 lg:mt-0 lg:ml-4 w-full lg:w-auto">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={handleGenerateLessons}
-                            disabled={isGenerating}
-                            size="lg"
-                            className="w-full bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-                          >
-                            {getButtonIcon()}
-                            {getButtonText()}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            {upcomingLesson?.generated_lessons ? 
-                              'Create new lesson ideas with sub-topics for this student' :
-                              'Generate AI-powered lesson plans with focused sub-topics tailored to this student'
-                            }
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
+                {/* Responsive Card Layout - Row on large screens, Column on mobile */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
+                  {/* Generate Lesson Ideas Card */}
+                  <Card className="floating-card glass-effect border-cyber-400/20 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-lg flex items-center">
+                        <Brain className="mr-2 h-5 w-5 text-cyber-400" />
+                        Generate Lesson Ideas
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <p className="font-medium text-sm">
+                          {upcomingLesson ?
+                            `Generate lesson ideas with focused sub-topics for ${student.name}'s upcoming lesson` :
+                            `Generate new lesson ideas with sub-topics tailored to ${student.name}'s learning style and goals`
+                          }
+                        </p>
+                        {upcomingLesson && (
+                          <p className="text-xs text-muted-foreground flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Scheduled for {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
+                              weekday: 'long',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Generate 5 personalized lesson plans with focused sub-topics based on {student.name}'s profile
+                        </p>
+                        {isGenerating && (
+                          <div className="flex items-center space-x-2 text-xs text-blue-600 dark:text-blue-400">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                            <span>{getProgressMessage()}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="pt-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={handleGenerateLessons}
+                                disabled={isGenerating}
+                                className="w-full bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                              >
+                                {getButtonIcon()}
+                                {getButtonText()}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                {upcomingLesson?.generated_lessons ?
+                                  'Create new lesson ideas with sub-topics for this student' :
+                                  'Generate AI-powered lesson plans with focused sub-topics tailored to this student'
+                                }
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Create Interactive Material Card */}
+                  {availableSubTopics.length > 0 && (
+                    <Card className="floating-card glass-effect border-green-400/30 bg-gradient-to-br from-green-50/50 to-blue-50/50 dark:from-green-950/20 dark:to-blue-950/20">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg flex items-center text-green-800 dark:text-green-200">
+                          <Target className="mr-2 h-5 w-5 text-green-600" />
+                          Ready to Create Interactive Material!
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <p className="text-sm text-green-700 dark:text-green-300">
+                            Choose from {availableSubTopics.length} available sub-topics to create focused interactive lesson material for {student.name}.
+                          </p>
+                          <p className="text-xs text-green-600 dark:text-green-400">
+                            Each sub-topic is designed for 15-20 minutes of focused learning with interactive exercises.
+                          </p>
+                          {isGeneratingInteractive && (
+                            <div className="flex items-center space-x-2 text-xs text-blue-600 dark:text-blue-400">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                              <span>{interactiveGenerationProgress || "Creating interactive material..."}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="pt-2">
+                          <Button
+                            onClick={() => setIsSubTopicDialogOpen(true)}
+                            disabled={!upcomingLesson || isGeneratingInteractive}
+                            className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                          >
+                            {isGeneratingInteractive ? (
+                              <>
+                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                Creating Material...
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-5 h-5 mr-2" />
+                                Choose Sub-topic & Create Material
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Placeholder Card when no sub-topics available */}
+                  {availableSubTopics.length === 0 && generatedLessons.length === 0 && (
+                    <Card className="floating-card glass-effect border-gray-300/30 bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-800/20 dark:to-gray-900/20">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg flex items-center text-gray-600 dark:text-gray-400">
+                          <BookOpen className="mr-2 h-5 w-5" />
+                          Interactive Material
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Generate lesson plans first to unlock interactive material creation.
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500">
+                            Once you have lesson plans, you&apos;ll be able to create focused interactive content.
+                          </p>
+                        </div>
+                        <div className="pt-2">
+                          <Button
+                            disabled
+                            className="w-full bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                          >
+                            <BookOpen className="w-5 h-5 mr-2" />
+                            Generate Lessons First
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
 
                 {generatedLessons.length > 0 && (
                   <div className="space-y-4">
+
+
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-lg flex items-center">
                         <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
@@ -717,56 +808,10 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       </div>
                     </div>
 
-                    {/* Prominent Choose Sub-topic Button */}
-                    {availableSubTopics.length > 0 && (
-                      <div className="p-6 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 rounded-lg border-2 border-dashed border-green-300 dark:border-green-700">
-                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
-                          <div className="space-y-2 flex-1">
-                            <h4 className="font-semibold text-lg flex items-center text-green-800 dark:text-green-200">
-                              <Target className="w-5 h-5 mr-2" />
-                              Ready to Create Interactive Material!
-                            </h4>
-                            <p className="text-sm text-green-700 dark:text-green-300">
-                              Choose from {availableSubTopics.length} available sub-topics to create focused interactive lesson material for {student.name}.
-                            </p>
-                            <p className="text-xs text-green-600 dark:text-green-400">
-                              Each sub-topic is designed for 15-20 minutes of focused learning with interactive exercises.
-                            </p>
-                            {isGeneratingInteractive && (
-                              <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                                <span>{interactiveGenerationProgress || "Creating interactive material..."}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="w-full lg:w-auto">
-                            <Button
-                              onClick={() => setIsSubTopicDialogOpen(true)}
-                              disabled={!upcomingLesson || isGeneratingInteractive}
-                              size="lg"
-                              className="w-full lg:w-auto bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 text-base px-8 py-3"
-                            >
-                              {isGeneratingInteractive ? (
-                                <>
-                                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                  Creating Material...
-                                </>
-                              ) : (
-                                <>
-                                  <Play className="w-5 h-5 mr-2" />
-                                  Choose Sub-topic & Create Material
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
                     <Accordion type="single" collapsible className="w-full">
                       {generatedLessons.map((lesson, index) => {
                         const isEditing = editingLessonIndex === index;
-                        
+
                         return (
                           <AccordionItem key={index} value={`lesson-${index}`}>
                             <AccordionTrigger className="text-left hover:no-underline">
@@ -782,17 +827,17 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                               <div className="flex flex-wrap gap-2 p-4 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20">
                                 {isEditing ? (
                                   <>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
                                       className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
                                       onClick={handleCancelEdit}
                                     >
                                       <X className="w-4 h-4 mr-2" />
                                       Cancel
                                     </Button>
-                                    <Button 
-                                      variant="outline" 
+                                    <Button
+                                      variant="outline"
                                       size="sm"
                                       className="flex-1 min-w-[120px] border-green-400/30 bg-green-50/50 hover:bg-green-100/50 text-green-700"
                                       onClick={handleSaveLessonPlan}
@@ -808,9 +853,9 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                   </>
                                 ) : (
                                   <>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
                                       className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
                                       onClick={() => handleEditLessonPlan(index)}
                                       disabled={isEditing}
@@ -818,8 +863,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                       <Edit className="w-4 h-4 mr-2" />
                                       Edit Plan
                                     </Button>
-                                    <Button 
-                                      variant="outline" 
+                                    <Button
+                                      variant="outline"
                                       size="sm"
                                       onClick={() => copyLessonPlan(lesson)}
                                       className="flex-1 min-w-[120px] border-cyber-400/30 hover:bg-cyber-400/10"
@@ -828,7 +873,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                       <Copy className="w-4 h-4 mr-2" />
                                       Copy to Clipboard
                                     </Button>
-                                   
+
                                   </>
                                 )}
                               </div>
@@ -856,7 +901,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                         className="border-cyber-400/30 focus:border-cyber-400"
                                       />
                                     </div>
-                                    
+
                                     <div className="space-y-2">
                                       <Label htmlFor="lesson-objectives" className="font-medium flex items-center">
                                         <Target className="w-4 h-4 mr-2 text-blue-600" />
@@ -875,7 +920,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                       <p className="text-xs text-muted-foreground">Enter one objective per line</p>
                                     </div>
                                   </div>
-                                  
+
                                   <div className="space-y-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
                                     <div className="space-y-2">
                                       <Label htmlFor="lesson-activities" className="font-medium flex items-center">
@@ -895,7 +940,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                       <p className="text-xs text-muted-foreground">Enter one activity per line</p>
                                     </div>
                                   </div>
-                                  
+
                                   <div className="space-y-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
                                     <div className="space-y-2">
                                       <Label htmlFor="lesson-materials" className="font-medium flex items-center">
@@ -915,7 +960,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                       <p className="text-xs text-muted-foreground">Enter one material per line</p>
                                     </div>
                                   </div>
-                                  
+
                                   <div className="space-y-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
                                     <div className="space-y-2">
                                       <Label htmlFor="lesson-assessment" className="font-medium flex items-center">
@@ -1052,8 +1097,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               </CardHeader>
               <CardContent>
                 {selectedLessonId ? (
-                  <LessonMaterialDisplay 
-                    lessonId={selectedLessonId} 
+                  <LessonMaterialDisplay
+                    lessonId={selectedLessonId}
                     studentNativeLanguage={student.native_language}
                   />
                 ) : (
@@ -1065,8 +1110,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
                       Generate lesson plans in the AI Lesson Architect tab, then choose a sub-topic to create interactive lesson material here.
                     </p>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setActiveTab("ai-architect")}
                       className="border-cyber-400/30 hover:bg-cyber-400/10"
                     >
@@ -1189,7 +1234,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               </CardContent>
             </Card>
           </TabsContent>
-                    
+
           {/* Learning Profile Tab */}
           <TabsContent value="profile" className="space-y-6 animate-scale-in">
             <Card className="floating-card glass-effect border-cyber-400/20">
@@ -1239,7 +1284,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                           </p>
                         </div>
                       </div>
-                      
+
                       {nativeLanguageInfo && (
                         <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md border border-purple-400/20">
                           <span className="text-2xl">{nativeLanguageInfo.flag}</span>
@@ -1261,9 +1306,9 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium text-lg">Areas for Improvement</h3>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setIsImprovementAreasDialogOpen(true)}
                       className="border-cyber-400/30 hover:bg-cyber-400/10 text-xs"
                     >
