@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Loader2 } from "lucide-react";
 import StudentProfileClient from "@/components/students/StudentProfileClient";
+import { ProgressProvider } from "@/lib/progress-context";
 
 export default function StudentProfilePage() {
   const params = useParams();
@@ -60,5 +61,9 @@ export default function StudentProfilePage() {
     );
   }
 
-  return <StudentProfileClient student={student} />;
+  return (
+    <ProgressProvider>
+      <StudentProfileClient student={student} />
+    </ProgressProvider>
+  );
 }

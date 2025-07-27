@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useContext } from "react";
 import MainLayout from "@/components/main-layout";
 import { Student, SubTopic } from "@/types";
 import { languages } from "@/lib/sample-data";
@@ -68,6 +68,7 @@ import SubTopicSelectionDialog from "@/components/students/SubTopicSelectionDial
 import EditImprovementAreasDialog from "@/components/students/EditImprovementAreasDialog";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { ProgressContext } from "@/lib/progress-context";
 
 
 interface LessonPlan {
@@ -97,6 +98,7 @@ interface StudentProfileClientProps {
 
 
 export default function StudentProfileClient({ student }: StudentProfileClientProps) {
+  const { markSubTopicComplete, initializeFromLessonData } = useContext(ProgressContext);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
@@ -133,7 +135,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
 
   // Load upcoming lesson and any existing generated lessons
-  const loadUpcomingLesson = async () => {
+  const loadUpcomingLesson = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -157,6 +159,9 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       if (lessons && lessons.length > 0) {
         const lesson = lessons[0];
         setUpcomingLesson(lesson);
+
+        // Initialize completion status from lesson data
+        initializeFromLessonData(lesson);
 
         // If the lesson has generated content, parse and display it
         if (lesson.generated_lessons && lesson.generated_lessons.length > 0) {
@@ -189,11 +194,11 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     } finally {
       setLoadingUpcomingLesson(false);
     }
-  };
+  });
 
   useEffect(() => {
     loadUpcomingLesson();
-  }, [student.id]);
+  }, [loadUpcomingLesson, student.id]);
 
   const handleGenerateLessons = async () => {
     setIsGenerating(true);
@@ -390,6 +395,10 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
       const result = await response.json();
       
       if (result.success) {
+        // Mark the sub-topic as completed
+        console.log('🎯 SUCCESS: Interactive material created for sub-topic:', subTopic.id, subTopic.title);
+        markSubTopicComplete(subTopic.id);
+        
         // Update the upcoming lesson state with the new interactive content
         setUpcomingLesson({
           ...upcomingLesson,
@@ -654,7 +663,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Generate 3 personalized lesson plans with focused sub-topics based on {student.name}'s profile
+                      Generate 5 personalized lesson plans with focused sub-topics based on {student.name}'s profile
                     </p>
                     {isGenerating && (
                       <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
@@ -705,14 +714,54 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                             AI Generated
                           </Badge>
                         )}
-                        {availableSubTopics.length > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Target className="w-3 h-3 mr-1" />
-                            {availableSubTopics.length} Sub-topics
-                          </Badge>
-                        )}
                       </div>
                     </div>
+
+                    {/* Prominent Choose Sub-topic Button */}
+                    {availableSubTopics.length > 0 && (
+                      <div className="p-6 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 rounded-lg border-2 border-dashed border-green-300 dark:border-green-700">
+                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
+                          <div className="space-y-2 flex-1">
+                            <h4 className="font-semibold text-lg flex items-center text-green-800 dark:text-green-200">
+                              <Target className="w-5 h-5 mr-2" />
+                              Ready to Create Interactive Material!
+                            </h4>
+                            <p className="text-sm text-green-700 dark:text-green-300">
+                              Choose from {availableSubTopics.length} available sub-topics to create focused interactive lesson material for {student.name}.
+                            </p>
+                            <p className="text-xs text-green-600 dark:text-green-400">
+                              Each sub-topic is designed for 15-20 minutes of focused learning with interactive exercises.
+                            </p>
+                            {isGeneratingInteractive && (
+                              <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                <span>{interactiveGenerationProgress || "Creating interactive material..."}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="w-full lg:w-auto">
+                            <Button
+                              onClick={() => setIsSubTopicDialogOpen(true)}
+                              disabled={!upcomingLesson || isGeneratingInteractive}
+                              size="lg"
+                              className="w-full lg:w-auto bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 text-base px-8 py-3"
+                            >
+                              {isGeneratingInteractive ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                  Creating Material...
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="w-5 h-5 mr-2" />
+                                  Choose Sub-topic & Create Material
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     
                     <Accordion type="single" collapsible className="w-full">
                       {generatedLessons.map((lesson, index) => {
@@ -731,24 +780,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                             <AccordionContent className="space-y-6 pt-4">
                               {/* Action Buttons */}
                               <div className="flex flex-wrap gap-2 p-4 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20">
-                                <Button 
-                                  size="sm" 
-                                  className="flex-1 min-w-[120px] bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
-                                  onClick={() => handleUseLessonPlan(index)}
-                                  disabled={!upcomingLesson || isGeneratingInteractive || !availableSubTopics.length || isEditing}
-                                >
-                                  {isGeneratingInteractive ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      Creating...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Play className="w-4 h-4 mr-2" />
-                                      Choose Sub-topic
-                                    </>
-                                  )}
-                                </Button>
                                 {isEditing ? (
                                   <>
                                     <Button 
@@ -981,7 +1012,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                     <Brain className="h-12 w-12 text-cyber-400 mx-auto mb-4" />
                     <h3 className="font-medium text-lg mb-2">Ready to Create Amazing Lessons?</h3>
                     <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                      Our AI will analyze {student.name}'s learning profile and create personalized lesson plans with focused sub-topics, objectives, activities, materials, and assessment ideas.
+                      Our AI will analyze {student.name}&apos;s learning profile and create personalized lesson plans with focused sub-topics, objectives, activities, materials, and assessment ideas.
                     </p>
                     <div className="flex items-center justify-center space-x-4 text-xs text-muted-foreground">
                       <div className="flex items-center">
@@ -1168,7 +1199,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   Learning Profile
                 </CardTitle>
                 <CardDescription>
-                  Comprehensive overview of {student.name}'s learning journey and preferences
+                  Comprehensive overview of {student.name}&apos;s learning journey and preferences
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">

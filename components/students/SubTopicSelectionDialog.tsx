@@ -83,7 +83,12 @@ function SubTopicSelectionDialogContent({
   const [editedSubTopics, setEditedSubTopics] = useState<SubTopic[]>([]);
   const [progressValue, setProgressValue] = useState(0);
   const [isCompletingLesson, setIsCompletingLesson] = useState(false);
-  const { completedSubTopics, isSubTopicCompleted } = useContext(ProgressContext);
+  const { completedSubTopics, isSubTopicCompleted, markSubTopicComplete } = useContext(ProgressContext);
+
+  // Debug: Log the completed sub-topics whenever they change
+  useEffect(() => {
+    console.log('🔍 Dialog - Current completed sub-topics:', completedSubTopics);
+  }, [completedSubTopics]);
 
   // Update edited sub-topics when props change
   useEffect(() => {
@@ -194,118 +199,123 @@ function SubTopicSelectionDialogContent({
             </p>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="space-y-6">
             {editedSubTopics.map((subTopic, index) => {
               const IconComponent = getCategoryIcon(subTopic.category);
               const categoryColor = getCategoryColor(subTopic.category);
               const isCompleted = isSubTopicCompleted(subTopic.id);
               
+              console.log('🎨 Rendering sub-topic:', subTopic.title, 'ID:', subTopic.id, 'isCompleted:', isCompleted);
+              
               return (
                 <Card 
                   key={subTopic.id} 
-                  className={`border-2 hover:border-cyber-400/50 transition-all duration-300 hover-lift cyber-card ${isCompleted ? 'border-green-300 bg-green-50/30 dark:bg-green-900/10' : ''}`}
+                  className={`p-6 transition-all duration-300 ${
+                    isCompleted 
+                      ? 'border-green-400 bg-green-50/50 dark:bg-green-900/20 shadow-green-100' 
+                      : 'border-gray-200 dark:border-gray-700 hover:border-cyber-400/50 hover:shadow-lg'
+                  }`}
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-3 flex-1">
-                        <div className={`p-2 rounded-lg ${categoryColor} group-hover:scale-110 transition-transform duration-300`}>
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor={`title-${index}`} className="text-sm font-medium">
-                                Title
-                              </Label>
-                              {isCompleted && (
-                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Completed
-                                </Badge>
-                              )}
-                            </div>
-                            <Input
-                              id={`title-${index}`}
-                              value={subTopic.title}
-                              onChange={(e) => handleSubTopicEdit(index, 'title', e.target.value)}
-                              className="font-medium input-cyber focus-cyber"
-                              disabled={isGenerating || isCompletingLesson}
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label htmlFor={`category-${index}`} className="text-sm font-medium">
-                                Category
-                              </Label>
-                              <Select
-                                value={subTopic.category}
-                                onValueChange={(value) => handleSubTopicEdit(index, 'category', value)}
-                                disabled={isGenerating || isCompletingLesson}
-                              >
-                                <SelectTrigger className="input-cyber focus-cyber">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="glass-effect border-cyber-400/30">
-                                  <SelectItem value="Grammar">Grammar</SelectItem>
-                                  <SelectItem value="Conversation">Conversation</SelectItem>
-                                  <SelectItem value="Business English">Business English</SelectItem>
-                                  <SelectItem value="English for Kids">English for Kids</SelectItem>
-                                  <SelectItem value="Vocabulary">Vocabulary</SelectItem>
-                                  <SelectItem value="Pronunciation">Pronunciation</SelectItem>
-                                  <SelectItem value="Picture Description">Picture Description</SelectItem>
-                                  <SelectItem value="English for Travel">English for Travel</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-sm font-medium">Level</Label>
-                              <Badge variant="outline" className="w-fit capitalize border-cyber-400/30">
-                                {subTopic.level}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
+                  {/* Icon and Status Badge */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`p-3 rounded-lg ${categoryColor}`}>
+                      <IconComponent className="w-6 h-6" />
+                    </div>
+                    {isCompleted && (
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Material Created
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Title Section */}
+                  <div className="mb-4">
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">
+                      Title
+                    </Label>
+                    <Input
+                      value={subTopic.title}
+                      onChange={(e) => handleSubTopicEdit(index, 'title', e.target.value)}
+                      className="font-medium text-base border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
+                      disabled={isGenerating || isCompletingLesson}
+                    />
+                  </div>
+
+                  {/* Category and Level Row */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">
+                        Category
+                      </Label>
+                      <Select
+                        value={subTopic.category}
+                        onValueChange={(value) => handleSubTopicEdit(index, 'category', value)}
+                        disabled={isGenerating || isCompletingLesson}
+                      >
+                        <SelectTrigger className="border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-cyan-400">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Grammar">Grammar</SelectItem>
+                          <SelectItem value="Conversation">Conversation</SelectItem>
+                          <SelectItem value="Business English">Business English</SelectItem>
+                          <SelectItem value="English for Kids">English for Kids</SelectItem>
+                          <SelectItem value="Vocabulary">Vocabulary</SelectItem>
+                          <SelectItem value="Pronunciation">Pronunciation</SelectItem>
+                          <SelectItem value="Picture Description">Picture Description</SelectItem>
+                          <SelectItem value="English for Travel">English for Travel</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">
+                        Level
+                      </Label>
+                      <div className="pt-1">
+                        <Badge variant="outline" className="capitalize text-sm px-3 py-1 border-gray-300">
+                          {subTopic.level}
+                        </Badge>
                       </div>
                     </div>
-                  </CardHeader>
-                  
+                  </div>
+
+                  {/* Description */}
                   {subTopic.description && (
-                    <CardContent className="pt-0 pb-3">
-                      <p className="text-sm text-muted-foreground">
+                    <div className="mb-6">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                         {subTopic.description}
                       </p>
-                    </CardContent>
+                    </div>
                   )}
-                  
-                  <CardContent className="pt-0">
-                    <Button
-                      onClick={() => handleSelectSubTopic(editedSubTopics[index])}
-                      disabled={isGenerating || isCompletingLesson}
-                      className={`w-full ${
-                        isCompleted 
-                          ? 'bg-green-500 hover:bg-green-600 text-white' 
-                          : 'bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg'
-                      } transition-all duration-300 group`}
-                      size="sm"
-                    >
-                      {isGenerating || isCompletingLesson ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          {progressValue === 100 ? "Completed" : "Creating..."}
-                        </>
-                      ) : isCompleted ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          View Material
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform duration-300" />
-                          Create Interactive Material
-                        </>
-                      )}
-                    </Button>
-                  </CardContent>
+
+                  {/* Create Interactive Material Button */}
+                  <Button
+                    onClick={() => handleSelectSubTopic(editedSubTopics[index])}
+                    disabled={isGenerating || isCompletingLesson}
+                    className={`w-full py-3 text-base font-medium rounded-lg transition-all duration-300 ${
+                      isCompleted 
+                        ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' 
+                        : 'bg-gradient-to-r from-cyan-400 to-purple-500 hover:from-cyan-500 hover:to-purple-600 text-white shadow-lg hover:shadow-xl'
+                    }`}
+                  >
+                    {isGenerating || isCompletingLesson ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        {progressValue === 100 ? "Completed" : "Creating..."}
+                      </>
+                    ) : isCompleted ? (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Recreate Material
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-5 h-5 mr-2" />
+                        Create Interactive Material
+                      </>
+                    )}
+                  </Button>
                 </Card>
               );
             })}
@@ -330,9 +340,7 @@ function SubTopicSelectionDialogContent({
 export default function SubTopicSelectionDialog(props: SubTopicSelectionDialogProps) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <ProgressProvider>
-        <SubTopicSelectionDialogContent {...props} />
-      </ProgressProvider>
+      <SubTopicSelectionDialogContent {...props} />
     </Dialog>
   );
 }
