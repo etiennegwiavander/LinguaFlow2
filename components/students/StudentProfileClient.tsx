@@ -194,7 +194,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     } finally {
       setLoadingUpcomingLesson(false);
     }
-  });
+  }, [student.id, initializeFromLessonData]);
 
   useEffect(() => {
     loadUpcomingLesson();
@@ -674,7 +674,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                           </p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          Generate 5 personalized lesson plans with focused sub-topics based on {student.name}'s profile
+                          Generate 5 personalized lesson plans with focused sub-topics based on {student.name}&apos;s profile
                         </p>
                         {isGenerating && (
                           <div className="flex items-center space-x-2 text-xs text-blue-600 dark:text-blue-400">
