@@ -115,6 +115,7 @@ interface LessonPlan {
 interface LessonMaterialDisplayProps {
   lessonId: string;
   studentNativeLanguage?: string | null;
+  preloadedLessonData?: any; // Optional pre-loaded lesson data to avoid database fetch
 }
 
 interface TranslationPopupState {
@@ -200,9 +201,16 @@ const getInfoCardContent = (section: TemplateSection): string => {
   return '';
 };
 
-export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage }: LessonMaterialDisplayProps) {
+export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage, preloadedLessonData }: LessonMaterialDisplayProps) {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  
+  // Initialize loading state based on whether we have preloaded data
+  const [loading, setLoading] = useState(() => {
+    const hasPreloadedData = !!preloadedLessonData;
+    console.log('🔍 Initial loading state:', { hasPreloadedData, loading: !hasPreloadedData });
+    return !hasPreloadedData;
+  });
+  
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [template, setTemplate] = useState<LessonTemplate | null>(null);
   const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
@@ -218,11 +226,65 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
   });
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
 
+  // Handle preloaded data immediately when component mounts or when preloaded data changes
   useEffect(() => {
-    if (!user || !lessonId) return;
+    console.log('🔍 LessonMaterialDisplay useEffect triggered:', {
+      hasPreloadedData: !!preloadedLessonData,
+      lessonId,
+      currentLoading: loading
+    });
+    
+    if (preloadedLessonData) {
+      console.log('🚀 Using preloaded lesson data - immediate display', preloadedLessonData);
+      
+      const lessonData = {
+        ...preloadedLessonData,
+        student: {
+          name: 'Student',
+          target_language: 'en',
+          native_language: null,
+          level: 'intermediate'
+        }
+      };
+      
+      setLesson(lessonData as Lesson);
+      setError(null); // Clear any previous errors
+      
+      if (lessonData.interactive_lesson_content) {
+        console.log('🚀 Using preloaded interactive content - immediate template setup', lessonData.interactive_lesson_content);
+        const mockTemplate = {
+          id: lessonData.lesson_template_id || 'interactive',
+          name: lessonData.interactive_lesson_content.template_name || 'Interactive Lesson',
+          category: 'Interactive',
+          level: lessonData.student?.level || 'intermediate',
+          template_json: lessonData.interactive_lesson_content
+        } as LessonTemplate;
+        
+        setTemplate(mockTemplate);
+        console.log('✅ Template set successfully:', {
+          templateId: mockTemplate.id,
+          templateName: mockTemplate.name,
+          hasSections: !!mockTemplate.template_json?.sections,
+          sectionsCount: mockTemplate.template_json?.sections?.length || 0,
+          templateJsonKeys: Object.keys(mockTemplate.template_json || {})
+        });
+      } else {
+        console.log('❌ No interactive lesson content found in preloaded data');
+      }
+      
+      console.log('🎯 Setting loading to false');
+      setLoading(false);
+    }
+  }, [preloadedLessonData, lessonId, loading]);
 
+  // Handle database fetch only when needed
+  useEffect(() => {
+    if (!user || !lessonId || preloadedLessonData || lesson?.id === lessonId) return;
+
+    // Only fetch from database if no preloaded data
     const fetchLessonData = async () => {
       try {
+        console.log('📡 Fetching lesson data from database');
         // Fetch lesson with student details and interactive content
         const { data: lessonData, error: lessonError } = await supabase
           .from('lessons')
@@ -261,6 +323,16 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
 
             if (templateError) {
               console.error('Could not fetch lesson template:', templateError);
+              // Fallback to mock template
+              const mockTemplate = {
+                id: 'interactive',
+                name: 'Interactive Lesson',
+                category: 'Interactive',
+                level: lessonData.student?.level || 'intermediate',
+                template_json: lessonData.interactive_lesson_content
+              } as LessonTemplate;
+              
+              setTemplate(mockTemplate);
             } else {
               // Use the interactive content as the template JSON
               const finalTemplate = {
@@ -276,7 +348,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
               id: 'interactive',
               name: 'Interactive Lesson',
               category: 'Interactive',
-              level: lessonData.student.level,
+              level: lessonData.student?.level || 'intermediate',
               template_json: lessonData.interactive_lesson_content
             } as LessonTemplate;
             
@@ -321,7 +393,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     };
 
     fetchLessonData();
-  }, [user, lessonId]);
+  }, [user, lessonId, preloadedLessonData, lesson?.id]);
 
   // Global click handler to close translation popup
   useEffect(() => {
@@ -1113,7 +1185,17 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage 
     await handleTranslateText(selectedText);
   };
 
+  console.log('🔍 LessonMaterialDisplay render check:', {
+    loading,
+    hasLesson: !!lesson,
+    hasTemplate: !!template,
+    hasError: !!error,
+    templateSections: template?.template_json?.sections?.length || 0,
+    templateJsonStructure: template?.template_json ? Object.keys(template.template_json) : []
+  });
+
   if (loading) {
+    console.log('❌ Still loading - showing loading screen');
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center">

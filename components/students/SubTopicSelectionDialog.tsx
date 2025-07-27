@@ -153,7 +153,7 @@ function SubTopicSelectionDialogContent({
         </DialogTitle>
         <DialogDescription className="text-base">
           Select and optionally edit a specific sub-topic to create focused interactive lesson material. 
-          Each sub-topic is designed for 15-20 minutes of focused learning.
+          Each sub-topic is designed for 45-60 minutes of focused learning.
         </DialogDescription>
       </DialogHeader>
 

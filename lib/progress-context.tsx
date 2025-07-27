@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useState, useCallback, ReactNode, useEffect } from "react";
 
 interface ProgressContextType {
   completedSubTopics: string[];
@@ -23,7 +23,22 @@ interface ProgressProviderProps {
 }
 
 export function ProgressProvider({ children }: ProgressProviderProps) {
-  const [completedSubTopics, setCompletedSubTopics] = useState<string[]>([]);
+  const [completedSubTopics, setCompletedSubTopics] = useState<string[]>(() => {
+    // Initialize from localStorage on mount
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('completedSubTopics');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          console.log('🔄 Restored completed sub-topics from localStorage:', parsed);
+          return Array.isArray(parsed) ? parsed : [];
+        }
+      } catch (error) {
+        console.error('❌ Error loading completed sub-topics from localStorage:', error);
+      }
+    }
+    return [];
+  });
 
   // Function to initialize completed sub-topics from lesson data
   const initializeFromLessonData = useCallback((lessonData: any) => {
@@ -75,7 +90,24 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
 
   const resetProgress = useCallback(() => {
     setCompletedSubTopics([]);
+    // Also clear from localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('completedSubTopics');
+      console.log('🗑️ Cleared completed sub-topics from localStorage');
+    }
   }, []);
+
+  // Save to localStorage whenever completedSubTopics changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && completedSubTopics.length > 0) {
+      try {
+        localStorage.setItem('completedSubTopics', JSON.stringify(completedSubTopics));
+        console.log('💾 Saved completed sub-topics to localStorage:', completedSubTopics);
+      } catch (error) {
+        console.error('❌ Error saving completed sub-topics to localStorage:', error);
+      }
+    }
+  }, [completedSubTopics]);
 
   return (
     <ProgressContext.Provider 

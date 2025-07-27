@@ -98,7 +98,7 @@ interface StudentProfileClientProps {
 
 
 export default function StudentProfileClient({ student }: StudentProfileClientProps) {
-  const { markSubTopicComplete, initializeFromLessonData } = useContext(ProgressContext);
+  const { markSubTopicComplete, initializeFromLessonData, completedSubTopics } = useContext(ProgressContext);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
@@ -118,6 +118,17 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [editingLessonIndex, setEditingLessonIndex] = useState<number | null>(null);
   const [editedLessonPlan, setEditedLessonPlan] = useState<LessonPlan | null>(null);
   const [isSavingLessonPlan, setIsSavingLessonPlan] = useState(false);
+
+  // State for lesson history
+  const [lessonHistory, setLessonHistory] = useState<any[]>([]);
+  const [loadingLessonHistory, setLoadingLessonHistory] = useState(true);
+  const [selectedHistoryLesson, setSelectedHistoryLesson] = useState<any>(null);
+
+  // State for persistent lesson material (survives tab switches)
+  const [persistentLessonData, setPersistentLessonData] = useState<{
+    lessonId: string;
+    lessonData: any;
+  } | null>(null);
 
 
   const getInitials = (name: string) => {
@@ -196,13 +207,93 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     }
   });
 
+  // Load lesson history with completed sub-topics (based on local progress context)
+  const loadLessonHistory = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return;
+      }
+
+      // Fetch all lessons that have sub-topics (not just those with interactive content)
+      const { data: lessons, error } = await supabase
+        .from('lessons')
+        .select('id, date, status, generated_lessons, sub_topics, lesson_template_id, interactive_lesson_content, created_at')
+        .eq('student_id', student.id)
+        .eq('tutor_id', user.id)
+        .not('sub_topics', 'is', null)
+        .order('date', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error loading lesson history:', error);
+        return;
+      }
+
+      // Create separate entries for each completed sub-topic
+      const completedLessonEntries: any[] = [];
+
+      (lessons || []).forEach(lesson => {
+        if (!lesson.sub_topics || lesson.sub_topics.length === 0) return;
+
+        // Find completed sub-topics for this lesson
+        const completedSubTopicsForLesson = lesson.sub_topics.filter((subTopic: any) =>
+          completedSubTopics.includes(subTopic.id)
+        );
+
+        // Create a separate entry for each completed sub-topic
+        completedSubTopicsForLesson.forEach((completedSubTopic: any) => {
+          completedLessonEntries.push({
+            ...lesson,
+            completedSubTopic: completedSubTopic,
+            // Create a unique ID for this entry
+            entryId: `${lesson.id}-${completedSubTopic.id}`,
+            // Add completion timestamp (you could enhance this with actual completion time)
+            completedAt: new Date().toISOString()
+          });
+        });
+      });
+
+      // Sort by lesson date (most recent first)
+      completedLessonEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      console.log('📚 Lesson History Debug:', {
+        totalLessonsWithSubTopics: lessons?.length || 0,
+        completedSubTopics: completedSubTopics,
+        totalCompletedEntries: completedLessonEntries.length,
+        entriesPerLesson: completedLessonEntries.reduce((acc: any, entry) => {
+          acc[entry.id] = (acc[entry.id] || 0) + 1;
+          return acc;
+        }, {})
+      });
+
+      setLessonHistory(completedLessonEntries);
+    } catch (error) {
+      console.error('Error loading lesson history:', error);
+    } finally {
+      setLoadingLessonHistory(false);
+    }
+  }, [student.id, completedSubTopics]);
+
   useEffect(() => {
     loadUpcomingLesson();
-  }, [loadUpcomingLesson, student.id]);
+    loadLessonHistory();
+  }, [loadUpcomingLesson, loadLessonHistory, student.id]);
+
+  // Refresh lesson history when completed sub-topics change
+  useEffect(() => {
+    console.log('🔄 Completed sub-topics changed, refreshing lesson history:', completedSubTopics);
+    loadLessonHistory();
+  }, [completedSubTopics, loadLessonHistory]);
 
   const handleGenerateLessons = async () => {
     setIsGenerating(true);
     setGenerationProgress("Analyzing learning profile...");
+
+    // Clear persistent lesson data when generating new lessons
+    setPersistentLessonData(null);
+    setSelectedLessonId(null);
+    setSelectedHistoryLesson(null);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -399,19 +490,45 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         console.log('🎯 SUCCESS: Interactive material created for sub-topic:', subTopic.id, subTopic.title);
         markSubTopicComplete(subTopic.id);
 
-        // Update the upcoming lesson state with the new interactive content
-        setUpcomingLesson({
+        // Create the updated lesson data with new interactive content
+        const updatedLessonData = {
           ...upcomingLesson,
           interactive_lesson_content: result.interactive_content,
           lesson_template_id: result.lesson_template_id
+        };
+
+        console.log('🎯 Setting persistent lesson data:', {
+          lessonId: upcomingLesson.id,
+          hasInteractiveContent: !!result.interactive_content,
+          templateId: result.lesson_template_id,
+          interactiveContentKeys: result.interactive_content ? Object.keys(result.interactive_content) : []
         });
 
-        // Refresh the upcoming lesson data to ensure state consistency
-        await loadUpcomingLesson();
+        // Set persistent lesson data for the newly created interactive material
+        setPersistentLessonData({
+          lessonId: upcomingLesson.id,
+          lessonData: updatedLessonData
+        });
 
-        // Set the selected lesson ID and switch to the lesson material tab
+        console.log('✅ Persistent lesson data set successfully:', {
+          lessonId: upcomingLesson.id,
+          hasUpdatedLessonData: !!updatedLessonData,
+          hasInteractiveContentInUpdated: !!updatedLessonData.interactive_lesson_content
+        });
+
+        // Update the upcoming lesson state with the new interactive content
+        setUpcomingLesson(updatedLessonData);
+
+        // Set the selected lesson ID and clear history lesson data
         setSelectedLessonId(upcomingLesson.id);
+        setSelectedHistoryLesson(null);
+
+        // Switch to lesson material tab immediately
         setActiveTab("lesson-material");
+
+        // Refresh data in background (don't await to avoid delays)
+        loadUpcomingLesson();
+        loadLessonHistory();
 
         toast.success(`Interactive lesson material created successfully for "${subTopic.title}" using ${result.template_name}!`);
       } else {
@@ -613,7 +730,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   )}
                 </CardTitle>
                 <CardDescription>
-                  Generate personalized lesson plans with focused sub-topics based on {student.name}'s profile and learning history
+                  Generate personalized lesson plans with focused sub-topics based on {student.name}&apos;s profile and learning history
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -674,7 +791,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                           </p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          Generate 5 personalized lesson plans with focused sub-topics based on {student.name}'s profile
+                          Generate 5 personalized lesson plans with focused sub-topics based on {student.name}&apos;s profile
                         </p>
                         {isGenerating && (
                           <div className="flex items-center space-x-2 text-xs text-blue-600 dark:text-blue-400">
@@ -725,7 +842,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                             Choose from {availableSubTopics.length} available sub-topics to create focused interactive lesson material for {student.name}.
                           </p>
                           <p className="text-xs text-green-600 dark:text-green-400">
-                            Each sub-topic is designed for 15-20 minutes of focused learning with interactive exercises.
+                            Each sub-topic is designed for 45-60 minutes of focused learning with interactive exercises.
                           </p>
                           {isGeneratingInteractive && (
                             <div className="flex items-center space-x-2 text-xs text-blue-600 dark:text-blue-400">
@@ -1090,35 +1207,60 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                 <CardTitle className="flex items-center">
                   <BookOpen className="mr-2 h-5 w-5 text-cyber-400" />
                   Interactive Lesson Material
+                  {persistentLessonData && !selectedLessonId && (
+                    <Badge variant="outline" className="ml-2 text-xs border-green-400/30 text-green-700 dark:text-green-400">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Cached
+                    </Badge>
+                  )}
                 </CardTitle>
                 <CardDescription>
-                  Personalized lesson content for {student.name} with interactive exercises
+                  {persistentLessonData && !selectedLessonId ?
+                    `Previously loaded lesson material for ${student.name} (persisted across tabs)` :
+                    `Personalized lesson content for ${student.name} with interactive exercises`
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {selectedLessonId ? (
-                  <LessonMaterialDisplay
-                    lessonId={selectedLessonId}
-                    studentNativeLanguage={student.native_language}
-                  />
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-cyber-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <BookOpen className="w-8 h-8 text-cyber-400" />
+                {(() => {
+                  const lessonId = selectedLessonId || persistentLessonData?.lessonId || '';
+                  const preloadedData = selectedHistoryLesson || persistentLessonData?.lessonData;
+
+                  console.log('🔍 Lesson Material Tab Debug:', {
+                    selectedLessonId,
+                    hasPersistentData: !!persistentLessonData,
+                    persistentLessonId: persistentLessonData?.lessonId,
+                    hasSelectedHistoryLesson: !!selectedHistoryLesson,
+                    hasPreloadedData: !!preloadedData,
+                    preloadedDataKeys: preloadedData ? Object.keys(preloadedData) : [],
+                    hasInteractiveContent: !!preloadedData?.interactive_lesson_content
+                  });
+
+                  return (selectedLessonId || persistentLessonData) ? (
+                    <LessonMaterialDisplay
+                      lessonId={lessonId}
+                      studentNativeLanguage={student.native_language}
+                      preloadedLessonData={preloadedData}
+                    />
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-cyber-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <BookOpen className="w-8 h-8 text-cyber-400" />
+                      </div>
+                      <h3 className="font-medium text-lg mb-2">No Lesson Selected</h3>
+                      <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                        Generate lesson plans in the AI Lesson Architect tab, then choose a sub-topic to create interactive lesson material here.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveTab("ai-architect")}
+                        className="border-cyber-400/30 hover:bg-cyber-400/10"
+                      >
+                        Go to AI Lesson Architect
+                      </Button>
                     </div>
-                    <h3 className="font-medium text-lg mb-2">No Lesson Selected</h3>
-                    <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                      Generate lesson plans in the AI Lesson Architect tab, then choose a sub-topic to create interactive lesson material here.
-                    </p>
-                    <Button
-                      variant="outline"
-                      onClick={() => setActiveTab("ai-architect")}
-                      className="border-cyber-400/30 hover:bg-cyber-400/10"
-                    >
-                      Go to AI Lesson Architect
-                    </Button>
-                  </div>
-                )}
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1128,108 +1270,174 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
             <Card className="floating-card glass-effect border-cyber-400/20">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Book className="mr-2 h-5 w-5 text-cyber-400" />
-                  Lesson History
+                  <History className="mr-2 h-5 w-5 text-cyber-400" />
+                  Lesson History for {student.name}
                 </CardTitle>
-                <CardDescription>Recent lessons and upcoming sessions with {student.name}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-lg">Next Lesson</h3>
-                      <Calendar className="h-5 w-5 text-cyber-400" />
+                {/* Lesson Statistics */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {lessonHistory.length}
                     </div>
-                    {loadingUpcomingLesson ? (
-                      <div className="flex items-center space-x-2 p-4 border border-cyber-400/20 rounded-lg">
-                        <Loader2 className="h-4 w-4 animate-spin text-cyber-400" />
-                        <span className="text-sm text-muted-foreground">Loading...</span>
-                      </div>
-                    ) : upcomingLesson ? (
-                      <div className="p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
-                        <div className="space-y-2">
-                          <p className="font-medium">
-                            {new Date(upcomingLesson.date).toLocaleDateString(undefined, {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(upcomingLesson.date).toLocaleTimeString(undefined, {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                          {upcomingLesson.generated_lessons && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Sparkles className="w-3 h-3 mr-1" />
-                              AI Plans Ready
-                            </Badge>
-                          )}
-                          {upcomingLesson.sub_topics && upcomingLesson.sub_topics.length > 0 && (
-                            <Badge variant="outline" className="text-xs border-cyber-400/30">
-                              <Target className="w-3 h-3 mr-1" />
-                              {upcomingLesson.sub_topics.length} Sub-topics
-                            </Badge>
-                          )}
-                          {upcomingLesson.interactive_lesson_content && (
-                            <Badge variant="outline" className="text-xs border-cyber-400/30">
-                              <BookOpen className="w-3 h-3 mr-1" />
-                              Interactive Material Ready
-                            </Badge>
-                          )}
-                          {upcomingLesson.lesson_template_id && (
-                            <Badge variant="outline" className="text-xs border-cyber-400/30">
-                              <BookOpen className="w-3 h-3 mr-1" />
-                              Template Applied
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 border border-cyber-400/20 rounded-lg text-center">
-                        <p className="text-sm text-muted-foreground">
-                          No upcoming lessons scheduled
-                        </p>
-                      </div>
-                    )}
+                    <div className="text-sm text-muted-foreground">Completed Lessons</div>
+                  </div>
+                  <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
+                    <div className="text-2xl font-bold gradient-text">
+                      {availableSubTopics.length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total Sub-topics</div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-lg">Last Lesson</h3>
-                      <MessageSquare className="h-5 w-5 text-cyber-400" />
-                    </div>
-                    <div className="p-4 border border-cyber-400/20 rounded-lg text-center">
-                      <p className="text-sm text-muted-foreground">
-                        No previous lessons recorded
-                      </p>
-                    </div>
-                  </div>
                 </div>
 
                 <Separator className="bg-cyber-400/20" />
 
-                <div>
-                  <h3 className="font-medium mb-4 text-lg">Lesson Statistics</h3>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
-                      <div className="text-2xl font-bold gradient-text">0</div>
-                      <div className="text-sm text-muted-foreground">Total Lessons</div>
-                    </div>
-                    <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20">
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">0</div>
-                      <div className="text-sm text-muted-foreground">Completed</div>
-                    </div>
-                    <div className="text-center p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-orange-50/50 to-amber-50/50 dark:from-orange-950/20 dark:to-amber-950/20">
-                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                        {upcomingLesson ? '1' : '0'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Upcoming</div>
-                    </div>
+                {/* Lesson History List */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-lg">Completed Lessons</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadLessonHistory}
+                      disabled={loadingLessonHistory}
+                      className="border-cyber-400/30"
+                    >
+                      {loadingLessonHistory ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
+
+                  {loadingLessonHistory ? (
+                    <div className="flex items-center justify-center p-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-cyber-400" />
+                      <span className="ml-2 text-muted-foreground">Loading lesson history...</span>
+                    </div>
+                  ) : lessonHistory.length > 0 ? (
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {lessonHistory.map((lessonEntry, index) => {
+                        const lessonDate = new Date(lessonEntry.date);
+                        const completedSubTopic = lessonEntry.completedSubTopic;
+                        const hasInteractiveContent = !!lessonEntry.interactive_lesson_content;
+
+                        return (
+                          <Card key={lessonEntry.entryId} className="border-cyber-400/20 bg-gradient-to-r from-green-50/30 to-blue-50/30 dark:from-green-950/10 dark:to-blue-950/10">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-2 flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <span className="font-medium text-sm">
+                                      {lessonDate.toLocaleDateString(undefined, {
+                                        weekday: 'short',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                      })}
+                                    </span>
+                                    <Badge variant="outline" className="text-xs border-green-400/30 text-green-700 dark:text-green-400">
+                                      Completed
+                                    </Badge>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                                      {completedSubTopic.title}
+                                    </p>
+
+                                    <p className="text-xs text-muted-foreground">
+                                      {completedSubTopic.description || 'No description available'}
+                                    </p>
+
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <span>Category: {completedSubTopic.category}</span>
+                                      <span>•</span>
+                                      <span>Level: {completedSubTopic.level}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      Sub-topic Completed
+                                    </Badge>
+                                    {hasInteractiveContent && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        <BookOpen className="w-3 h-3 mr-1" />
+                                        Interactive Material
+                                      </Badge>
+                                    )}
+                                    {lessonEntry.lesson_template_id && (
+                                      <Badge variant="outline" className="text-xs border-cyber-400/30">
+                                        <Target className="w-3 h-3 mr-1" />
+                                        Template Applied
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center space-x-2 ml-4">
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => {
+                                            setSelectedLessonId(lessonEntry.id);
+                                            setSelectedHistoryLesson(lessonEntry);
+
+                                            // Set persistent lesson data for history lesson with specific sub-topic context
+                                            setPersistentLessonData({
+                                              lessonId: lessonEntry.id,
+                                              lessonData: {
+                                                ...lessonEntry,
+                                                // Add context about which specific sub-topic was completed
+                                                selectedSubTopic: completedSubTopic
+                                              }
+                                            });
+
+                                            setActiveTab("lesson-material");
+                                          }}
+                                          className="border-cyber-400/30 hover:bg-cyber-400/10"
+                                        >
+                                          <BookOpen className="h-3 w-3" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>View lesson material</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-gray-50/50 to-blue-50/50 dark:from-gray-950/20 dark:to-blue-950/20">
+                      <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="font-medium text-lg mb-2">No Completed Lessons Yet</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Lessons will appear here after you create interactive materials using the &quot;Create Interactive Material&quot; button.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveTab("ai-architect")}
+                        className="border-cyber-400/30"
+                      >
+                        <Brain className="mr-2 h-4 w-4" />
+                        Generate Lesson Plans
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
