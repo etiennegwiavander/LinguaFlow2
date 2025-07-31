@@ -1,5 +1,28 @@
-import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+
+// Define types for better type safety
+interface LessonContent {
+  title: string;
+  sections: ContentSection[];
+}
+
+interface ContentSection {
+  type: 'heading' | 'paragraph' | 'list' | 'dialogue' | 'exercise' | 'vocabulary';
+  content: string | string[] | DialogueLine[] | VocabularyItem[];
+  level?: number; // For headings (1-6)
+  style?: 'instruction' | 'info' | 'exercise';
+}
+
+interface DialogueLine {
+  speaker: string;
+  text: string;
+}
+
+interface VocabularyItem {
+  word: string;
+  definition: string;
+}
 
 /**
  * Exports the lesson content as a PDF file with formatting that matches the online lesson material

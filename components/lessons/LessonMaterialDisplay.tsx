@@ -3,17 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { safeGetString, safeGetArray, debounce } from "@/lib/utils";
 import { exportToPdf, exportToWord, showExportDialog } from "@/lib/export-utils";
+import { showImprovedExportDialog } from "@/lib/improved-export-utils";
+import LessonBannerImage from "./LessonBannerImage";
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { 
-  Loader2, 
-  BookOpen, 
-  Target, 
-  Users, 
-  MessageSquare, 
+import {
+  Loader2,
+  BookOpen,
+  Target,
+  Users,
+  MessageSquare,
   CheckCircle2,
   ArrowRight,
   Volume2,
@@ -40,6 +42,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import WordTranslationPopup from "./WordTranslationPopup";
+import EnhancedVocabularySection from "./EnhancedVocabularySection";
 
 interface LessonTemplate {
   id: string;
@@ -151,7 +154,7 @@ const parseDialogueLine = (line: string): { character: string; text: string } =>
   if (typeof line !== 'string') {
     return { character: 'Speaker', text: 'No text available' };
   }
-  
+
   const match = line.match(/^([^:]+):\s*(.*)$/);
   if (match) {
     return {
@@ -159,9 +162,354 @@ const parseDialogueLine = (line: string): { character: string; text: string } =>
       text: match[2].trim()
     };
   }
-  
+
   // Fallback if no colon found
   return { character: 'Speaker', text: line };
+};
+
+// Helper function to generate proper IPA phonetic notation
+const generatePhoneticNotation = (word: string): string => {
+  // Basic phonetic mapping for common English words
+  const phoneticMap: Record<string, string> = {
+    // Common words with known IPA
+    'quest': '/kwɛst/',
+    'question': '/ˈkwɛstʃən/',
+    'quick': '/kwɪk/',
+    'quiet': '/ˈkwaɪət/',
+    'quality': '/ˈkwɑləti/',
+    'business': '/ˈbɪznəs/',
+    'finance': '/faɪˈnæns/',
+    'money': '/ˈmʌni/',
+    'time': '/taɪm/',
+    'place': '/pleɪs/',
+    'movement': '/ˈmuvmənt/',
+    'preposition': '/ˌprɛpəˈzɪʃən/',
+    'important': '/ɪmˈpɔrtənt/',
+    'language': '/ˈlæŋɡwɪdʒ/',
+    'learning': '/ˈlɜrnɪŋ/',
+    'student': '/ˈstudənt/',
+    'teacher': '/ˈtitʃər/',
+    'education': '/ˌɛdʒuˈkeɪʃən/',
+    'communication': '/kəˌmjunəˈkeɪʃən/',
+    'conversation': '/ˌkɑnvərˈseɪʃən/',
+    'vocabulary': '/voʊˈkæbjəˌlɛri/',
+    'pronunciation': '/prəˌnʌnsiˈeɪʃən/',
+    'grammar': '/ˈɡræmər/',
+    'practice': '/ˈpræktəs/',
+    'example': '/ɪɡˈzæmpəl/',
+    'sentence': '/ˈsɛntəns/',
+    'understand': '/ˌʌndərˈstænd/',
+    'explain': '/ɪkˈspleɪn/',
+    'listen': '/ˈlɪsən/',
+    'speak': '/spik/',
+    'read': '/rid/',
+    'write': '/raɪt/',
+    'study': '/ˈstʌdi/',
+    'work': '/wɜrk/',
+    'help': '/hɛlp/',
+    'know': '/noʊ/',
+    'think': '/θɪŋk/',
+    'good': '/ɡʊd/',
+    'great': '/ɡreɪt/',
+    'better': '/ˈbɛtər/',
+    'best': '/bɛst/',
+    'new': '/nu/',
+    'old': '/oʊld/',
+    'big': '/bɪɡ/',
+    'small': '/smɔl/',
+    'long': '/lɔŋ/',
+    'short': '/ʃɔrt/',
+    'high': '/haɪ/',
+    'low': '/loʊ/',
+    'fast': '/fæst/',
+    'slow': '/sloʊ/',
+    'easy': '/ˈizi/',
+    'difficult': '/ˈdɪfəkəlt/',
+    'simple': '/ˈsɪmpəl/',
+    'complex': '/kəmˈplɛks/',
+    'clear': '/klɪr/',
+    'different': '/ˈdɪfərənt/',
+    'same': '/seɪm/',
+    'similar': '/ˈsɪmələr/',
+    'every': '/ˈɛvri/',
+    'each': '/itʃ/',
+    'many': '/ˈmɛni/',
+    'much': '/mʌtʃ/',
+    'some': '/sʌm/',
+    'few': '/fju/',
+    'little': '/ˈlɪtəl/',
+    'more': '/mɔr/',
+    'most': '/moʊst/',
+    'less': '/lɛs/',
+    'least': '/list/',
+    'first': '/fɜrst/',
+    'last': '/læst/',
+    'next': '/nɛkst/',
+    'before': '/bɪˈfɔr/',
+    'after': '/ˈæftər/',
+    'during': '/ˈdʊrɪŋ/',
+    'while': '/waɪl/',
+    'when': '/wɛn/',
+    'where': '/wɛr/',
+    'why': '/waɪ/',
+    'how': '/haʊ/',
+    'what': '/wʌt/',
+    'which': '/wɪtʃ/',
+    'who': '/hu/',
+    'whose': '/huz/',
+    'with': '/wɪθ/',
+    'without': '/wɪˈθaʊt/',
+    'through': '/θru/',
+    'across': '/əˈkrɔs/',
+    'around': '/əˈraʊnd/',
+    'between': '/bɪˈtwin/',
+    'among': '/əˈmʌŋ/',
+    'above': '/əˈbʌv/',
+    'below': '/bɪˈloʊ/',
+    'under': '/ˈʌndər/',
+    'over': '/ˈoʊvər/',
+    'inside': '/ɪnˈsaɪd/',
+    'outside': '/ˈaʊtˌsaɪd/',
+    'near': '/nɪr/',
+    'far': '/fɑr/',
+    'here': '/hɪr/',
+    'there': '/ðɛr/',
+    'everywhere': '/ˈɛvriˌwɛr/',
+    'somewhere': '/ˈsʌmˌwɛr/',
+    'nowhere': '/ˈnoʊˌwɛr/',
+    'anywhere': '/ˈɛniˌwɛr/'
+  };
+
+  // Check if we have a specific mapping
+  const lowerWord = word.toLowerCase();
+  if (phoneticMap[lowerWord]) {
+    return phoneticMap[lowerWord];
+  }
+
+  // Generate basic phonetic approximation for unknown words
+  let phonetic = word.toLowerCase();
+  
+  // Basic phonetic transformations
+  phonetic = phonetic
+    .replace(/qu/g, 'kw')
+    .replace(/ch/g, 'tʃ')
+    .replace(/sh/g, 'ʃ')
+    .replace(/th/g, 'θ')
+    .replace(/ng/g, 'ŋ')
+    .replace(/ph/g, 'f')
+    .replace(/gh/g, 'f')
+    .replace(/tion/g, 'ʃən')
+    .replace(/sion/g, 'ʒən')
+    .replace(/ough/g, 'ʌf')
+    .replace(/augh/g, 'ɔf')
+    .replace(/eigh/g, 'eɪ')
+    .replace(/ight/g, 'aɪt')
+    .replace(/ould/g, 'ʊd')
+    .replace(/alk/g, 'ɔk')
+    .replace(/alf/g, 'æf')
+    .replace(/ear/g, 'ɪr')
+    .replace(/air/g, 'ɛr')
+    .replace(/oor/g, 'ɔr')
+    .replace(/our/g, 'aʊr')
+    .replace(/ow/g, 'aʊ')
+    .replace(/ew/g, 'u')
+    .replace(/ay/g, 'eɪ')
+    .replace(/ey/g, 'eɪ')
+    .replace(/ie/g, 'aɪ')
+    .replace(/oe/g, 'oʊ')
+    .replace(/ue/g, 'u')
+    .replace(/ee/g, 'i')
+    .replace(/ea/g, 'i')
+    .replace(/oo/g, 'u')
+    .replace(/ou/g, 'aʊ')
+    .replace(/au/g, 'ɔ')
+    .replace(/aw/g, 'ɔ')
+    .replace(/ai/g, 'eɪ')
+    .replace(/ei/g, 'eɪ')
+    .replace(/oi/g, 'ɔɪ')
+    .replace(/oy/g, 'ɔɪ')
+    .replace(/a/g, 'æ')
+    .replace(/e/g, 'ɛ')
+    .replace(/i/g, 'ɪ')
+    .replace(/o/g, 'ɑ')
+    .replace(/u/g, 'ʌ')
+    .replace(/y/g, 'aɪ');
+
+  return `/${phonetic}/`;
+};
+
+// Helper function to generate contextual example sentences with level-appropriate complexity
+const generateContextualExamples = (word: string, partOfSpeech: string, definition: string, count: number, level: string = 'intermediate', lessonContext?: string): string[] => {
+  const examples: string[] = [];
+  const wordLower = word.toLowerCase();
+  const levelLower = level.toLowerCase();
+  
+  // Helper function to bold the vocabulary word in examples
+  const boldWord = (sentence: string, targetWord: string): string => {
+    const regex = new RegExp(`\\b${targetWord}\\b`, 'gi');
+    return sentence.replace(regex, `<strong>${targetWord}</strong>`);
+  };
+  
+  // Generate level-appropriate examples based on part of speech
+  switch (partOfSpeech.toLowerCase()) {
+    case 'noun':
+      if (levelLower === 'a1' || levelLower === 'a2') {
+        // Simple, short sentences for beginners
+        examples.push(
+          `This is a ${wordLower}.`,
+          `I see the ${wordLower}.`,
+          `The ${wordLower} is big.`,
+          `Where is the ${wordLower}?`,
+          `I like this ${wordLower}.`
+        );
+      } else if (levelLower === 'b1' || levelLower === 'b2') {
+        // Intermediate complexity
+        examples.push(
+          `The ${wordLower} plays an important role in our daily lives.`,
+          `Every ${wordLower} has its own unique characteristics and features.`,
+          `Students need to understand what a ${wordLower} means in this context.`,
+          `The teacher showed us a perfect example of a ${wordLower}.`
+        );
+      } else {
+        // Advanced, complex sentences
+        examples.push(
+          `The conceptual framework surrounding this ${wordLower} requires careful analysis.`,
+          `Contemporary research suggests that the ${wordLower} significantly influences outcomes.`,
+          `The multifaceted nature of this ${wordLower} presents both challenges and opportunities.`
+        );
+      }
+      break;
+      
+    case 'verb':
+      if (levelLower === 'a1' || levelLower === 'a2') {
+        examples.push(
+          `I ${wordLower} every day.`,
+          `She can ${wordLower} well.`,
+          `We ${wordLower} together.`,
+          `Do you ${wordLower}?`,
+          `They ${wordLower} at school.`
+        );
+      } else if (levelLower === 'b1' || levelLower === 'b2') {
+        examples.push(
+          `I usually ${wordLower} in the morning before starting work.`,
+          `She decided to ${wordLower} the project more carefully this time.`,
+          `The team will ${wordLower} together to solve this complex problem.`,
+          `Students are encouraged to ${wordLower} their assignments thoroughly.`
+        );
+      } else {
+        examples.push(
+          `The committee will ${wordLower} comprehensive strategies to address these issues.`,
+          `Researchers continue to ${wordLower} innovative approaches to this challenge.`,
+          `The organization must ${wordLower} sustainable practices across all departments.`
+        );
+      }
+      break;
+      
+    case 'adjective':
+      if (levelLower === 'a1' || levelLower === 'a2') {
+        examples.push(
+          `It is very ${wordLower}.`,
+          `The book is ${wordLower}.`,
+          `This looks ${wordLower}.`,
+          `I feel ${wordLower} today.`,
+          `The weather is ${wordLower}.`
+        );
+      } else if (levelLower === 'b1' || levelLower === 'b2') {
+        examples.push(
+          `The presentation was remarkably ${wordLower} and well-organized.`,
+          `She has a naturally ${wordLower} personality that attracts people.`,
+          `This ${wordLower} approach has proven effective in similar situations.`,
+          `The design appears both modern and ${wordLower} at the same time.`
+        );
+      } else {
+        examples.push(
+          `The methodology employed was exceptionally ${wordLower} and sophisticated.`,
+          `Her ${wordLower} analysis provided invaluable insights into the phenomenon.`,
+          `The ${wordLower} nature of this solution addresses multiple concerns simultaneously.`
+        );
+      }
+      break;
+      
+    case 'adverb':
+      if (levelLower === 'a1' || levelLower === 'a2') {
+        examples.push(
+          `She speaks ${wordLower}.`,
+          `He works ${wordLower}.`,
+          `They walk ${wordLower}.`,
+          `I read ${wordLower}.`,
+          `We listen ${wordLower}.`
+        );
+      } else if (levelLower === 'b1' || levelLower === 'b2') {
+        examples.push(
+          `She completed the assignment ${wordLower} and with great attention to detail.`,
+          `The team worked ${wordLower} to meet the challenging deadline.`,
+          `He ${wordLower} explained the complex concept to his students.`,
+          `They ${wordLower} prepared for the important presentation.`
+        );
+      } else {
+        examples.push(
+          `The research was conducted ${wordLower} according to established protocols.`,
+          `She ${wordLower} analyzed the data to identify significant patterns.`,
+          `The project was ${wordLower} executed with remarkable precision.`
+        );
+      }
+      break;
+      
+    case 'preposition':
+      if (levelLower === 'a1' || levelLower === 'a2') {
+        examples.push(
+          `The book is ${wordLower} the table.`,
+          `She sits ${wordLower} the chair.`,
+          `We meet ${wordLower} school.`,
+          `The cat is ${wordLower} the box.`,
+          `I go ${wordLower} work.`
+        );
+      } else if (levelLower === 'b1' || levelLower === 'b2') {
+        examples.push(
+          `The meeting is scheduled ${wordLower} next Tuesday morning.`,
+          `She placed the documents ${wordLower} the filing cabinet.`,
+          `The project timeline extends ${wordLower} the end of the year.`,
+          `Students gathered ${wordLower} the main entrance of the building.`
+        );
+      } else {
+        examples.push(
+          `The analysis was conducted ${wordLower} the framework of established theory.`,
+          `The implications extend ${wordLower} the immediate scope of this study.`,
+          `The committee deliberated ${wordLower} the proposed amendments.`
+        );
+      }
+      break;
+      
+    default:
+      if (levelLower === 'a1' || levelLower === 'a2') {
+        examples.push(
+          `This is "${word}".`,
+          `I know "${word}".`,
+          `"${word}" is important.`,
+          `We use "${word}".`,
+          `"${word}" is good.`
+        );
+      } else if (levelLower === 'b1' || levelLower === 'b2') {
+        examples.push(
+          `The word "${word}" is commonly used in everyday conversation.`,
+          `Understanding "${word}" helps improve overall language skills.`,
+          `"${word}" appears frequently in academic and professional texts.`,
+          `Students should practice using "${word}" in various contexts.`
+        );
+      } else {
+        examples.push(
+          `The term "${word}" encompasses a broad range of conceptual meanings.`,
+          `Contemporary usage of "${word}" reflects evolving linguistic patterns.`,
+          `The semantic complexity of "${word}" requires careful contextual analysis.`
+        );
+      }
+  }
+  
+  // Bold the vocabulary word in all examples
+  const boldedExamples = examples.map(example => boldWord(example, word));
+  
+  // Return the requested number of examples
+  return boldedExamples.slice(0, count);
 };
 
 // Helper function to get content from info_card sections
@@ -203,14 +551,14 @@ const getInfoCardContent = (section: TemplateSection): string => {
 
 export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage, preloadedLessonData }: LessonMaterialDisplayProps) {
   const { user } = useAuth();
-  
+
   // Initialize loading state based on whether we have preloaded data
   const [loading, setLoading] = useState(() => {
     const hasPreloadedData = !!preloadedLessonData;
     console.log('🔍 Initial loading state:', { hasPreloadedData, loading: !hasPreloadedData });
     return !hasPreloadedData;
   });
-  
+
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [template, setTemplate] = useState<LessonTemplate | null>(null);
   const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
@@ -233,10 +581,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       lessonId,
       currentLoading: loading
     });
-    
+
     if (preloadedLessonData) {
       console.log('🚀 Using preloaded lesson data - immediate display', preloadedLessonData);
-      
+
       const lessonData = {
         ...preloadedLessonData,
         student: {
@@ -246,10 +594,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           level: 'intermediate'
         }
       };
-      
+
       setLesson(lessonData as Lesson);
       setError(null); // Clear any previous errors
-      
+
       if (lessonData.interactive_lesson_content) {
         console.log('🚀 Using preloaded interactive content - immediate template setup', lessonData.interactive_lesson_content);
         const mockTemplate = {
@@ -259,7 +607,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           level: lessonData.student?.level || 'intermediate',
           template_json: lessonData.interactive_lesson_content
         } as LessonTemplate;
-        
+
         setTemplate(mockTemplate);
         console.log('✅ Template set successfully:', {
           templateId: mockTemplate.id,
@@ -271,7 +619,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       } else {
         console.log('❌ No interactive lesson content found in preloaded data');
       }
-      
+
       console.log('🎯 Setting loading to false');
       setLoading(false);
     }
@@ -331,7 +679,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                 level: lessonData.student?.level || 'intermediate',
                 template_json: lessonData.interactive_lesson_content
               } as LessonTemplate;
-              
+
               setTemplate(mockTemplate);
             } else {
               // Use the interactive content as the template JSON
@@ -339,7 +687,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                 ...templateData,
                 template_json: lessonData.interactive_lesson_content
               } as LessonTemplate;
-              
+
               setTemplate(finalTemplate);
             }
           } else {
@@ -351,14 +699,14 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
               level: lessonData.student?.level || 'intermediate',
               template_json: lessonData.interactive_lesson_content
             } as LessonTemplate;
-            
+
             setTemplate(mockTemplate);
           }
         } else {
           // Fall back to generated lessons if no interactive content
           if (lessonData.generated_lessons && lessonData.generated_lessons.length > 0) {
             try {
-              const parsedLessons = lessonData.generated_lessons.map((lessonStr: string) => 
+              const parsedLessons = lessonData.generated_lessons.map((lessonStr: string) =>
                 JSON.parse(lessonStr)
               );
               setGeneratedLessons(parsedLessons);
@@ -417,7 +765,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
     // Add scroll event listener to window
     window.addEventListener('scroll', handleScroll, { passive: true });
-    
+
     // Also listen for scroll events on any scrollable containers within the lesson content
     const scrollableElements = document.querySelectorAll('[data-lesson-content]');
     scrollableElements.forEach(element => {
@@ -445,7 +793,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       ...prev,
       [audioId]: !prev[audioId]
     }));
-    
+
     // Simulate audio playback
     setTimeout(() => {
       setIsPlaying(prev => ({
@@ -464,9 +812,9 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
   const translateWord = async (word: string, wordRect: DOMRect) => {
     if (!studentNativeLanguage || isTranslating) return;
-    
+
     setIsTranslating(true);
-    
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -474,7 +822,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       }
 
       const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/translate-text`;
-      
+
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
@@ -493,7 +841,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       }
 
       const result = await response.json();
-      
+
       if (result.success && result.translated_text) {
         setTranslationPopup({
           isVisible: true,
@@ -517,22 +865,22 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
   const handleTextDoubleClick = (e: React.MouseEvent<HTMLElement>) => {
     if (!studentNativeLanguage) return;
-    
+
     e.preventDefault();
-    
+
     // Get the selected text
     const selection = window.getSelection();
     const selectedText = selection?.toString().trim();
-    
+
     if (selectedText && selectedText.length > 0) {
       // Get the range and its bounding rect
       const range = selection?.getRangeAt(0);
       if (range) {
         const rect = range.getBoundingClientRect();
-        
+
         // Close any existing popup first
         setTranslationPopup(prev => ({ ...prev, isVisible: false }));
-        
+
         // Trigger translation with debouncing
         debouncedTranslateWord(selectedText, rect);
       }
@@ -546,9 +894,9 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     }
 
     if (isTranslating) return;
-    
+
     setIsTranslating(true);
-    
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -556,7 +904,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       }
 
       const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/translate-text`;
-      
+
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
@@ -575,14 +923,14 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       }
 
       const result = await response.json();
-      
+
       if (result.success && result.translated_text) {
         toast.success("Translation successful", {
           description: result.translated_text,
           duration: 5000,
           action: {
             label: "Close",
-            onClick: () => {}
+            onClick: () => { }
           }
         });
       } else {
@@ -598,9 +946,9 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
   const handleExportLesson = () => {
     if (!lesson) return;
-    
+
     const fileName = `lesson-${lesson.student.name.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}`;
-    showExportDialog('lesson-content-container', fileName);
+    showImprovedExportDialog('lesson-content-container', fileName);
   };
 
   const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
@@ -630,22 +978,18 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
     switch (sectionType) {
       case 'title':
+        const lessonTitle = safeGetString(section, 'title', 'Lesson Title');
+        const lessonSubtitle = section.subtitle ? safeGetString(section, 'subtitle', '') : undefined;
+
         return (
-          <div key={sectionId} className="text-center mb-8">
-            <h1 
-              className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2 gradient-text"
-              onDoubleClick={handleTextDoubleClick}
-            >
-              {safeGetString(section, 'title', 'Lesson Title')}
-            </h1>
-            {section.subtitle && (
-              <p 
-                className="text-xl text-gray-600 dark:text-gray-300"
-                onDoubleClick={handleTextDoubleClick}
-              >
-                {safeGetString(section, 'subtitle', '')}
-              </p>
-            )}
+          <div key={sectionId} className="mb-8">
+            <LessonBannerImage
+              title={lessonTitle}
+              subtitle={lessonSubtitle}
+              subject={lesson?.student?.target_language}
+              level={lesson?.student?.level}
+              className="mb-6"
+            />
           </div>
         );
 
@@ -664,7 +1008,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
             <CardContent>
               {/* Check if we have content as a string */}
               {cardContent ? (
-                <div 
+                <div
                   className="prose max-w-none"
                   onDoubleClick={handleTextDoubleClick}
                 >
@@ -700,7 +1044,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
               </CardTitle>
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
-                  <p 
+                  <p
                     className="text-sm font-medium"
                     onDoubleClick={handleTextDoubleClick}
                   >
@@ -726,7 +1070,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
   };
 
   const renderExerciseContent = (
-    section: TemplateSection, 
+    section: TemplateSection,
     lessonIndex: number
   ) => {
     const currentLesson = generatedLessons[lessonIndex];
@@ -747,8 +1091,8 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         return (
           <div className="space-y-3">
             {items.map((item: string, index: number) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20"
                 onDoubleClick={handleTextDoubleClick}
               >
@@ -761,10 +1105,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
       case 'text': {
         const textContent = safeGetString(section, 'content', 'Content will be displayed here.');
-        
+
         return (
           <div className="prose max-w-none">
-            <div 
+            <div
               className="whitespace-pre-wrap text-sm leading-relaxed"
               onDoubleClick={handleTextDoubleClick}
             >
@@ -776,7 +1120,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
       case 'grammar_explanation': {
         const explanationContent = safeGetString(section, 'explanation_content', '') || safeGetString(section, 'content', '');
-        
+
         // Define explicit components for ReactMarkdown
         const components = {
           p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
@@ -828,7 +1172,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
         return (
           <div className="prose prose-sm max-w-none">
-            <ReactMarkdown 
+            <ReactMarkdown
               key={explanationContent}
               remarkPlugins={[remarkGfm]}
               components={components}
@@ -841,7 +1185,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
       case 'example_sentences': {
         const sentences = safeGetArray(section, 'sentences');
-        
+
         if (sentences.length === 0) {
           return (
             <div className="text-center py-4 text-gray-500">
@@ -858,7 +1202,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">
                     {index + 1}
                   </span>
-                  <span 
+                  <span
                     className="text-sm"
                     onDoubleClick={handleTextDoubleClick}
                   >
@@ -871,7 +1215,8 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         );
       }
 
-      case 'vocabulary_matching': {
+      case 'vocabulary_matching':
+      case 'vocabulary': {
         const vocabularyItems = safeGetArray(section, 'vocabulary_items');
 
         if (vocabularyItems.length === 0) {
@@ -882,37 +1227,73 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           );
         }
 
+        // Transform the vocabulary items to match our enhanced format
+        const enhancedVocabularyItems = vocabularyItems.map((item: any) => {
+          // Extract data with fallbacks
+          const word = safeStringify(item.word || item.name || 'Unknown word');
+          const definition = safeStringify(item.definition || item.prompt || item.meaning || 'No definition available');
+
+          // Try to extract part of speech from definition or use provided value
+          let partOfSpeech = 'noun'; // default
+          if (item.part_of_speech || item.partOfSpeech || item.pos) {
+            partOfSpeech = safeStringify(item.part_of_speech || item.partOfSpeech || item.pos).toLowerCase();
+          } else {
+            // Try to infer from definition
+            const posMatch = definition.match(/\b(noun|verb|adjective|adverb|preposition|conjunction|pronoun|interjection|article)\b/i);
+            if (posMatch) {
+              partOfSpeech = posMatch[1].toLowerCase();
+            }
+          }
+
+          // Generate phonetic pronunciation with better fallbacks
+          let phonetic = item.phonetic || item.pronunciation || item.ipa;
+          if (!phonetic) {
+            // Use the improved phonetic notation generator
+            phonetic = generatePhoneticNotation(word);
+          } else {
+            // Ensure phonetic is wrapped in forward slashes
+            if (!phonetic.startsWith('/')) phonetic = '/' + phonetic;
+            if (!phonetic.endsWith('/')) phonetic = phonetic + '/';
+          }
+
+          // Generate example sentences based on level
+          const currentLevel = lesson?.student?.level || 'intermediate';
+          const exampleCount = currentLevel.toLowerCase() === 'a1' || currentLevel.toLowerCase() === 'a2' ? 5 :
+            currentLevel.toLowerCase() === 'b1' || currentLevel.toLowerCase() === 'b2' ? 4 : 3;
+
+          let examples: string[] = [];
+          if (item.examples && Array.isArray(item.examples)) {
+            examples = item.examples.map((ex: any) => safeStringify(ex));
+          } else if (item.example_sentences && Array.isArray(item.example_sentences)) {
+            examples = item.example_sentences.map((ex: any) => safeStringify(ex));
+          } else if (item.sentences && Array.isArray(item.sentences)) {
+            examples = item.sentences.map((ex: any) => safeStringify(ex));
+          } else {
+            // Generate contextual example sentences based on the word and part of speech
+            examples = generateContextualExamples(word, partOfSpeech, definition, exampleCount, currentLevel);
+          }
+
+          // Ensure we have the right number of examples
+          while (examples.length < exampleCount) {
+            examples.push(`This sentence demonstrates the use of "${word}" in context.`);
+          }
+
+          return {
+            word,
+            partOfSpeech,
+            phonetic,
+            definition,
+            examples: examples.slice(0, exampleCount),
+            level: currentLevel
+          };
+        });
+
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {vocabularyItems.map((item, index) => (
-              <div key={index} className="flex items-center space-x-4 p-4 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
-                {item.image_url && (
-                  <img 
-                    src={safeStringify(item.image_url)} 
-                    alt={safeStringify(item.word || item.name)}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                )}
-                <div className="flex-1">
-                  <h4 
-                    className="font-semibold"
-                    onDoubleClick={handleTextDoubleClick}
-                  >
-                    {safeStringify(item.word || item.name)}
-                  </h4>
-                  <p 
-                    className="text-sm text-gray-600 dark:text-gray-300"
-                    onDoubleClick={handleTextDoubleClick}
-                  >
-                    {safeStringify(item.definition || item.prompt)}
-                  </p>
-                </div>
-                <Button size="sm" variant="outline" className="border-cyber-400/30 hover:bg-cyber-400/10">
-                  <Volume2 className="w-4 h-4 text-cyber-400" />
-                </Button>
-              </div>
-            ))}
-          </div>
+          <EnhancedVocabularySection
+            vocabularyItems={enhancedVocabularyItems}
+            level={lesson?.student?.level || 'intermediate'}
+            onTextDoubleClick={handleTextDoubleClick}
+          />
         );
       }
 
@@ -932,7 +1313,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
             {dialogueLines.map((line, index) => {
               let character: string;
               let text: string;
-              
+
               // Handle both object format and string format
               if (typeof line === 'object' && line !== null) {
                 // Object format: { speaker: "Person A", line: "Hello!" }
@@ -944,28 +1325,24 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                 character = parsed.character;
                 text = parsed.text;
               }
-              
-              const isTeacher = character.toLowerCase().includes('teacher') || 
-                               character.toLowerCase().includes('tutor');
-              
+
+              const isTeacher = character.toLowerCase().includes('teacher') ||
+                character.toLowerCase().includes('tutor');
+
               return (
                 <div key={index} className="flex items-start space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
-                  }`}>
-                    <span className={`text-xs font-bold ${
-                      isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
                     }`}>
+                    <span className={`text-xs font-bold ${isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
+                      }`}>
                       {character ? character[0] : '?'}
                     </span>
                   </div>
-                  <div className={`flex-1 p-3 rounded-lg ${
-                    isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 
-                    'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                  }`}>
-                    <p className={`font-medium ${
-                      isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
+                  <div className={`flex-1 p-3 rounded-lg ${isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
+                      'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                     }`}>
+                    <p className={`font-medium ${isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
+                      }`}>
                       {character}:
                     </p>
                     <p onDoubleClick={handleTextDoubleClick}>{text}</p>
@@ -1012,25 +1389,21 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                 const character = safeGetString(element, 'character', 'Speaker');
                 const text = safeGetString(element, 'text', 'No text available');
                 const isTeacher = character === 'Tutor' || character.toLowerCase().includes('teacher');
-                
+
                 return (
                   <div key={index} className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
-                    }`}>
-                      <span className={`text-xs font-bold ${
-                        isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
                       }`}>
+                      <span className={`text-xs font-bold ${isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
+                        }`}>
                         {character[0] || '?'}
                       </span>
                     </div>
-                    <div className={`flex-1 p-3 rounded-lg ${
-                      isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 
-                      'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                    }`}>
-                      <p className={`font-medium ${
-                        isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-400'
+                    <div className={`flex-1 p-3 rounded-lg ${isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
+                        'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                       }`}>
+                      <p className={`font-medium ${isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-400'
+                        }`}>
                         {character}:
                       </p>
                       <p onDoubleClick={handleTextDoubleClick}>{text}</p>
@@ -1041,22 +1414,22 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                 const question = safeGetString(element, 'question', '') || safeGetString(element, 'text', 'Question not available');
                 const options = safeGetArray(element, 'options');
                 const correctAnswer = safeGetString(element, 'correct_answer', '');
-                
+
                 return (
                   <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-yellow-50/50 to-amber-50/50 dark:from-yellow-900/20 dark:to-amber-900/20">
-                    <p 
+                    <p
                       className="font-medium mb-3"
                       onDoubleClick={handleTextDoubleClick}
                     >
                       {question}
                     </p>
-                    <RadioGroup 
+                    <RadioGroup
                       onValueChange={(value) => handleAnswerChange(`${section.id}_mc_${index}`, value)}
                     >
                       {options.length > 0 ? options.map((option: any, optIndex: number) => (
                         <div key={optIndex} className="flex items-center space-x-2">
                           <RadioGroupItem value={safeStringify(option)} id={`${section.id}_${index}_${optIndex}`} />
-                          <Label 
+                          <Label
                             htmlFor={`${section.id}_${index}_${optIndex}`}
                             onDoubleClick={handleTextDoubleClick}
                           >
@@ -1069,15 +1442,15 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                     </RadioGroup>
                     {correctAnswer && (
                       <div className="mt-4">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => toggleAnswerReveal(`${section.id}_mc_${index}`)}
                           className="text-xs"
                         >
                           {revealedAnswers[`${section.id}_mc_${index}`] ? 'Hide Answer' : 'Show Answer'}
                         </Button>
-                        
+
                         {revealedAnswers[`${section.id}_mc_${index}`] && (
                           <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm">
                             <span className="font-medium text-green-700 dark:text-green-300">Correct answer:</span> {correctAnswer}
@@ -1117,33 +1490,33 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
               const question = safeGetString(pair, 'question', 'Question not available');
               const answer = safeGetString(pair, 'answer', 'No answer available');
               const pairId = `${section.id}_match_${index}`;
-              
+
               return (
                 <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20">
                   <div className="space-y-3">
                     <div>
-                      <p 
+                      <p
                         className="font-medium text-gray-800 dark:text-gray-200"
                         onDoubleClick={handleTextDoubleClick}
                       >
                         {question}
                       </p>
                     </div>
-                    
+
                     <div className="flex justify-end">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => toggleAnswerReveal(pairId)}
                         className="text-xs"
                       >
                         {revealedAnswers[pairId] ? 'Hide Answer' : 'Show Answer'}
                       </Button>
                     </div>
-                    
+
                     {revealedAnswers[pairId] && (
                       <div className="pl-4 border-l-2 border-cyber-400/30 mt-2">
-                        <p 
+                        <p
                           className="text-sm text-cyber-600 dark:text-cyber-400 font-medium"
                           onDoubleClick={handleTextDoubleClick}
                         >
@@ -1176,23 +1549,16 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
     const selection = window.getSelection();
     const selectedText = selection?.toString().trim();
-    
+
     if (!selectedText || selectedText.length === 0) {
       toast.info("Please select text to translate by double-clicking on it.");
       return;
     }
-    
+
     await handleTranslateText(selectedText);
   };
 
-  console.log('🔍 LessonMaterialDisplay render check:', {
-    loading,
-    hasLesson: !!lesson,
-    hasTemplate: !!template,
-    hasError: !!error,
-    templateSections: template?.template_json?.sections?.length || 0,
-    templateJsonStructure: template?.template_json ? Object.keys(template.template_json) : []
-  });
+  // Debug logging removed to prevent infinite loop
 
   if (loading) {
     console.log('❌ Still loading - showing loading screen');
@@ -1215,7 +1581,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           </div>
           <h3 className="text-lg font-semibold mb-2">Failed to Load Lesson</h3>
           <p className="text-muted-foreground mb-4">{error}</p>
-          <Button 
+          <Button
             onClick={() => window.location.reload()}
             className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0"
           >
@@ -1276,9 +1642,9 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
           {studentNativeLanguage && (
             <div className="mt-4 lg:mt-0 lg:ml-4 w-full lg:w-auto">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="w-full flex items-center justify-center space-x-2 border-cyber-400/30 hover:bg-cyber-400/10"
                 onClick={handleTranslationRequest}
                 disabled={isTranslating}
@@ -1294,20 +1660,20 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           )}
         </div>
 
-        {sections.map((section, index) => 
+        {sections.map((section, index) =>
           renderTemplateSection(section, 0)
         )}
-        
+
         <div className="flex justify-center pt-8 space-x-4">
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
           >
             <CheckCircle2 className="w-5 h-5 mr-2" />
             Complete Lesson
           </Button>
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
             onClick={handleExportLesson}
           >
@@ -1436,10 +1802,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
               </CardContent>
             </Card>
           ))}
-          
+
           <div className="flex justify-center pt-4">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
               onClick={handleExportLesson}
             >
@@ -1455,7 +1821,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           </div>
           <h3 className="text-lg font-semibold mb-2">No Lesson Content</h3>
           <p className="text-muted-foreground">
-            This lesson doesn't have any generated content yet. Generate lesson plans first, then use "Use This Plan" to create interactive material.
+            This lesson doesn't have any generated content yet. Generate lesson plans first, then use &quot;Use This Plan&quot; to create interactive material.
           </p>
         </div>
       )}

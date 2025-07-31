@@ -41,14 +41,18 @@ export default function Footer() {
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center space-x-2 group mb-4">
               <div className="relative">
-                <Languages className="h-8 w-8 text-cyber-400 group-hover:text-neon-400 transition-colors duration-300" />
+                <img 
+                  src="/linguaflowfavicon.png" 
+                  alt="LinguaFlow Logo" 
+                  className="h-12 w-13 transition-transform duration-300 group-hover:scale-110"
+                />
                 <div className="absolute inset-0 bg-cyber-400 opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-300"></div>
               </div>
               <span className="text-xl font-bold gradient-text">LinguaFlow</span>
             </Link>
             <p className="text-gray-300 mb-6 max-w-sm">
               Revolutionizing language learning with AI-powered personalized lessons. 
-              Create engaging, interactive lesson materials tailored to each student's unique learning journey.
+              Create engaging, interactive lesson materials tailored to each student&apos;s unique learning journey.
             </p>
             <div className="flex space-x-4">
               {socialLinks.map((social) => (

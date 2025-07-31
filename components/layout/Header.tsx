@@ -126,7 +126,11 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
         <div className="md:hidden flex items-center">
           <Link href="/" className="flex items-center space-x-2 group">
             <div className="relative">
-              <Languages className="h-6 w-6 text-cyber-400 group-hover:text-neon-400 transition-colors duration-300" />
+              <img 
+                src="/linguaflowfavicon.png" 
+                alt="LinguaFlow Logo" 
+                className="h-12 w-13 transition-transform duration-300 group-hover:scale-110"
+              />
               <div className="absolute inset-0 bg-cyber-400 opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-300"></div>
             </div>
             <span className="font-bold text-lg gradient-text">LinguaFlow</span>

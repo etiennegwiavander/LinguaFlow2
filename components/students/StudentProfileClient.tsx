@@ -98,7 +98,7 @@ interface StudentProfileClientProps {
 
 
 export default function StudentProfileClient({ student }: StudentProfileClientProps) {
-  const { markSubTopicComplete, initializeFromLessonData, completedSubTopics } = useContext(ProgressContext);
+  const { markSubTopicComplete, initializeFromLessonData, completedSubTopics, getSubTopicCompletionDate } = useContext(ProgressContext);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
@@ -243,29 +243,24 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
         // Create a separate entry for each completed sub-topic
         completedSubTopicsForLesson.forEach((completedSubTopic: any) => {
+          // Get the actual completion timestamp for this sub-topic
+          const actualCompletionDate = getSubTopicCompletionDate(completedSubTopic.id);
+
           completedLessonEntries.push({
             ...lesson,
             completedSubTopic: completedSubTopic,
             // Create a unique ID for this entry
             entryId: `${lesson.id}-${completedSubTopic.id}`,
-            // Add completion timestamp (you could enhance this with actual completion time)
-            completedAt: new Date().toISOString()
+            // Use the actual completion timestamp when the tutor generated the lesson
+            completedAt: actualCompletionDate || lesson.created_at || new Date().toISOString()
           });
         });
       });
 
-      // Sort by lesson date (most recent first)
-      completedLessonEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      // Sort by actual completion timestamp (most recent first)
+      completedLessonEntries.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
 
-      console.log('📚 Lesson History Debug:', {
-        totalLessonsWithSubTopics: lessons?.length || 0,
-        completedSubTopics: completedSubTopics,
-        totalCompletedEntries: completedLessonEntries.length,
-        entriesPerLesson: completedLessonEntries.reduce((acc: any, entry) => {
-          acc[entry.id] = (acc[entry.id] || 0) + 1;
-          return acc;
-        }, {})
-      });
+      // Debug logging removed to prevent infinite loop
 
       setLessonHistory(completedLessonEntries);
     } catch (error) {
@@ -273,7 +268,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     } finally {
       setLoadingLessonHistory(false);
     }
-  }, [student.id, completedSubTopics]);
+  }, [student.id, completedSubTopics, getSubTopicCompletionDate]);
 
   useEffect(() => {
     loadUpcomingLesson();
@@ -282,7 +277,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
 
   // Refresh lesson history when completed sub-topics change
   useEffect(() => {
-    console.log('🔄 Completed sub-topics changed, refreshing lesson history:', completedSubTopics);
+    // Debug logging removed to prevent infinite loop
     loadLessonHistory();
   }, [completedSubTopics, loadLessonHistory]);
 
@@ -1226,15 +1221,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   const lessonId = selectedLessonId || persistentLessonData?.lessonId || '';
                   const preloadedData = selectedHistoryLesson || persistentLessonData?.lessonData;
 
-                  console.log('🔍 Lesson Material Tab Debug:', {
-                    selectedLessonId,
-                    hasPersistentData: !!persistentLessonData,
-                    persistentLessonId: persistentLessonData?.lessonId,
-                    hasSelectedHistoryLesson: !!selectedHistoryLesson,
-                    hasPreloadedData: !!preloadedData,
-                    preloadedDataKeys: preloadedData ? Object.keys(preloadedData) : [],
-                    hasInteractiveContent: !!preloadedData?.interactive_lesson_content
-                  });
+                  // Debug logging removed to prevent infinite loop
 
                   return (selectedLessonId || persistentLessonData) ? (
                     <LessonMaterialDisplay
@@ -1321,7 +1308,8 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                   ) : lessonHistory.length > 0 ? (
                     <div className="space-y-4 max-h-96 overflow-y-auto">
                       {lessonHistory.map((lessonEntry, index) => {
-                        const lessonDate = new Date(lessonEntry.date);
+                        // Use the actual completion timestamp instead of lesson date
+                        const completionDate = new Date(lessonEntry.completedAt);
                         const completedSubTopic = lessonEntry.completedSubTopic;
                         const hasInteractiveContent = !!lessonEntry.interactive_lesson_content;
 
@@ -1333,7 +1321,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                                   <div className="flex items-center space-x-2">
                                     <CheckCircle className="h-4 w-4 text-green-600" />
                                     <span className="font-medium text-sm">
-                                      {lessonDate.toLocaleDateString(undefined, {
+                                      {completionDate.toLocaleDateString(undefined, {
                                         weekday: 'short',
                                         month: 'short',
                                         day: 'numeric',

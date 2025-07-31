@@ -69,7 +69,11 @@ export default function HomePage() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <Languages className="h-12 w-12 text-primary animate-pulse" />
+            <img 
+              src="/linguaflowfavicon.png" 
+              alt="LinguaFlow Logo" 
+              className="h-12 w-12 animate-pulse"
+            />
           </div>
           <div className="flex items-center justify-center space-x-2">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -163,20 +167,7 @@ export default function HomePage() {
 
   return (
     <LandingLayout>
-      {/* Bolt Button */}
-      <a 
-        id="bolt-button" 
-        href="https://bolt.new" 
-        target="_blank" 
-        title="Powered By Bolt"
-        className="fixed top-20 right-8 z-50 w-25 h-25 rounded-full bg-black border-2 border-white shadow-white-glow transition-transform duration-300 hover:scale-110 flex items-center justify-center"
-      >
-        <img 
-          src="/bolt-logo.png" 
-          alt="Powered by Bolt" 
-          className="w-16 h-16"
-        />
-      </a>
+
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -420,7 +411,7 @@ export default function HomePage() {
                     ))}
                   </div>
                   <p className="text-muted-foreground mb-6 leading-relaxed">
-                    "{testimonial.content}"
+                    "{testimonial.content}&quot;
                   </p>
                   <div className="flex items-center">
                     <img

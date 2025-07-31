@@ -71,13 +71,17 @@ export default function LoginPage() {
         <div className="floating-elements"></div>
         <div className="fixed top-40 right-20 w-32 h-32 bg-neon-400/20 rounded-full blur-xl animate-float pointer-events-none" style={{ animationDelay: '2s' }}></div>
         <div className="fixed bottom-40 left-20 w-24 h-24 bg-purple-400/20 rounded-full blur-xl animate-float pointer-events-none" style={{ animationDelay: '4s' }}></div>
-        
+
         <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
           <Card className="w-full max-w-md cyber-card animate-scale-in">
             <CardHeader className="space-y-2 text-center">
               <div className="flex justify-center mb-4">
                 <div className="relative">
-                  <Languages className="h-10 w-10 text-cyber-400" />
+                  <img
+                    src="/linguaflowfavicon.png"
+                    alt="LinguaFlow Logo"
+                    className="h-12 w-15"
+                  />
                   <div className="absolute inset-0 bg-cyber-400 opacity-20 blur-xl"></div>
                 </div>
               </div>

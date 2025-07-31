@@ -104,7 +104,11 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
         <div className="flex h-16 items-center px-4 border-b border-cyber-400/20">
           <Link href="/" className="flex items-center space-x-2 group">
             <div className="relative">
-              <Icons.Languages className="h-5 w-5 sm:h-6 sm:w-6 text-cyber-400 group-hover:text-neon-400 transition-colors duration-300" />
+              <img 
+                src="/linguaflowfavicon.png" 
+                alt="LinguaFlow Logo" 
+                className="h-12 w-13 transition-transform duration-300 group-hover:scale-110"
+              />
               <div className="absolute inset-0 bg-cyber-400 opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-300"></div>
             </div>
             {!collapsed && (

@@ -125,7 +125,11 @@ export default function SignUpPage() {
             <CardHeader className="space-y-2 text-center">
               <div className="flex justify-center mb-4">
                 <div className="relative">
-                  <Languages className="h-10 w-10 text-cyber-400" />
+                  <img 
+                    src="/linguaflowfavicon.png" 
+                    alt="LinguaFlow Logo" 
+                    className="h-12 w-15"
+                  />
                   <div className="absolute inset-0 bg-cyber-400 opacity-20 blur-xl"></div>
                 </div>
               </div>

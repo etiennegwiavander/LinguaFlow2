@@ -6,7 +6,7 @@ import Link from "next/link";
 import MainLayout from "@/components/main-layout";
 import LessonCard from "@/components/dashboard/LessonCard";
 import StatsCard from "@/components/dashboard/StatsCard";
-import CalendarStatusCard from "@/components/dashboard/CalendarStatusCard";
+// import CalendarStatusCard from "@/components/dashboard/CalendarStatusCard";
 import { Clock, Calendar, Sparkles, Loader2, TrendingUp, Users, BarChart3, ExternalLink, RefreshCcw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
@@ -341,9 +341,9 @@ export default function DashboardPage() {
                 <StatsCard stat={stat} />
               </div>
             ))}
-            <div className="animate-scale-in" style={{ animationDelay: '0.5s' }}>
+            {/* <div className="animate-scale-in" style={{ animationDelay: '0.5s' }}>
               <CalendarStatusCard />
-            </div>
+            </div> */}
           </div>
         </section>
 
