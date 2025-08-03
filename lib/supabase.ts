@@ -3,7 +3,86 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create Supabase client with automatic token refresh
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Automatically refresh tokens when they're about to expire
+    autoRefreshToken: true,
+    // Persist session in localStorage
+    persistSession: true,
+    // Detect session in URL (for OAuth flows)
+    detectSessionInUrl: true,
+    // Refresh token before it expires (5 minutes before expiry)
+    refreshTokenMargin: 300, // 5 minutes in seconds
+  },
+  // Global request configuration
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js-web',
+    },
+  },
+});
+
+// Enhanced error handling for JWT expiration
+export const handleSupabaseError = async (error: any, retryFn?: () => Promise<any>) => {
+  // Check if error is due to JWT expiration
+  if (error?.message?.includes('JWT expired') || 
+      error?.message?.includes('Invalid JWT') ||
+      error?.status === 401) {
+    
+    console.warn('JWT token expired, attempting to refresh...');
+    
+    try {
+      // Force refresh the session
+      const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.error('Failed to refresh session:', refreshError);
+        // Redirect to login if refresh fails
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
+        throw refreshError;
+      }
+      
+      if (session && retryFn) {
+        console.log('Session refreshed successfully, retrying request...');
+        // Retry the original request with new token
+        return await retryFn();
+      }
+      
+      return { data: null, error: null };
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError);
+      // Redirect to login on refresh failure
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      }
+      throw refreshError;
+    }
+  }
+  
+  // Re-throw non-JWT errors
+  throw error;
+};
+
+// Wrapper function for Supabase requests with automatic retry on JWT expiration
+export const supabaseRequest = async <T>(
+  requestFn: () => Promise<{ data: T | null; error: any }>
+): Promise<{ data: T | null; error: any }> => {
+  try {
+    const result = await requestFn();
+    
+    // If there's an error, handle it
+    if (result.error) {
+      return await handleSupabaseError(result.error, requestFn);
+    }
+    
+    return result;
+  } catch (error) {
+    return await handleSupabaseError(error, requestFn);
+  }
+};
 
 export type Database = {
   public: {

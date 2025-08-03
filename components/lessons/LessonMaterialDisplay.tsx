@@ -8,8 +8,9 @@ import LessonBannerImage from "./LessonBannerImage";
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseRequest } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import { useSupabaseFetch } from "@/hooks/useSupabaseQuery";
 import {
   Loader2,
   BookOpen,
@@ -43,6 +44,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import WordTranslationPopup from "./WordTranslationPopup";
 import EnhancedVocabularySection from "./EnhancedVocabularySection";
+import DialogueAvatar from "./DialogueAvatar";
+import DialogueAvatarErrorBoundary from "./DialogueAvatarErrorBoundary";
+import { useDialogueAvatars } from "@/hooks/useDialogueAvatars";
 
 interface LessonTemplate {
   id: string;
@@ -630,6 +634,139 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     wordRect: null
   });
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
+
+  // Initialize dialogue avatars hook
+  const { getCharacterInfo, preloadAvatars } = useDialogueAvatars();
+
+  // Character tracking for dialogue alternating colors
+  const [dialogueCharacterMap, setDialogueCharacterMap] = useState<Record<string, number>>({});
+  
+  // Simple alternating colors for dialogue participants (like in your image)
+  const DIALOGUE_COLORS = [
+    {
+      // Purple - First character color (like Sarah in your image)
+      bg: 'bg-purple-100 dark:bg-purple-900/20',
+      border: 'border-purple-200 dark:border-purple-800',
+      text: 'text-purple-700 dark:text-purple-200'
+    },
+    {
+      // Emerald - Second character color (alternating)
+      bg: 'bg-emerald-100 dark:bg-emerald-900/20',
+      border: 'border-emerald-200 dark:border-emerald-800',
+      text: 'text-emerald-700 dark:text-emerald-200'
+    }
+  ];
+
+  // Function to get dialogue character color index (proper alternating - no state updates during render)
+  const getDialogueCharacterIndex = (character: string, isTeacher: boolean, role: string): number => {
+    // Only teachers and students keep their fixed colors - everyone else gets alternating colors
+    if (isTeacher || role === 'teacher' || role === 'student') {
+      console.log(`🎓 Fixed color for "${character}" (${role})`);
+      return 0; // Index doesn't matter for fixed colors
+    }
+    
+    // SIMPLE DETERMINISTIC ALTERNATING: No state updates during render
+    const characterName = character.toLowerCase().trim();
+    
+    let colorIndex: number;
+    if (characterName.includes('sarah')) {
+      colorIndex = 0; // Purple
+      console.log(`🎭 FORCED color assignment for "${character}": Index ${colorIndex} (Purple)`);
+    } else if (characterName.includes('mark')) {
+      colorIndex = 1; // Emerald
+      console.log(`🎭 FORCED color assignment for "${character}": Index ${colorIndex} (Emerald)`);
+    } else if (characterName.includes('alice')) {
+      colorIndex = 0; // Purple (alternating back)
+    } else if (characterName.includes('bob')) {
+      colorIndex = 1; // Emerald
+    } else if (characterName.includes('carol')) {
+      colorIndex = 0; // Purple
+    } else if (characterName.includes('david')) {
+      colorIndex = 1; // Emerald
+    } else {
+      // For unknown characters, use a simple hash
+      let hash = 0;
+      for (let i = 0; i < character.length; i++) {
+        hash = character.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      colorIndex = Math.abs(hash) % 2;
+      console.log(`🎭 HASH color assignment for "${character}": Index ${colorIndex} (${colorIndex === 0 ? 'Purple' : 'Emerald'})`);
+    }
+    
+    return colorIndex;
+  };
+
+  // Debug function to log character assignments
+  const debugCharacterAssignment = (character: string, colorIndex: number, colorScheme: any) => {
+    console.log(`🎨 Character: "${character}" → Color Index: ${colorIndex} → Color: ${colorScheme.bg}`);
+  };
+
+  // Function to get character color scheme (simplified for dialogue alternating)
+  const getCharacterColorScheme = (character: string, isTeacher: boolean, role: string, colorIndex: number) => {
+    // Teacher: Always green
+    if (isTeacher || role === 'teacher') {
+      return {
+        bg: 'bg-green-100 dark:bg-green-900/20',
+        border: 'border-green-200 dark:border-green-800',
+        text: 'text-green-600 dark:text-green-200'
+      };
+    }
+    
+    // Student: Always blue
+    if (role === 'student') {
+      return {
+        bg: 'bg-blue-100 dark:bg-blue-900/20',
+        border: 'border-blue-200 dark:border-blue-800',
+        text: 'text-blue-600 dark:text-blue-200'
+      };
+    }
+    
+    // For all other characters: Use simple alternating dialogue colors (purple and emerald)
+    // This creates the alternating effect like in your image
+    return DIALOGUE_COLORS[colorIndex % DIALOGUE_COLORS.length];
+  };
+
+  // Preload avatars when lesson content is available
+  useEffect(() => {
+    if (!template?.template_json?.sections) return;
+
+    const extractCharactersFromSections = (sections: TemplateSection[]): string[] => {
+      const characters: string[] = [];
+      
+      sections.forEach(section => {
+        // Extract from dialogue_lines
+        const dialogueLines = safeGetArray(section, 'dialogue_lines');
+        dialogueLines.forEach((line: any) => {
+          if (typeof line === 'object' && line !== null) {
+            const character = safeGetString(line, 'character', '');
+            if (character) characters.push(character);
+          } else if (typeof line === 'string') {
+            const parsed = parseDialogueLine(line);
+            if (parsed.character) characters.push(parsed.character);
+          }
+        });
+
+        // Extract from dialogue_elements
+        const dialogueElements = safeGetArray(section, 'dialogue_elements');
+        dialogueElements.forEach((element: any) => {
+          if (element && typeof element === 'object') {
+            const character = safeGetString(element, 'character', '');
+            if (character) characters.push(character);
+          }
+        });
+      });
+
+      return [...new Set(characters)]; // Remove duplicates
+    };
+
+    const characters = extractCharactersFromSections(template.template_json.sections);
+    if (characters.length > 0) {
+      console.log('🎭 Preloading avatars for characters:', characters);
+      preloadAvatars(characters).catch(error => {
+        console.warn('Failed to preload some avatars:', error);
+      });
+    }
+  }, [template, preloadAvatars]);
 
   // Handle preloaded data immediately when component mounts or when preloaded data changes
   useEffect(() => {
@@ -1584,26 +1721,44 @@ Apply these concepts in academic writing, professional presentations, and sophis
                 text = parsed.text;
               }
 
-              const isTeacher = character.toLowerCase().includes('teacher') ||
-                character.toLowerCase().includes('tutor');
+              // Get character information using the avatar system
+              const characterInfo = getCharacterInfo(character);
+              const isTeacher = characterInfo.isTeacher;
+              const colorIndex = getDialogueCharacterIndex(character, isTeacher, characterInfo.role);
+              const colorScheme = getCharacterColorScheme(character, isTeacher, characterInfo.role, colorIndex);
+              
+              // Debug logging to see what's happening
+              debugCharacterAssignment(character, colorIndex, colorScheme);
 
               return (
-                <div key={index} className="flex items-start space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
-                    }`}>
-                    <span className={`text-xs font-bold ${isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
-                      }`}>
-                      {character ? character[0] : '?'}
+                <div key={index} className="flex items-start space-x-4 mb-4">
+                  {/* Avatar with character name below - similar to the provided image */}
+                  <div className="flex flex-col items-center space-y-1">
+                    <DialogueAvatarErrorBoundary 
+                      fallbackCharacter={character}
+                      fallbackSize="sm"
+                    >
+                      <DialogueAvatar
+                        character={character}
+                        isTeacher={isTeacher}
+                        role={characterInfo.role}
+                        size="sm"
+                      />
+                    </DialogueAvatarErrorBoundary>
+                    {/* Character name below avatar, like in the provided image */}
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 text-center">
+                      {character}
                     </span>
                   </div>
-                  <div className={`flex-1 p-3 rounded-lg ${isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
-                    'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                    }`}>
-                    <p className={`font-medium ${isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
-                      }`}>
-                      {character}:
+                  
+                  {/* Message bubble with professional alternating colors */}
+                  <div className={`flex-1 p-3 rounded-lg ${colorScheme.bg} border ${colorScheme.border}`}>
+                    <p 
+                      className={`leading-relaxed ${colorScheme.text}`}
+                      onDoubleClick={handleTextDoubleClick}
+                    >
+                      {text}
                     </p>
-                    <p onDoubleClick={handleTextDoubleClick}>{text}</p>
                   </div>
                 </div>
               );
@@ -1646,25 +1801,42 @@ Apply these concepts in academic writing, professional presentations, and sophis
               if (determinedElementType === 'dialogue') {
                 const character = safeGetString(element, 'character', 'Speaker');
                 const text = safeGetString(element, 'text', 'No text available');
-                const isTeacher = character === 'Tutor' || character.toLowerCase().includes('teacher');
+                
+                // Get character information using the avatar system
+                const characterInfo = getCharacterInfo(character);
+                const isTeacher = characterInfo.isTeacher;
+                const colorIndex = getDialogueCharacterIndex(character, isTeacher, characterInfo.role);
+                const colorScheme = getCharacterColorScheme(character, isTeacher, characterInfo.role, colorIndex);
 
                 return (
-                  <div key={index} className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isTeacher ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
-                      }`}>
-                      <span className={`text-xs font-bold ${isTeacher ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
-                        }`}>
-                        {character[0] || '?'}
+                  <div key={index} className="flex items-start space-x-4 mb-4">
+                    {/* Avatar with character name below - consistent with full_dialogue style */}
+                    <div className="flex flex-col items-center space-y-1">
+                      <DialogueAvatarErrorBoundary 
+                        fallbackCharacter={character}
+                        fallbackSize="sm"
+                      >
+                        <DialogueAvatar
+                          character={character}
+                          isTeacher={isTeacher}
+                          role={characterInfo.role}
+                          size="sm"
+                        />
+                      </DialogueAvatarErrorBoundary>
+                      {/* Character name below avatar */}
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 text-center">
+                        {character}
                       </span>
                     </div>
-                    <div className={`flex-1 p-3 rounded-lg ${isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
-                      'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                      }`}>
-                      <p className={`font-medium ${isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-400'
-                        }`}>
-                        {character}:
+                    
+                    {/* Message bubble with professional alternating colors */}
+                    <div className={`flex-1 p-3 rounded-lg ${colorScheme.bg} border ${colorScheme.border}`}>
+                      <p 
+                        className={`leading-relaxed ${colorScheme.text}`}
+                        onDoubleClick={handleTextDoubleClick}
+                      >
+                        {text}
                       </p>
-                      <p onDoubleClick={handleTextDoubleClick}>{text}</p>
                     </div>
                   </div>
                 );

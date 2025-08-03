@@ -1,11 +1,12 @@
-import { serve } from "jsr:@std/http@0.224.0/server"
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { serve } from "jsr:@std/http@0.224.0/server";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 interface GenerateInteractiveMaterialRequest {
   lesson_id: string;
@@ -55,25 +56,26 @@ interface LessonTemplate {
 }
 
 const languageMap: Record<string, string> = {
-  'en': 'English',
-  'es': 'Spanish',
-  'fr': 'French',
-  'de': 'German',
-  'it': 'Italian',
-  'ja': 'Japanese',
-  'ko': 'Korean',
-  'zh': 'Chinese',
-  'ru': 'Russian',
-  'pt': 'Portuguese',
+  en: "English",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  it: "Italian",
+  ja: "Japanese",
+  ko: "Korean",
+  zh: "Chinese",
+  ru: "Russian",
+  pt: "Portuguese",
 };
 
 function constructInteractiveMaterialPrompt(
-  student: Student, 
+  student: Student,
   subTopic: any,
   template: LessonTemplate | null
 ): string {
-  const languageName = languageMap[student.target_language] || student.target_language;
-  
+  const languageName =
+    languageMap[student.target_language] || student.target_language;
+
   if (template) {
     // Use template-based prompt
     return `You are an expert language tutor creating interactive lesson materials. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
@@ -82,26 +84,32 @@ Student Profile:
 - Name: ${student.name}
 - Target Language: ${languageName}
 - Proficiency Level: ${student.level.toUpperCase()}
-- End Goals: ${student.end_goals || 'General language improvement'}
-- Grammar Weaknesses: ${student.grammar_weaknesses || 'None specified'}
-- Vocabulary Gaps: ${student.vocabulary_gaps || 'None specified'}
-- Pronunciation Challenges: ${student.pronunciation_challenges || 'None specified'}
-- Conversational Fluency Barriers: ${student.conversational_fluency_barriers || 'None specified'}
-- Learning Styles: ${student.learning_styles?.join(', ') || 'Not specified'}
-- Additional Notes: ${student.notes || 'None'}
+- End Goals: ${student.end_goals || "General language improvement"}
+- Grammar Weaknesses: ${student.grammar_weaknesses || "None specified"}
+- Vocabulary Gaps: ${student.vocabulary_gaps || "None specified"}
+- Pronunciation Challenges: ${
+      student.pronunciation_challenges || "None specified"
+    }
+- Conversational Fluency Barriers: ${
+      student.conversational_fluency_barriers || "None specified"
+    }
+- Learning Styles: ${student.learning_styles?.join(", ") || "Not specified"}
+- Additional Notes: ${student.notes || "None"}
 
 Sub-Topic to Focus On:
 - Title: ${subTopic.title}
 - Category: ${subTopic.category}
 - Level: ${subTopic.level}
-- Description: ${subTopic.description || 'No description provided'}
+- Description: ${subTopic.description || "No description provided"}
 
 Template Structure to Fill:
 ${JSON.stringify(template.template_json, null, 2)}
 
 CRITICAL INSTRUCTIONS:
 1. You must fill ALL "ai_placeholder" fields in the template with appropriate content based on the student profile and sub-topic
-2. Replace placeholder content like "Lesson Title Here" with the actual sub-topic title: "${subTopic.title}"
+2. Replace placeholder content like "Lesson Title Here" with the actual sub-topic title: "${
+      subTopic.title
+    }"
 3. Generate specific, detailed content for each section that matches the student's level and needs
 4. For vocabulary_items arrays, create 4-6 relevant vocabulary words. Each vocabulary item MUST have this exact structure with the correct number of examples based on student level:
    - A1/A2 levels: Generate 5 example sentences per vocabulary word
@@ -113,9 +121,21 @@ CRITICAL INSTRUCTIONS:
      "definition": "clear definition appropriate for ${student.level.toUpperCase()} level",
      "part_of_speech": "ACCURATE part of speech (noun/verb/adjective/adverb/preposition/conjunction/pronoun/interjection)",
      "examples": [
-       "UNIQUE sentence 1 showing REAL-WORLD usage in ${subTopic.title} context",
-       "DIFFERENT sentence 2 with VARIED structure and vocabulary in ${subTopic.title} context", 
-       "DISTINCT sentence 3 using ALTERNATIVE sentence patterns in ${subTopic.title} context"${student.level.toLowerCase().startsWith('a') ? ',\n       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context",\n       "ADDITIONAL sentence 5 with UNIQUE structure and context in ${subTopic.title} context"' : student.level.toLowerCase().startsWith('b') ? ',\n       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context"' : ''}
+       "UNIQUE sentence 1 showing REAL-WORLD usage in ${
+         subTopic.title
+       } context",
+       "DIFFERENT sentence 2 with VARIED structure and vocabulary in ${
+         subTopic.title
+       } context", 
+       "DISTINCT sentence 3 using ALTERNATIVE sentence patterns in ${
+         subTopic.title
+       } context"${
+      student.level.toLowerCase().startsWith("a")
+        ? ',\n       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context",\n       "ADDITIONAL sentence 5 with UNIQUE structure and context in ${subTopic.title} context"'
+        : student.level.toLowerCase().startsWith("b")
+        ? ',\n       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context"'
+        : ""
+    }
      ]
    }
    
@@ -147,14 +167,20 @@ CRITICAL INSTRUCTIONS:
    ]
 6. For matching_pairs arrays, create 3-5 question-answer pairs
 7. For list items, create 3-5 relevant items
-8. For example_sentences arrays, create contextual sentences that directly relate to the lesson topic "${subTopic.title}" and use vocabulary from the lesson
+8. For example_sentences arrays, create contextual sentences that directly relate to the lesson topic "${
+      subTopic.title
+    }" and use vocabulary from the lesson
 9. Ensure all content is appropriate for ${student.level.toUpperCase()} level ${languageName}
 10. Address the student's specific weaknesses and learning goals
 11. Focus specifically on the sub-topic: ${subTopic.title}
 12. NEVER leave any dialogue_lines empty - always populate both "character" and "text" fields with meaningful content
 13. For dialogue_elements in fill_in_the_blanks_dialogue, ensure each dialogue element has proper "character" and "text" fields
-14. IMPORTANT: All example sentences must be contextually relevant to "${subTopic.title}" and incorporate lesson vocabulary - NO generic sentences
-15. Each vocabulary word must have 3-5 example sentences that demonstrate its use in the context of "${subTopic.title}"
+14. IMPORTANT: All example sentences must be contextually relevant to "${
+      subTopic.title
+    }" and incorporate lesson vocabulary - NO generic sentences
+15. Each vocabulary word must have 3-5 example sentences that demonstrate its use in the context of "${
+      subTopic.title
+    }"
 
 RESPOND ONLY WITH THE FILLED TEMPLATE JSON - NO OTHER TEXT.`;
   } else {
@@ -165,19 +191,23 @@ Student Profile:
 - Name: ${student.name}
 - Target Language: ${languageName}
 - Proficiency Level: ${student.level.toUpperCase()}
-- End Goals: ${student.end_goals || 'General language improvement'}
-- Grammar Weaknesses: ${student.grammar_weaknesses || 'None specified'}
-- Vocabulary Gaps: ${student.vocabulary_gaps || 'None specified'}
-- Pronunciation Challenges: ${student.pronunciation_challenges || 'None specified'}
-- Conversational Fluency Barriers: ${student.conversational_fluency_barriers || 'None specified'}
-- Learning Styles: ${student.learning_styles?.join(', ') || 'Not specified'}
-- Additional Notes: ${student.notes || 'None'}
+- End Goals: ${student.end_goals || "General language improvement"}
+- Grammar Weaknesses: ${student.grammar_weaknesses || "None specified"}
+- Vocabulary Gaps: ${student.vocabulary_gaps || "None specified"}
+- Pronunciation Challenges: ${
+      student.pronunciation_challenges || "None specified"
+    }
+- Conversational Fluency Barriers: ${
+      student.conversational_fluency_barriers || "None specified"
+    }
+- Learning Styles: ${student.learning_styles?.join(", ") || "Not specified"}
+- Additional Notes: ${student.notes || "None"}
 
 Sub-Topic to Focus On:
 - Title: ${subTopic.title}
 - Category: ${subTopic.category}
 - Level: ${subTopic.level}
-- Description: ${subTopic.description || 'No description provided'}
+- Description: ${subTopic.description || "No description provided"}
 
 Create a basic interactive lesson focused on this sub-topic. Respond with this JSON structure:
 
@@ -199,29 +229,51 @@ Create a basic interactive lesson focused on this sub-topic. Respond with this J
         "word": "word1", 
         "definition": "definition1",
         "examples": [
-          "Contextual sentence 1 using word1 in the context of ${subTopic.title}",
-          "Contextual sentence 2 using word1 in the context of ${subTopic.title}",
-          "Contextual sentence 3 using word1 in the context of ${subTopic.title}"
+          "Contextual sentence 1 using word1 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 2 using word1 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 3 using word1 in the context of ${
+            subTopic.title
+          }"
         ]
       },
       {
         "word": "word2", 
         "definition": "definition2",
         "examples": [
-          "Contextual sentence 1 using word2 in the context of ${subTopic.title}",
-          "Contextual sentence 2 using word2 in the context of ${subTopic.title}",
-          "Contextual sentence 3 using word2 in the context of ${subTopic.title}"
+          "Contextual sentence 1 using word2 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 2 using word2 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 3 using word2 in the context of ${
+            subTopic.title
+          }"
         ]
       }
     ],
     "example_sentences": [
-      "Sentence 1 that directly relates to ${subTopic.title} and uses lesson vocabulary",
-      "Sentence 2 that directly relates to ${subTopic.title} and uses lesson vocabulary",
-      "Sentence 3 that directly relates to ${subTopic.title} and uses lesson vocabulary"
+      "Sentence 1 that directly relates to ${
+        subTopic.title
+      } and uses lesson vocabulary",
+      "Sentence 2 that directly relates to ${
+        subTopic.title
+      } and uses lesson vocabulary",
+      "Sentence 3 that directly relates to ${
+        subTopic.title
+      } and uses lesson vocabulary"
     ],
     "dialogue_example": [
-      {"character": "Teacher", "text": "Example dialogue line 1 related to ${subTopic.title}"},
-      {"character": "Student", "text": "Example dialogue line 2 related to ${subTopic.title}"}
+      {"character": "Teacher", "text": "Example dialogue line 1 related to ${
+        subTopic.title
+      }"},
+      {"character": "Student", "text": "Example dialogue line 2 related to ${
+        subTopic.title
+      }"}
     ],
     "wrap_up": "Summary and key takeaways"
   }
@@ -230,7 +282,11 @@ Create a basic interactive lesson focused on this sub-topic. Respond with this J
 CRITICAL INSTRUCTIONS FOR CONTEXTUAL EXAMPLE SENTENCES:
 1. Focus specifically on the sub-topic: ${subTopic.title}
 2. Make content appropriate for ${student.level.toUpperCase()} level ${languageName}
-3. Address the student's specific learning needs: ${student.grammar_weaknesses || 'general improvement'}, ${student.vocabulary_gaps || 'general vocabulary'}, ${student.conversational_fluency_barriers || 'general fluency'}
+3. Address the student's specific learning needs: ${
+      student.grammar_weaknesses || "general improvement"
+    }, ${student.vocabulary_gaps || "general vocabulary"}, ${
+      student.conversational_fluency_barriers || "general fluency"
+    }
 4. Create practical, engaging content that relates directly to ${subTopic.title}
 5. For vocabulary items, each word MUST have the correct number of example sentences based on student level:
    - A1/A2 levels: Generate 5 example sentences per vocabulary word
@@ -248,7 +304,9 @@ CRITICAL INSTRUCTIONS FOR CONTEXTUAL EXAMPLE SENTENCES:
    - Are contextually coherent with the lesson theme
    - Provide meaningful practice for the student's level
 7. ALWAYS populate dialogue arrays with objects containing "character" and "text" properties
-8. NEVER create generic example sentences - all examples must be contextually relevant to ${subTopic.title}
+8. NEVER create generic example sentences - all examples must be contextually relevant to ${
+      subTopic.title
+    }
 9. Ensure all example sentences work together to reinforce the lesson's main concepts
 
 RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT.`;
@@ -257,22 +315,22 @@ RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT.`;
 
 function cleanJsonResponse(content: string): string {
   // Remove any markdown code block formatting
-  let cleaned = content.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-  
+  let cleaned = content.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+
   // Remove any leading/trailing whitespace
   cleaned = cleaned.trim();
-  
+
   // Remove trailing commas before closing brackets/braces (common AI mistake)
-  cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
-  
+  cleaned = cleaned.replace(/,(\s*[}\]])/g, "$1");
+
   // Remove any text before the first { or after the last }
-  const firstBrace = cleaned.indexOf('{');
-  const lastBrace = cleaned.lastIndexOf('}');
-  
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
     cleaned = cleaned.substring(firstBrace, lastBrace + 1);
   }
-  
+
   return cleaned;
 }
 
@@ -280,76 +338,89 @@ function validateAndFixJson(jsonString: string): any {
   try {
     return JSON.parse(jsonString);
   } catch (error) {
-    console.log('🔧 Initial JSON parse failed, attempting fixes...');
-    
+    console.log("🔧 Initial JSON parse failed, attempting fixes...");
+
     // Try more aggressive cleaning
     let fixed = jsonString
       // Remove any control characters
-      .replace(/[\x00-\x1F\x7F]/g, '')
+      .replace(/[\x00-\x1F\x7F]/g, "")
       // Fix common quote issues
       .replace(/'/g, '"')
       // Fix trailing commas more aggressively
-      .replace(/,(\s*[}\]])/g, '$1')
+      .replace(/,(\s*[}\]])/g, "$1")
       // Fix missing commas between array elements
-      .replace(/}(\s*){/g, '},$1{')
-      .replace(/](\s*)\[/g, '],$1[');
-    
+      .replace(/}(\s*){/g, "},$1{")
+      .replace(/](\s*)\[/g, "],$1[");
+
     try {
       return JSON.parse(fixed);
     } catch (secondError) {
-      console.log('🔧 Second attempt failed');
-      throw new Error(`Unable to parse JSON after multiple attempts. Original: ${jsonString.substring(0, 200)}...`);
+      console.log("🔧 Second attempt failed");
+      throw new Error(
+        `Unable to parse JSON after multiple attempts. Original: ${jsonString.substring(
+          0,
+          200
+        )}...`
+      );
     }
   }
 }
 
-function validateAndEnsureExamples(template: any, subTopic: any, student: Student): any {
-  console.log('🔍 Validating and ensuring vocabulary examples...');
-  
+function validateAndEnsureExamples(
+  template: any,
+  subTopic: any,
+  student: Student
+): any {
+  console.log("🔍 Validating and ensuring vocabulary examples...");
+
   // Helper function to generate diverse, word-specific contextual examples
-  const generateContextualExamples = (word: string, definition: string, partOfSpeech: string): string[] => {
+  const generateContextualExamples = (
+    word: string,
+    definition: string,
+    partOfSpeech: string
+  ): string[] => {
     const examples = [];
     const level = student.level.toLowerCase();
     const wordLower = word.toLowerCase();
     const pos = partOfSpeech.toLowerCase();
-    
+
     // Word-specific examples for common vocabulary (prevents repetition)
-    if (wordLower === 'extended family') {
+    if (wordLower === "extended family") {
       examples.push(
         `My extended family includes grandparents, aunts, uncles, and cousins.`,
         `We have a large extended family reunion every summer.`,
         `Extended family members often provide support during difficult times.`,
         `Children benefit from close relationships with their extended family.`
       );
-    } else if (wordLower === 'nuclear family') {
+    } else if (wordLower === "nuclear family") {
       examples.push(
         `A nuclear family typically consists of parents and their children.`,
         `The nuclear family is the most common family structure in many countries.`,
         `Our nuclear family includes mom, dad, and two children.`,
         `Nuclear family dynamics can vary greatly between cultures.`
       );
-    } else if (wordLower === 'sibling rivalry') {
+    } else if (wordLower === "sibling rivalry") {
       examples.push(
         `Sibling rivalry is common between brothers and sisters.`,
         `Parents should address sibling rivalry with patience and fairness.`,
         `Healthy competition can reduce sibling rivalry over time.`,
         `Sibling rivalry often decreases as children grow older.`
       );
-    } else if (wordLower === 'relationship status') {
+    } else if (wordLower === "relationship status") {
       examples.push(
         `Social media profiles often display your relationship status.`,
         `Her relationship status changed from single to married.`,
         `Some people prefer to keep their relationship status private.`,
         `Relationship status can affect tax filing and insurance benefits.`
       );
-    } else if (wordLower === 'cohabitate') {
+    } else if (wordLower === "cohabitate") {
       examples.push(
         `Many couples choose to cohabitate before getting married.`,
         `They decided to cohabitate after dating for two years.`,
         `Some people cohabitate to test their compatibility.`,
         `Legal rights differ for couples who cohabitate versus marry.`
       );
-    } else if (wordLower === 'in-laws') {
+    } else if (wordLower === "in-laws") {
       examples.push(
         `My in-laws are very welcoming and kind people.`,
         `Building good relationships with in-laws takes time and effort.`,
@@ -358,21 +429,21 @@ function validateAndEnsureExamples(template: any, subTopic: any, student: Studen
       );
     }
     // Generate diverse examples based on part of speech
-    else if (pos.includes('noun')) {
+    else if (pos.includes("noun")) {
       examples.push(
         `The ${word} is an important concept in family relationships.`,
         `Understanding different types of ${word} helps with communication.`,
         `Every ${word} has its own unique characteristics and challenges.`,
         `A healthy ${word} requires mutual respect and understanding.`
       );
-    } else if (pos.includes('verb')) {
+    } else if (pos.includes("verb")) {
       examples.push(
         `Many people ${word} to strengthen their relationships.`,
         `She ${word}s naturally in social situations.`,
         `We should ${word} with respect and consideration.`,
         `They ${word}ed successfully after years of practice.`
       );
-    } else if (pos.includes('adjective')) {
+    } else if (pos.includes("adjective")) {
       examples.push(
         `The relationship was very ${word} and supportive.`,
         `A ${word} approach works better in family situations.`,
@@ -388,7 +459,7 @@ function validateAndEnsureExamples(template: any, subTopic: any, student: Studen
         `Learning about "${word}" enhances communication skills.`
       );
     }
-    
+
     return examples;
   };
 
@@ -396,318 +467,385 @@ function validateAndEnsureExamples(template: any, subTopic: any, student: Studen
   const processObject = (obj: any): any => {
     if (Array.isArray(obj)) {
       return obj.map(processObject);
-    } else if (obj && typeof obj === 'object') {
+    } else if (obj && typeof obj === "object") {
       const processed: any = {};
-      
+
       for (const [key, value] of Object.entries(obj)) {
-        if (key === 'vocabulary_items' && Array.isArray(value)) {
+        if (key === "vocabulary_items" && Array.isArray(value)) {
           // Process vocabulary items to ensure they have examples
           processed[key] = value.map((item: any) => {
-            if (!item.examples || !Array.isArray(item.examples) || item.examples.length === 0) {
-              console.log(`⚠️ Missing examples for vocabulary word: ${item.word}, generating contextual examples...`);
-              
-              const word = item.word || 'word';
-              const definition = item.definition || 'definition';
-              const partOfSpeech = item.part_of_speech || 'noun';
-              
-              item.examples = generateContextualExamples(word, definition, partOfSpeech);
+            if (
+              !item.examples ||
+              !Array.isArray(item.examples) ||
+              item.examples.length === 0
+            ) {
+              console.log(
+                `⚠️ Missing examples for vocabulary word: ${item.word}, generating contextual examples...`
+              );
+
+              const word = item.word || "word";
+              const definition = item.definition || "definition";
+              const partOfSpeech = item.part_of_speech || "noun";
+
+              item.examples = generateContextualExamples(
+                word,
+                definition,
+                partOfSpeech
+              );
             }
-            
+
             // Ensure we have the right number of examples based on level
             const levelLower = student.level.toLowerCase();
-            const targetCount = levelLower.startsWith('a') ? 5 : 
-                               levelLower.startsWith('b') ? 4 : 3;
-            
+            const targetCount = levelLower.startsWith("a")
+              ? 5
+              : levelLower.startsWith("b")
+              ? 4
+              : 3;
+
             if (item.examples.length > targetCount) {
               item.examples = item.examples.slice(0, targetCount);
             } else if (item.examples.length < targetCount) {
               // Add more examples if needed
-              const word = item.word || 'word';
-              const definition = item.definition || 'definition';
-              const partOfSpeech = item.part_of_speech || 'noun';
-              const additionalExamples = generateContextualExamples(word, definition, partOfSpeech);
-              
-              while (item.examples.length < targetCount && additionalExamples.length > 0) {
+              const word = item.word || "word";
+              const definition = item.definition || "definition";
+              const partOfSpeech = item.part_of_speech || "noun";
+              const additionalExamples = generateContextualExamples(
+                word,
+                definition,
+                partOfSpeech
+              );
+
+              while (
+                item.examples.length < targetCount &&
+                additionalExamples.length > 0
+              ) {
                 const newExample = additionalExamples.pop();
                 if (newExample && !item.examples.includes(newExample)) {
                   item.examples.push(newExample);
                 }
               }
             }
-            
+
             return item;
           });
-        } else if (key === 'sentences' && Array.isArray(value) && value.length === 0) {
+        } else if (
+          key === "sentences" &&
+          Array.isArray(value) &&
+          value.length === 0
+        ) {
           // Generate example sentences if missing
-          console.log(`⚠️ Missing example sentences, generating contextual sentences...`);
+          console.log(
+            `⚠️ Missing example sentences, generating contextual sentences...`
+          );
           processed[key] = [
             `This example demonstrates key concepts from ${subTopic.title}.`,
             `Students practice ${subTopic.title} through structured exercises.`,
-            `Understanding ${subTopic.title} improves overall language proficiency.`
+            `Understanding ${subTopic.title} improves overall language proficiency.`,
           ];
         } else {
           processed[key] = processObject(value);
         }
       }
-      
+
       return processed;
     }
-    
+
     return obj;
   };
 
   const validatedTemplate = processObject(template);
-  console.log('✅ Vocabulary examples validation completed');
+  console.log("✅ Vocabulary examples validation completed");
   return validatedTemplate;
 }
 
-function selectAppropriateTemplate(subTopic: any, templates: LessonTemplate[]): LessonTemplate | null {
+function selectAppropriateTemplate(
+  subTopic: any,
+  templates: LessonTemplate[]
+): LessonTemplate | null {
   // First, try to find a template that matches the sub-topic's level and category exactly
-  const exactMatches = templates.filter(t => 
-    t.level === subTopic.level && t.category === subTopic.category
+  const exactMatches = templates.filter(
+    (t) => t.level === subTopic.level && t.category === subTopic.category
   );
-  
+
   if (exactMatches.length > 0) {
     console.log(`✅ Found exact match template: ${exactMatches[0].name}`);
     return exactMatches[0];
   }
-  
+
   // Try to match by category only (any level)
-  const categoryMatches = templates.filter(t => t.category === subTopic.category);
-  
+  const categoryMatches = templates.filter(
+    (t) => t.category === subTopic.category
+  );
+
   if (categoryMatches.length > 0) {
     console.log(`✅ Found category match template: ${categoryMatches[0].name}`);
     return categoryMatches[0];
   }
-  
+
   // Try to match by level only (any category)
-  const levelMatches = templates.filter(t => t.level === subTopic.level);
-  
+  const levelMatches = templates.filter((t) => t.level === subTopic.level);
+
   if (levelMatches.length > 0) {
     // Prefer Conversation templates as they're most generic
-    const conversationTemplate = levelMatches.find(t => t.category === 'Conversation');
+    const conversationTemplate = levelMatches.find(
+      (t) => t.category === "Conversation"
+    );
     if (conversationTemplate) {
-      console.log(`✅ Using Conversation template for level ${subTopic.level}: ${conversationTemplate.name}`);
+      console.log(
+        `✅ Using Conversation template for level ${subTopic.level}: ${conversationTemplate.name}`
+      );
       return conversationTemplate;
     }
-    
-    console.log(`✅ Using first available template for level ${subTopic.level}: ${levelMatches[0].name}`);
+
+    console.log(
+      `✅ Using first available template for level ${subTopic.level}: ${levelMatches[0].name}`
+    );
     return levelMatches[0];
   }
-  
-  console.log(`⚠️ No suitable template found for category: ${subTopic.category}, level: ${subTopic.level}`);
+
+  console.log(
+    `⚠️ No suitable template found for category: ${subTopic.category}, level: ${subTopic.level}`
+  );
   return null;
 }
 
 serve(async (req) => {
-  console.log('🚀 Generate Interactive Material function called:', req.method, req.url);
+  console.log(
+    "🚀 Generate Interactive Material function called:",
+    req.method,
+    req.url
+  );
 
-  if (req.method === 'OPTIONS') {
-    console.log('✅ Handling CORS preflight');
-    return new Response(null, { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    console.log("✅ Handling CORS preflight");
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🔧 Creating Supabase client...');
+    console.log("🔧 Creating Supabase client...");
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SERVICE_ROLE_KEY') ?? ''
-    )
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SERVICE_ROLE_KEY") ?? ""
+    );
 
-    console.log('🔐 Checking authorization...');
-    const authHeader = req.headers.get('Authorization')
+    console.log("🔐 Checking authorization...");
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error('No authorization header')
+      throw new Error("No authorization header");
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
-    
+    const token = authHeader.replace("Bearer ", "");
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseClient.auth.getUser(token);
+
     if (authError || !user) {
-      console.error('❌ Auth error:', authError)
-      throw new Error('Invalid token')
+      console.error("❌ Auth error:", authError);
+      throw new Error("Invalid token");
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log("✅ User authenticated:", user.id);
 
-    console.log('📦 Parsing request body...');
-    const { lesson_id, selected_sub_topic }: GenerateInteractiveMaterialRequest = await req.json()
+    console.log("📦 Parsing request body...");
+    const {
+      lesson_id,
+      selected_sub_topic,
+    }: GenerateInteractiveMaterialRequest = await req.json();
 
     if (!lesson_id || !selected_sub_topic) {
-      throw new Error('lesson_id and selected_sub_topic are required')
+      throw new Error("lesson_id and selected_sub_topic are required");
     }
 
-    console.log('🔍 Fetching lesson details for ID:', lesson_id);
-    
+    console.log("🔍 Fetching lesson details for ID:", lesson_id);
+
     // Fetch lesson with student details
     const { data: lessonData, error: lessonError } = await supabaseClient
-      .from('lessons')
-      .select(`
+      .from("lessons")
+      .select(
+        `
         *,
         student:students(*)
-      `)
-      .eq('id', lesson_id)
-      .eq('tutor_id', user.id)
-      .single()
+      `
+      )
+      .eq("id", lesson_id)
+      .eq("tutor_id", user.id)
+      .single();
 
     if (lessonError || !lessonData) {
-      console.error('❌ Lesson fetch error:', lessonError);
-      throw new Error('Lesson not found or access denied')
+      console.error("❌ Lesson fetch error:", lessonError);
+      throw new Error("Lesson not found or access denied");
     }
 
     const lesson = lessonData as Lesson;
     const student = lesson.student as Student;
 
-    console.log('✅ Lesson found:', lesson.id, 'for student:', student.name);
-    console.log('🎯 Selected sub-topic:', selected_sub_topic.title);
+    console.log("✅ Lesson found:", lesson.id, "for student:", student.name);
+    console.log("🎯 Selected sub-topic:", selected_sub_topic.title);
 
     // Fetch available lesson templates
-    console.log('🎯 Fetching lesson templates...');
+    console.log("🎯 Fetching lesson templates...");
     const { data: templatesData, error: templatesError } = await supabaseClient
-      .from('lesson_templates')
-      .select('*')
-      .eq('is_active', true);
+      .from("lesson_templates")
+      .select("*")
+      .eq("is_active", true);
 
     if (templatesError) {
-      console.error('❌ Templates fetch error:', templatesError);
-      throw new Error('Failed to fetch lesson templates')
+      console.error("❌ Templates fetch error:", templatesError);
+      throw new Error("Failed to fetch lesson templates");
     }
 
     const templates = templatesData as LessonTemplate[];
     console.log(`✅ Found ${templates.length} active templates`);
 
     // Select the most appropriate template
-    const selectedTemplate = selectAppropriateTemplate(selected_sub_topic, templates);
-    
-    let templateName = 'Basic Interactive Lesson';
+    const selectedTemplate = selectAppropriateTemplate(
+      selected_sub_topic,
+      templates
+    );
+
+    let templateName = "Basic Interactive Lesson";
     if (selectedTemplate) {
       templateName = selectedTemplate.name;
-      console.log('🎯 Using template:', selectedTemplate.name);
+      console.log("🎯 Using template:", selectedTemplate.name);
     } else {
-      console.log('🎯 No specific template found, using basic interactive format');
+      console.log(
+        "🎯 No specific template found, using basic interactive format"
+      );
     }
 
     // Construct the prompt for AI
-    const prompt = constructInteractiveMaterialPrompt(student, selected_sub_topic, selectedTemplate);
-    console.log('📝 Prompt constructed, length:', prompt.length);
+    const prompt = constructInteractiveMaterialPrompt(
+      student,
+      selected_sub_topic,
+      selectedTemplate
+    );
+    console.log("📝 Prompt constructed, length:", prompt.length);
 
     // Get Gemini API key
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
     if (!geminiApiKey) {
-      throw new Error('Gemini API key not configured')
+      throw new Error("Gemini API key not configured");
     }
 
-    console.log('🤖 Calling Gemini API...');
+    console.log("🤖 Calling Gemini API...");
     // Call Gemini API
-    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${geminiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gemini-2.0-flash-exp',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert language tutor creating interactive lesson materials. You must respond ONLY with valid JSON in the exact format requested. Do not include any explanations, markdown formatting, or additional text outside the JSON object.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 4000,
-      }),
-    })
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${geminiApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gemini-2.0-flash-exp",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are an expert language tutor creating interactive lesson materials. You must respond ONLY with valid JSON in the exact format requested. Do not include any explanations, markdown formatting, or additional text outside the JSON object.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          temperature: 0.1,
+          max_tokens: 4000,
+        }),
+      }
+    );
 
-    console.log('📡 Gemini API response status:', geminiResponse.status);
+    console.log("📡 Gemini API response status:", geminiResponse.status);
 
     if (!geminiResponse.ok) {
-      const errorData = await geminiResponse.text()
-      console.error('❌ Gemini API error:', errorData);
-      throw new Error(`Gemini API error: ${errorData}`)
+      const errorData = await geminiResponse.text();
+      console.error("❌ Gemini API error:", errorData);
+      throw new Error(`Gemini API error: ${errorData}`);
     }
 
-    const geminiData = await geminiResponse.json()
-    console.log('✅ Gemini API response received');
-    
-    const generatedContent = geminiData.choices[0]?.message?.content
+    const geminiData = await geminiResponse.json();
+    console.log("✅ Gemini API response received");
+
+    const generatedContent = geminiData.choices[0]?.message?.content;
 
     if (!generatedContent) {
-      throw new Error('No content generated from Gemini')
+      throw new Error("No content generated from Gemini");
     }
 
-    console.log('📄 Raw generated content length:', generatedContent.length);
+    console.log("📄 Raw generated content length:", generatedContent.length);
 
     // Clean and parse the JSON response
     const cleanedContent = cleanJsonResponse(generatedContent);
-    console.log('🧹 Cleaned content length:', cleanedContent.length);
+    console.log("🧹 Cleaned content length:", cleanedContent.length);
 
     let filledTemplate;
     try {
       filledTemplate = validateAndFixJson(cleanedContent);
     } catch (parseError) {
-      console.error('❌ JSON parse error:', parseError);
-      throw new Error('Failed to parse AI-generated interactive material')
+      console.error("❌ JSON parse error:", parseError);
+      throw new Error("Failed to parse AI-generated interactive material");
     }
 
-    console.log('✅ Interactive material parsed successfully');
+    console.log("✅ Interactive material parsed successfully");
 
     // Validate and ensure all vocabulary items have examples
-    filledTemplate = validateAndEnsureExamples(filledTemplate, selected_sub_topic, student);
-    console.log('✅ Vocabulary examples validated and ensured');
+    filledTemplate = validateAndEnsureExamples(
+      filledTemplate,
+      selected_sub_topic,
+      student
+    );
+    console.log("✅ Vocabulary examples validated and ensured");
 
     // Update the lesson with the interactive content
-    console.log('💾 Updating lesson with interactive content...');
+    console.log("💾 Updating lesson with interactive content...");
     const { data: updatedLesson, error: updateError } = await supabaseClient
-      .from('lessons')
+      .from("lessons")
       .update({
         interactive_lesson_content: {
           ...filledTemplate,
           selected_sub_topic: selected_sub_topic,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         },
-        lesson_template_id: selectedTemplate?.id || null
+        lesson_template_id: selectedTemplate?.id || null,
       })
-      .eq('id', lesson_id)
+      .eq("id", lesson_id)
       .select()
-      .single()
+      .single();
 
     if (updateError) {
-      console.error('❌ Database update error:', updateError);
-      throw new Error(`Failed to update lesson: ${updateError.message}`)
+      console.error("❌ Database update error:", updateError);
+      throw new Error(`Failed to update lesson: ${updateError.message}`);
     }
 
-    console.log('✅ Lesson updated successfully with interactive content');
+    console.log("✅ Lesson updated successfully with interactive content");
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Interactive lesson material generated successfully',
+      JSON.stringify({
+        success: true,
+        message: "Interactive lesson material generated successfully",
         lesson_id: updatedLesson.id,
         lesson_template_id: selectedTemplate?.id || null,
         template_name: templateName,
         sub_topic: selected_sub_topic,
-        interactive_content: filledTemplate
+        interactive_content: filledTemplate,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
-      },
-    )
-
+      }
+    );
   } catch (error) {
-    console.error('❌ Generate interactive material error:', error)
+    console.error("❌ Generate interactive material error:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Internal server error' 
+      JSON.stringify({
+        error: error.message || "Internal server error",
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
-      },
-    )
+      }
+    );
   }
-})
+});

@@ -1,9 +1,9 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
-import { supabase } from './supabase';
+import { supabase, supabaseRequest } from './supabase';
 
 type AuthContextType = {
   user: User | null;
@@ -39,6 +39,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  // Proactive session refresh to prevent JWT expiration
+  const refreshSessionProactively = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.expires_at) {
+        const expiresAt = new Date(session.expires_at * 1000);
+        const now = new Date();
+        const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+        
+        // If token expires in less than 10 minutes, refresh it
+        if (timeUntilExpiry < 10 * 60 * 1000) {
+          console.log('Token expires soon, refreshing proactively...');
+          const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
+          
+          if (error) {
+            console.error('Proactive refresh failed:', error);
+            // Don't throw error here, let normal flow handle it
+          } else if (newSession) {
+            console.log('Session refreshed proactively');
+            setUser(newSession.user);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Proactive session refresh failed:', error);
+      // Don't throw error, let normal auth flow handle expired tokens
+    }
+  }, []);
+
+  // Set up interval for proactive session refresh
+  useEffect(() => {
+    // Check session every 5 minutes
+    const interval = setInterval(refreshSessionProactively, 5 * 60 * 1000);
+    
+    // Also check immediately if user is logged in
+    if (user) {
+      refreshSessionProactively();
+    }
+    
+    return () => clearInterval(interval);
+  }, [user, refreshSessionProactively]);
 
   useEffect(() => {
     // Get initial session
@@ -95,12 +138,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      // Check if user has a tutor profile
-      const { data: tutorData, error: tutorError } = await supabase
-        .from('tutors')
-        .select('*')
-        .eq('id', data.user.id)
-        .maybeSingle();
+      // Check if user has a tutor profile using enhanced request wrapper
+      const { data: tutorData, error: tutorError } = await supabaseRequest(() =>
+        supabase
+          .from('tutors')
+          .select('*')
+          .eq('id', data.user.id)
+          .maybeSingle()
+      );
 
       if (tutorError) {
         throw tutorError;
