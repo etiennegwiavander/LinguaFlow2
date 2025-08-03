@@ -25,7 +25,7 @@ const PRE_GENERATED_IMAGES = {
   ]
 };
 
-function getEducationalFallbackImage(prompt: string = 'AI Generated Banner'): string {
+function getEducationalFallbackImage(prompt: string): string {
   // Use prompt to select appropriate category and image
   const lowerPrompt = prompt.toLowerCase();
   let category = 'general';
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (!openaiApiKey) {
       console.warn('OpenAI API key not found, using educational fallback image');
       // Return a pre-generated educational image
-      const fallbackUrl = getEducationalFallbackImage(prompt);
+      const fallbackUrl = getEducationalFallbackImage(prompt || 'AI Generated Banner');
       return NextResponse.json({ imageUrl: fallbackUrl });
     }
 
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       console.error('OpenAI API error:', errorData);
       
       // Return educational fallback image on API error
-      const fallbackUrl = getEducationalFallbackImage(prompt);
+      const fallbackUrl = getEducationalFallbackImage(prompt || 'AI Generated Banner');
       return NextResponse.json({ imageUrl: fallbackUrl });
     }
 
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     console.error('Image generation error:', error);
     
     // Return educational fallback image on any error
-    const fallbackUrl = getEducationalFallbackImage(prompt);
+    const fallbackUrl = getEducationalFallbackImage('AI Generated Banner');
     return NextResponse.json({ imageUrl: fallbackUrl });
   }
 }

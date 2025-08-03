@@ -69,14 +69,14 @@ export default function EnhancedVocabularySection({
             if ('speechSynthesis' in window) {
                 // Cancel any ongoing speech
                 speechSynthesis.cancel();
-                
+
                 const utterance = new SpeechSynthesisUtterance(word);
-                
+
                 // Enhanced human-like settings
                 utterance.rate = 0.7; // Slower for better pronunciation learning
                 utterance.pitch = 0.9; // Slightly lower pitch for more natural sound
                 utterance.volume = 1;
-                
+
                 // Wait for voices to load if not already loaded
                 const loadVoices = () => {
                     return new Promise<SpeechSynthesisVoice[]>((resolve) => {
@@ -93,7 +93,7 @@ export default function EnhancedVocabularySection({
                 };
 
                 const voices = await loadVoices();
-                
+
                 // Prioritize high-quality English voices
                 const preferredVoices = [
                     // Look for premium/neural voices first
@@ -108,7 +108,7 @@ export default function EnhancedVocabularySection({
                     voices.find(voice => voice.lang === 'en-US'),
                     voices.find(voice => voice.lang === 'en-GB'),
                     voices.find(voice => voice.lang.startsWith('en'))
-                ].filter(Boolean);
+                ].filter(Boolean) as SpeechSynthesisVoice[];
 
                 if (preferredVoices.length > 0) {
                     utterance.voice = preferredVoices[0];
@@ -193,6 +193,19 @@ export default function EnhancedVocabularySection({
                         const showingAllExamples = showAllExamples[item.word];
                         const displayedExamples = item.examples; // Show all examples by default
 
+                        // Debug logging for vocabulary examples
+                        console.log(`🔍 EnhancedVocabularySection - Processing word: ${item.word}`, {
+                            examplesCount: item.examples?.length || 0,
+                            examples: item.examples,
+                            displayedExamplesCount: displayedExamples?.length || 0,
+                            firstExample: displayedExamples?.[0] || 'No examples'
+                        });
+
+                        // If no examples, show a warning in the UI
+                        if (!displayedExamples || displayedExamples.length === 0) {
+                            console.warn(`⚠️ No examples to display for word: ${item.word}`);
+                        }
+
                         return (
                             <div key={index} className="vocabulary-item">
                                 {/* Word Header */}
@@ -256,7 +269,7 @@ export default function EnhancedVocabularySection({
                                             <span className="w-2 h-2 bg-cyber-400 rounded-full mr-2"></span>
                                             Example Sentences
                                         </h4>
-                                        
+
                                         {item.examples.length > expectedExampleCount && (
                                             <Button
                                                 variant="ghost"

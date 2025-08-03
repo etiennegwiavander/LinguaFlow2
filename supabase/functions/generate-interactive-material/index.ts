@@ -103,7 +103,42 @@ CRITICAL INSTRUCTIONS:
 1. You must fill ALL "ai_placeholder" fields in the template with appropriate content based on the student profile and sub-topic
 2. Replace placeholder content like "Lesson Title Here" with the actual sub-topic title: "${subTopic.title}"
 3. Generate specific, detailed content for each section that matches the student's level and needs
-4. For vocabulary_items arrays, create 4-6 relevant vocabulary words with definitions
+4. For vocabulary_items arrays, create 4-6 relevant vocabulary words. Each vocabulary item MUST have this exact structure with the correct number of examples based on student level:
+   - A1/A2 levels: Generate 5 example sentences per vocabulary word
+   - B1/B2 levels: Generate 4 example sentences per vocabulary word  
+   - C1/C2 levels: Generate 3 example sentences per vocabulary word
+   
+   {
+     "word": "vocabulary_word",
+     "definition": "clear definition appropriate for ${student.level.toUpperCase()} level",
+     "part_of_speech": "ACCURATE part of speech (noun/verb/adjective/adverb/preposition/conjunction/pronoun/interjection)",
+     "examples": [
+       "UNIQUE sentence 1 showing REAL-WORLD usage in ${subTopic.title} context",
+       "DIFFERENT sentence 2 with VARIED structure and vocabulary in ${subTopic.title} context", 
+       "DISTINCT sentence 3 using ALTERNATIVE sentence patterns in ${subTopic.title} context"${student.level.toLowerCase().startsWith('a') ? ',\n       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context",\n       "ADDITIONAL sentence 5 with UNIQUE structure and context in ${subTopic.title} context"' : student.level.toLowerCase().startsWith('b') ? ',\n       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context"' : ''}
+     ]
+   }
+   
+   PART OF SPEECH ACCURACY RULES:
+   - Analyze the word's actual grammatical function, not just its ending
+   - "Extended family" = NOUN (it's a thing/concept)
+   - "Cohabitate" = VERB (it's an action)
+   - "Nuclear family" = NOUN (it's a type of family structure)
+   - "Sibling rivalry" = NOUN (it's a phenomenon/concept)
+   - "Relationship status" = NOUN (it's a state/condition)
+   
+   EXAMPLE DIVERSITY REQUIREMENTS:
+   - Use DIFFERENT sentence structures (simple, compound, complex)
+   - Include VARIED contexts (formal, informal, personal, professional)
+   - Show MULTIPLE uses (as subject, object, in phrases, with modifiers)
+   - Avoid REPETITIVE patterns or templates
+   - Create REALISTIC, natural-sounding sentences
+   
+   GRAMMATICAL CORRECTNESS:
+   - NOUNS: Use with appropriate articles (a/an/the), show singular/plural forms
+   - VERBS: Show different tenses and conjugations (I walk, she walks, they walked, will walk)
+   - ADJECTIVES: Use to modify nouns (the happy child, a difficult situation)
+   - ADVERBS: Use to modify verbs, adjectives, or other adverbs (speaks quickly, very important)
 5. For dialogue_lines arrays, create realistic conversations appropriate for the level. Each dialogue line MUST be an object with "character" and "text" properties:
    Example: [
      {"character": "Teacher", "text": "Hello! How are you today?"},
@@ -112,12 +147,14 @@ CRITICAL INSTRUCTIONS:
    ]
 6. For matching_pairs arrays, create 3-5 question-answer pairs
 7. For list items, create 3-5 relevant items
-8. Ensure all content is appropriate for ${student.level.toUpperCase()} level ${languageName}
-9. Address the student's specific weaknesses and learning goals
-10. Make the content engaging and practical
+8. For example_sentences arrays, create contextual sentences that directly relate to the lesson topic "${subTopic.title}" and use vocabulary from the lesson
+9. Ensure all content is appropriate for ${student.level.toUpperCase()} level ${languageName}
+10. Address the student's specific weaknesses and learning goals
 11. Focus specifically on the sub-topic: ${subTopic.title}
 12. NEVER leave any dialogue_lines empty - always populate both "character" and "text" fields with meaningful content
 13. For dialogue_elements in fill_in_the_blanks_dialogue, ensure each dialogue element has proper "character" and "text" fields
+14. IMPORTANT: All example sentences must be contextually relevant to "${subTopic.title}" and incorporate lesson vocabulary - NO generic sentences
+15. Each vocabulary word must have 3-5 example sentences that demonstrate its use in the context of "${subTopic.title}"
 
 RESPOND ONLY WITH THE FILLED TEMPLATE JSON - NO OTHER TEXT.`;
   } else {
@@ -158,26 +195,61 @@ Create a basic interactive lesson focused on this sub-topic. Respond with this J
       "Exercise 3 description"
     ],
     "vocabulary": [
-      {"word": "word1", "definition": "definition1"},
-      {"word": "word2", "definition": "definition2"},
-      {"word": "word3", "definition": "definition3"}
+      {
+        "word": "word1", 
+        "definition": "definition1",
+        "examples": [
+          "Contextual sentence 1 using word1 in the context of ${subTopic.title}",
+          "Contextual sentence 2 using word1 in the context of ${subTopic.title}",
+          "Contextual sentence 3 using word1 in the context of ${subTopic.title}"
+        ]
+      },
+      {
+        "word": "word2", 
+        "definition": "definition2",
+        "examples": [
+          "Contextual sentence 1 using word2 in the context of ${subTopic.title}",
+          "Contextual sentence 2 using word2 in the context of ${subTopic.title}",
+          "Contextual sentence 3 using word2 in the context of ${subTopic.title}"
+        ]
+      }
+    ],
+    "example_sentences": [
+      "Sentence 1 that directly relates to ${subTopic.title} and uses lesson vocabulary",
+      "Sentence 2 that directly relates to ${subTopic.title} and uses lesson vocabulary",
+      "Sentence 3 that directly relates to ${subTopic.title} and uses lesson vocabulary"
     ],
     "dialogue_example": [
-      {"character": "Teacher", "text": "Example dialogue line 1"},
-      {"character": "Student", "text": "Example dialogue line 2"}
+      {"character": "Teacher", "text": "Example dialogue line 1 related to ${subTopic.title}"},
+      {"character": "Student", "text": "Example dialogue line 2 related to ${subTopic.title}"}
     ],
     "wrap_up": "Summary and key takeaways"
   }
 }
 
-CRITICAL INSTRUCTIONS:
+CRITICAL INSTRUCTIONS FOR CONTEXTUAL EXAMPLE SENTENCES:
 1. Focus specifically on the sub-topic: ${subTopic.title}
 2. Make content appropriate for ${student.level.toUpperCase()} level ${languageName}
-3. Address the student's specific learning needs
-4. Create practical, engaging content
-5. Include vocabulary, examples, and practice exercises
-6. ALWAYS populate dialogue arrays with objects containing "character" and "text" properties
-7. NEVER leave dialogue text empty - always provide meaningful conversation content
+3. Address the student's specific learning needs: ${student.grammar_weaknesses || 'general improvement'}, ${student.vocabulary_gaps || 'general vocabulary'}, ${student.conversational_fluency_barriers || 'general fluency'}
+4. Create practical, engaging content that relates directly to ${subTopic.title}
+5. For vocabulary items, each word MUST have the correct number of example sentences based on student level:
+   - A1/A2 levels: Generate 5 example sentences per vocabulary word
+   - B1/B2 levels: Generate 4 example sentences per vocabulary word  
+   - C1/C2 levels: Generate 3 example sentences per vocabulary word
+   
+   Each example sentence must:
+   - Use the word in the specific context of ${subTopic.title}
+   - Be appropriate for ${student.level.toUpperCase()} level
+   - Show practical, real-world usage related to the lesson topic
+   - Be contextually relevant to the lesson (NOT generic sentences)
+6. For example_sentences arrays, create sentences that:
+   - Directly relate to and demonstrate concepts from ${subTopic.title}
+   - Incorporate vocabulary words from the lesson
+   - Are contextually coherent with the lesson theme
+   - Provide meaningful practice for the student's level
+7. ALWAYS populate dialogue arrays with objects containing "character" and "text" properties
+8. NEVER create generic example sentences - all examples must be contextually relevant to ${subTopic.title}
+9. Ensure all example sentences work together to reinforce the lesson's main concepts
 
 RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT.`;
   }
@@ -229,6 +301,164 @@ function validateAndFixJson(jsonString: string): any {
       throw new Error(`Unable to parse JSON after multiple attempts. Original: ${jsonString.substring(0, 200)}...`);
     }
   }
+}
+
+function validateAndEnsureExamples(template: any, subTopic: any, student: Student): any {
+  console.log('🔍 Validating and ensuring vocabulary examples...');
+  
+  // Helper function to generate diverse, word-specific contextual examples
+  const generateContextualExamples = (word: string, definition: string, partOfSpeech: string): string[] => {
+    const examples = [];
+    const level = student.level.toLowerCase();
+    const wordLower = word.toLowerCase();
+    const pos = partOfSpeech.toLowerCase();
+    
+    // Word-specific examples for common vocabulary (prevents repetition)
+    if (wordLower === 'extended family') {
+      examples.push(
+        `My extended family includes grandparents, aunts, uncles, and cousins.`,
+        `We have a large extended family reunion every summer.`,
+        `Extended family members often provide support during difficult times.`,
+        `Children benefit from close relationships with their extended family.`
+      );
+    } else if (wordLower === 'nuclear family') {
+      examples.push(
+        `A nuclear family typically consists of parents and their children.`,
+        `The nuclear family is the most common family structure in many countries.`,
+        `Our nuclear family includes mom, dad, and two children.`,
+        `Nuclear family dynamics can vary greatly between cultures.`
+      );
+    } else if (wordLower === 'sibling rivalry') {
+      examples.push(
+        `Sibling rivalry is common between brothers and sisters.`,
+        `Parents should address sibling rivalry with patience and fairness.`,
+        `Healthy competition can reduce sibling rivalry over time.`,
+        `Sibling rivalry often decreases as children grow older.`
+      );
+    } else if (wordLower === 'relationship status') {
+      examples.push(
+        `Social media profiles often display your relationship status.`,
+        `Her relationship status changed from single to married.`,
+        `Some people prefer to keep their relationship status private.`,
+        `Relationship status can affect tax filing and insurance benefits.`
+      );
+    } else if (wordLower === 'cohabitate') {
+      examples.push(
+        `Many couples choose to cohabitate before getting married.`,
+        `They decided to cohabitate after dating for two years.`,
+        `Some people cohabitate to test their compatibility.`,
+        `Legal rights differ for couples who cohabitate versus marry.`
+      );
+    } else if (wordLower === 'in-laws') {
+      examples.push(
+        `My in-laws are very welcoming and kind people.`,
+        `Building good relationships with in-laws takes time and effort.`,
+        `We visit my in-laws every holiday season.`,
+        `Some couples struggle with in-laws who are too involved.`
+      );
+    }
+    // Generate diverse examples based on part of speech
+    else if (pos.includes('noun')) {
+      examples.push(
+        `The ${word} is an important concept in family relationships.`,
+        `Understanding different types of ${word} helps with communication.`,
+        `Every ${word} has its own unique characteristics and challenges.`,
+        `A healthy ${word} requires mutual respect and understanding.`
+      );
+    } else if (pos.includes('verb')) {
+      examples.push(
+        `Many people ${word} to strengthen their relationships.`,
+        `She ${word}s naturally in social situations.`,
+        `We should ${word} with respect and consideration.`,
+        `They ${word}ed successfully after years of practice.`
+      );
+    } else if (pos.includes('adjective')) {
+      examples.push(
+        `The relationship was very ${word} and supportive.`,
+        `A ${word} approach works better in family situations.`,
+        `This method is ${word} for building strong connections.`,
+        `The ${word} nature of the interaction impressed everyone.`
+      );
+    } else {
+      // Generic fallback with variety
+      examples.push(
+        `The concept of "${word}" is important in family dynamics.`,
+        `Understanding "${word}" helps improve relationships.`,
+        `People often discuss "${word}" in social contexts.`,
+        `Learning about "${word}" enhances communication skills.`
+      );
+    }
+    
+    return examples;
+  };
+
+  // Recursively process the template to find and validate vocabulary items
+  const processObject = (obj: any): any => {
+    if (Array.isArray(obj)) {
+      return obj.map(processObject);
+    } else if (obj && typeof obj === 'object') {
+      const processed: any = {};
+      
+      for (const [key, value] of Object.entries(obj)) {
+        if (key === 'vocabulary_items' && Array.isArray(value)) {
+          // Process vocabulary items to ensure they have examples
+          processed[key] = value.map((item: any) => {
+            if (!item.examples || !Array.isArray(item.examples) || item.examples.length === 0) {
+              console.log(`⚠️ Missing examples for vocabulary word: ${item.word}, generating contextual examples...`);
+              
+              const word = item.word || 'word';
+              const definition = item.definition || 'definition';
+              const partOfSpeech = item.part_of_speech || 'noun';
+              
+              item.examples = generateContextualExamples(word, definition, partOfSpeech);
+            }
+            
+            // Ensure we have the right number of examples based on level
+            const levelLower = student.level.toLowerCase();
+            const targetCount = levelLower.startsWith('a') ? 5 : 
+                               levelLower.startsWith('b') ? 4 : 3;
+            
+            if (item.examples.length > targetCount) {
+              item.examples = item.examples.slice(0, targetCount);
+            } else if (item.examples.length < targetCount) {
+              // Add more examples if needed
+              const word = item.word || 'word';
+              const definition = item.definition || 'definition';
+              const partOfSpeech = item.part_of_speech || 'noun';
+              const additionalExamples = generateContextualExamples(word, definition, partOfSpeech);
+              
+              while (item.examples.length < targetCount && additionalExamples.length > 0) {
+                const newExample = additionalExamples.pop();
+                if (newExample && !item.examples.includes(newExample)) {
+                  item.examples.push(newExample);
+                }
+              }
+            }
+            
+            return item;
+          });
+        } else if (key === 'sentences' && Array.isArray(value) && value.length === 0) {
+          // Generate example sentences if missing
+          console.log(`⚠️ Missing example sentences, generating contextual sentences...`);
+          processed[key] = [
+            `This example demonstrates key concepts from ${subTopic.title}.`,
+            `Students practice ${subTopic.title} through structured exercises.`,
+            `Understanding ${subTopic.title} improves overall language proficiency.`
+          ];
+        } else {
+          processed[key] = processObject(value);
+        }
+      }
+      
+      return processed;
+    }
+    
+    return obj;
+  };
+
+  const validatedTemplate = processObject(template);
+  console.log('✅ Vocabulary examples validation completed');
+  return validatedTemplate;
 }
 
 function selectAppropriateTemplate(subTopic: any, templates: LessonTemplate[]): LessonTemplate | null {
@@ -424,6 +654,10 @@ serve(async (req) => {
     }
 
     console.log('✅ Interactive material parsed successfully');
+
+    // Validate and ensure all vocabulary items have examples
+    filledTemplate = validateAndEnsureExamples(filledTemplate, selected_sub_topic, student);
+    console.log('✅ Vocabulary examples validated and ensured');
 
     // Update the lesson with the interactive content
     console.log('💾 Updating lesson with interactive content...');

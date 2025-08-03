@@ -288,7 +288,7 @@ const generatePhoneticNotation = (word: string): string => {
 
   // Generate basic phonetic approximation for unknown words
   let phonetic = word.toLowerCase();
-  
+
   // Basic phonetic transformations
   phonetic = phonetic
     .replace(/qu/g, 'kw')
@@ -338,178 +338,235 @@ const generatePhoneticNotation = (word: string): string => {
   return `/${phonetic}/`;
 };
 
-// Helper function to generate contextual example sentences with level-appropriate complexity
-const generateContextualExamples = (word: string, partOfSpeech: string, definition: string, count: number, level: string = 'intermediate', lessonContext?: string): string[] => {
-  const examples: string[] = [];
-  const wordLower = word.toLowerCase();
-  const levelLower = level.toLowerCase();
-  
-  // Helper function to bold the vocabulary word in examples
-  const boldWord = (sentence: string, targetWord: string): string => {
-    const regex = new RegExp(`\\b${targetWord}\\b`, 'gi');
-    return sentence.replace(regex, `<strong>${targetWord}</strong>`);
-  };
-  
-  // Generate level-appropriate examples based on part of speech
-  switch (partOfSpeech.toLowerCase()) {
-    case 'noun':
-      if (levelLower === 'a1' || levelLower === 'a2') {
-        // Simple, short sentences for beginners
-        examples.push(
-          `This is a ${wordLower}.`,
-          `I see the ${wordLower}.`,
-          `The ${wordLower} is big.`,
-          `Where is the ${wordLower}?`,
-          `I like this ${wordLower}.`
-        );
-      } else if (levelLower === 'b1' || levelLower === 'b2') {
-        // Intermediate complexity
-        examples.push(
-          `The ${wordLower} plays an important role in our daily lives.`,
-          `Every ${wordLower} has its own unique characteristics and features.`,
-          `Students need to understand what a ${wordLower} means in this context.`,
-          `The teacher showed us a perfect example of a ${wordLower}.`
-        );
-      } else {
-        // Advanced, complex sentences
-        examples.push(
-          `The conceptual framework surrounding this ${wordLower} requires careful analysis.`,
-          `Contemporary research suggests that the ${wordLower} significantly influences outcomes.`,
-          `The multifaceted nature of this ${wordLower} presents both challenges and opportunities.`
-        );
-      }
-      break;
-      
-    case 'verb':
-      if (levelLower === 'a1' || levelLower === 'a2') {
-        examples.push(
-          `I ${wordLower} every day.`,
-          `She can ${wordLower} well.`,
-          `We ${wordLower} together.`,
-          `Do you ${wordLower}?`,
-          `They ${wordLower} at school.`
-        );
-      } else if (levelLower === 'b1' || levelLower === 'b2') {
-        examples.push(
-          `I usually ${wordLower} in the morning before starting work.`,
-          `She decided to ${wordLower} the project more carefully this time.`,
-          `The team will ${wordLower} together to solve this complex problem.`,
-          `Students are encouraged to ${wordLower} their assignments thoroughly.`
-        );
-      } else {
-        examples.push(
-          `The committee will ${wordLower} comprehensive strategies to address these issues.`,
-          `Researchers continue to ${wordLower} innovative approaches to this challenge.`,
-          `The organization must ${wordLower} sustainable practices across all departments.`
-        );
-      }
-      break;
-      
-    case 'adjective':
-      if (levelLower === 'a1' || levelLower === 'a2') {
-        examples.push(
-          `It is very ${wordLower}.`,
-          `The book is ${wordLower}.`,
-          `This looks ${wordLower}.`,
-          `I feel ${wordLower} today.`,
-          `The weather is ${wordLower}.`
-        );
-      } else if (levelLower === 'b1' || levelLower === 'b2') {
-        examples.push(
-          `The presentation was remarkably ${wordLower} and well-organized.`,
-          `She has a naturally ${wordLower} personality that attracts people.`,
-          `This ${wordLower} approach has proven effective in similar situations.`,
-          `The design appears both modern and ${wordLower} at the same time.`
-        );
-      } else {
-        examples.push(
-          `The methodology employed was exceptionally ${wordLower} and sophisticated.`,
-          `Her ${wordLower} analysis provided invaluable insights into the phenomenon.`,
-          `The ${wordLower} nature of this solution addresses multiple concerns simultaneously.`
-        );
-      }
-      break;
-      
-    case 'adverb':
-      if (levelLower === 'a1' || levelLower === 'a2') {
-        examples.push(
-          `She speaks ${wordLower}.`,
-          `He works ${wordLower}.`,
-          `They walk ${wordLower}.`,
-          `I read ${wordLower}.`,
-          `We listen ${wordLower}.`
-        );
-      } else if (levelLower === 'b1' || levelLower === 'b2') {
-        examples.push(
-          `She completed the assignment ${wordLower} and with great attention to detail.`,
-          `The team worked ${wordLower} to meet the challenging deadline.`,
-          `He ${wordLower} explained the complex concept to his students.`,
-          `They ${wordLower} prepared for the important presentation.`
-        );
-      } else {
-        examples.push(
-          `The research was conducted ${wordLower} according to established protocols.`,
-          `She ${wordLower} analyzed the data to identify significant patterns.`,
-          `The project was ${wordLower} executed with remarkable precision.`
-        );
-      }
-      break;
-      
-    case 'preposition':
-      if (levelLower === 'a1' || levelLower === 'a2') {
-        examples.push(
-          `The book is ${wordLower} the table.`,
-          `She sits ${wordLower} the chair.`,
-          `We meet ${wordLower} school.`,
-          `The cat is ${wordLower} the box.`,
-          `I go ${wordLower} work.`
-        );
-      } else if (levelLower === 'b1' || levelLower === 'b2') {
-        examples.push(
-          `The meeting is scheduled ${wordLower} next Tuesday morning.`,
-          `She placed the documents ${wordLower} the filing cabinet.`,
-          `The project timeline extends ${wordLower} the end of the year.`,
-          `Students gathered ${wordLower} the main entrance of the building.`
-        );
-      } else {
-        examples.push(
-          `The analysis was conducted ${wordLower} the framework of established theory.`,
-          `The implications extend ${wordLower} the immediate scope of this study.`,
-          `The committee deliberated ${wordLower} the proposed amendments.`
-        );
-      }
-      break;
-      
-    default:
-      if (levelLower === 'a1' || levelLower === 'a2') {
-        examples.push(
-          `This is "${word}".`,
-          `I know "${word}".`,
-          `"${word}" is important.`,
-          `We use "${word}".`,
-          `"${word}" is good.`
-        );
-      } else if (levelLower === 'b1' || levelLower === 'b2') {
-        examples.push(
-          `The word "${word}" is commonly used in everyday conversation.`,
-          `Understanding "${word}" helps improve overall language skills.`,
-          `"${word}" appears frequently in academic and professional texts.`,
-          `Students should practice using "${word}" in various contexts.`
-        );
-      } else {
-        examples.push(
-          `The term "${word}" encompasses a broad range of conceptual meanings.`,
-          `Contemporary usage of "${word}" reflects evolving linguistic patterns.`,
-          `The semantic complexity of "${word}" requires careful contextual analysis.`
-        );
-      }
+// Helper function to bold vocabulary words in AI-generated examples
+const boldVocabularyInExamples = (examples: string[], word: string): string[] => {
+  const regex = new RegExp(`\\b${word}\\b`, 'gi');
+  return examples.map(example => example.replace(regex, `<strong>${word}</strong>`));
+};
+
+// AI-powered contextual example generator
+const generateAIContextualExamples = async (word: string, partOfSpeech: string, definition: string, count: number, level: string, lesson: Lesson | null): Promise<string[]> => {
+  try {
+    // Get current session for API call
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('Not authenticated');
+    }
+
+    // Determine the lesson context/sub-topic
+    const lessonContext = lesson?.interactive_lesson_content?.selected_sub_topic?.title ||
+      lesson?.interactive_lesson_content?.name ||
+      'general language learning';
+
+    console.log(`🤖 Generating AI examples for "${word}" in context: ${lessonContext}`);
+
+    // Call AI to generate contextual examples
+    const response = await fetch('/api/generate-contextual-examples', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        word,
+        partOfSpeech,
+        definition,
+        count,
+        level,
+        lessonContext,
+        studentId: lesson?.student_id
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate contextual examples');
+    }
+
+    const result = await response.json();
+
+    if (result.success && result.examples) {
+      console.log(`✅ AI generated ${result.examples.length} contextual examples for: ${word}`);
+      return result.examples;
+    } else {
+      throw new Error('Invalid response from AI');
+    }
+  } catch (error) {
+    console.error('❌ Failed to generate AI examples for:', word, error);
+
+    // Minimal fallback - just return a simple contextual sentence
+    const lessonContext = lesson?.interactive_lesson_content?.selected_sub_topic?.title || 'language learning';
+    return [
+      `The word "${word}" is used in the context of ${lessonContext}.`,
+      `Understanding "${word}" helps with communication skills.`,
+      `Students practice using "${word}" in relevant situations.`
+    ].slice(0, count);
   }
-  
-  // Bold the vocabulary word in all examples
-  const boldedExamples = examples.map(example => boldWord(example, word));
-  
-  // Return the requested number of examples
-  return boldedExamples.slice(0, count);
+};
+
+// Legacy function for backward compatibility - now returns empty array to force AI generation
+const generateContextualExamples = (word: string, partOfSpeech: string, definition: string, count: number, level: string, lesson: Lesson | null): string[] => {
+  console.log(`⚠️ Legacy function called for "${word}", will use AI-generated examples instead`);
+  return [];
+};
+
+// Helper function to generate fallback content for empty sections
+const generateFallbackContent = (section: TemplateSection, level: string): React.ReactNode => {
+  const sectionTitle = safeGetString(section, 'title', 'Section').toLowerCase();
+  const levelLower = level.toLowerCase();
+
+  // Generate appropriate content based on section title and level
+  if (sectionTitle.includes('introduction') || sectionTitle.includes('overview')) {
+    if (levelLower === 'a1' || levelLower === 'a2') {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed">
+            Welcome to this lesson! Today we will learn new words and practice speaking.
+          </p>
+          <p className="text-sm leading-relaxed">
+            This lesson will help you understand important language concepts step by step.
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            <li>Learn new vocabulary words</li>
+            <li>Practice pronunciation</li>
+            <li>Use words in sentences</li>
+            <li>Complete fun exercises</li>
+          </ul>
+        </div>
+      );
+    } else if (levelLower === 'b1' || levelLower === 'b2') {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed">
+            This lesson focuses on expanding your language skills through practical exercises and real-world applications.
+          </p>
+          <p className="text-sm leading-relaxed">
+            You&apos;ll develop confidence in using new vocabulary and grammar structures in meaningful contexts.
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            <li>Master advanced vocabulary and expressions</li>
+            <li>Apply grammar rules in complex sentences</li>
+            <li>Engage in interactive communication exercises</li>
+            <li>Develop fluency through structured practice</li>
+          </ul>
+        </div>
+      );
+    } else {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed">
+            This advanced lesson explores sophisticated language concepts and their practical applications in professional and academic contexts.
+          </p>
+          <p className="text-sm leading-relaxed">
+            Through comprehensive analysis and practice, you&apos;ll refine your linguistic competence and develop nuanced communication skills.
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            <li>Analyze complex linguistic structures and their usage</li>
+            <li>Master sophisticated vocabulary and idiomatic expressions</li>
+            <li>Develop advanced communication strategies</li>
+            <li>Apply language skills in professional contexts</li>
+          </ul>
+        </div>
+      );
+    }
+  } else if (sectionTitle.includes('wrap') || sectionTitle.includes('reflection') || sectionTitle.includes('summary')) {
+    if (levelLower === 'a1' || levelLower === 'a2') {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed">
+            Great job! You have learned many new things in this lesson.
+          </p>
+          <p className="text-sm leading-relaxed">
+            Let&apos;s think about what we learned today:
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            <li>What new words did you learn?</li>
+            <li>Which exercises were easy for you?</li>
+            <li>Which parts need more practice?</li>
+            <li>How will you use these words tomorrow?</li>
+          </ul>
+          <p className="text-sm leading-relaxed font-medium">
+            Keep practicing these new words every day!
+          </p>
+        </div>
+      );
+    } else if (levelLower === 'b1' || levelLower === 'b2') {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed">
+            Congratulations on completing this lesson! Take a moment to reflect on your learning journey.
+          </p>
+          <p className="text-sm leading-relaxed">
+            Consider these reflection questions:
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            <li>How confident do you feel using the new vocabulary in conversation?</li>
+            <li>Which grammar concepts require additional practice?</li>
+            <li>What strategies helped you understand difficult concepts?</li>
+            <li>How can you apply these skills in real-world situations?</li>
+          </ul>
+          <p className="text-sm leading-relaxed font-medium">
+            Continue practicing to build fluency and confidence in your language skills.
+          </p>
+        </div>
+      );
+    } else {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed">
+            This lesson has provided comprehensive coverage of advanced linguistic concepts. Reflect on your analytical and practical engagement with the material.
+          </p>
+          <p className="text-sm leading-relaxed">
+            Critical reflection points:
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            <li>How effectively can you apply these concepts in professional discourse?</li>
+            <li>What connections do you see between these concepts and broader linguistic patterns?</li>
+            <li>Which aspects of the material challenge your current understanding?</li>
+            <li>How might these skills enhance your academic or professional communication?</li>
+          </ul>
+          <p className="text-sm leading-relaxed font-medium">
+            Continue to engage with complex materials to further develop your sophisticated language competence.
+          </p>
+        </div>
+      );
+    }
+  } else {
+    // Generic fallback content
+    if (levelLower === 'a1' || levelLower === 'a2') {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed">
+            This section will help you learn and practice important language skills.
+          </p>
+          <p className="text-sm leading-relaxed">
+            Follow the instructions and take your time to understand each part.
+          </p>
+        </div>
+      );
+    } else if (levelLower === 'b1' || levelLower === 'b2') {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed">
+            This section provides structured practice opportunities to develop your language proficiency.
+          </p>
+          <p className="text-sm leading-relaxed">
+            Engage actively with the material to maximize your learning outcomes.
+          </p>
+        </div>
+      );
+    } else {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed">
+            This section presents advanced concepts designed to enhance your linguistic competence and analytical skills.
+          </p>
+          <p className="text-sm leading-relaxed">
+            Apply critical thinking and draw connections to broader linguistic principles.
+          </p>
+        </div>
+      );
+    }
+  }
 };
 
 // Helper function to get content from info_card sections
@@ -1026,8 +1083,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   ))}
                 </ul>
               ) : (
-                <div className="text-center py-4 text-gray-500">
-                  <p>No content available for this section.</p>
+                <div className="prose max-w-none">
+                  <div onDoubleClick={handleTextDoubleClick}>
+                    {generateFallbackContent(section, lesson?.student?.level || 'intermediate')}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -1119,27 +1178,97 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       }
 
       case 'grammar_explanation': {
-        const explanationContent = safeGetString(section, 'explanation_content', '') || safeGetString(section, 'content', '');
+        let explanationContent = safeGetString(section, 'explanation_content', '') || safeGetString(section, 'content', '');
 
-        // Define explicit components for ReactMarkdown
-        const components = {
+        // Generate fallback content if empty
+        if (!explanationContent || explanationContent.trim() === '' || explanationContent === 'Content will be displayed here.') {
+          const currentLevel = lesson?.student?.level || 'intermediate';
+          const levelLower = currentLevel.toLowerCase();
+
+          if (levelLower === 'a1' || levelLower === 'a2') {
+            explanationContent = `## Grammar Focus
+
+This section explains important grammar rules in simple terms.
+
+### Key Points:
+- Learn basic sentence structure
+- Understand word order
+- Practice with simple examples
+- Remember the main rules
+
+### Examples:
+- Subject + Verb + Object
+- "I eat food" (correct order)
+- "Food eat I" (wrong order)
+
+### Practice Tips:
+- Start with short sentences
+- Use familiar words
+- Practice every day
+- Ask questions when confused`;
+          } else if (levelLower === 'b1' || levelLower === 'b2') {
+            explanationContent = `## Grammar Explanation
+
+This section provides detailed explanations of intermediate grammar concepts with practical applications.
+
+### Learning Objectives:
+- Master complex sentence structures
+- Apply grammar rules in context
+- Develop accuracy in communication
+- Build confidence in usage
+
+### Key Grammar Points:
+- **Sentence Structure**: Understanding how different elements work together
+- **Tense Usage**: Appropriate timing and context for different tenses
+- **Modifiers**: Using adjectives and adverbs effectively
+- **Connectors**: Linking ideas with appropriate conjunctions
+
+### Application Strategy:
+1. Study the rule and its exceptions
+2. Analyze examples in context
+3. Practice with guided exercises
+4. Apply in real communication situations`;
+          } else {
+            explanationContent = `## Advanced Grammar Analysis
+
+This section presents sophisticated grammatical concepts and their nuanced applications in professional and academic discourse.
+
+### Analytical Framework:
+- **Syntactic Complexity**: Advanced sentence structures and their rhetorical effects
+- **Semantic Precision**: Subtle meaning distinctions in grammatical choices
+- **Pragmatic Considerations**: Context-dependent grammatical variations
+- **Stylistic Applications**: Grammar as a tool for effective communication
+
+### Critical Examination:
+- Examine how grammatical choices affect meaning and tone
+- Analyze variations in formal and informal registers
+- Consider cross-linguistic influences on grammatical patterns
+- Evaluate the effectiveness of different structural approaches
+
+### Professional Application:
+Apply these concepts in academic writing, professional presentations, and sophisticated discourse to enhance clarity, precision, and impact.`;
+          }
+        }
+
+        // Define explicit components for ReactMarkdown with enhanced formatting
+        const enhancedComponents = {
           p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-            <p className="mb-4 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
+            <p className="mb-3 leading-relaxed text-gray-700 dark:text-gray-300" onDoubleClick={handleTextDoubleClick} {...props}>
               {children}
             </p>
           ),
           ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
-            <ul className="list-disc list-inside mb-4 space-y-2" {...props}>
+            <ul className="list-disc list-inside mb-4 space-y-1 ml-4" {...props}>
               {children}
             </ul>
           ),
           ol: ({ children, ...props }: React.OlHTMLAttributes<HTMLOListElement>) => (
-            <ol className="list-decimal list-inside mb-4 space-y-2" {...props}>
+            <ol className="list-decimal list-inside mb-4 space-y-1 ml-4" {...props}>
               {children}
             </ol>
           ),
           li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
-            <li className="mb-1" onDoubleClick={handleTextDoubleClick} {...props}>
+            <li className="mb-1 text-gray-700 dark:text-gray-300 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
               {children}
             </li>
           ),
@@ -1149,36 +1278,81 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
             </strong>
           ),
           em: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
-            <em className="italic" {...props}>
+            <em className="italic text-gray-600 dark:text-gray-400" {...props}>
               {children}
             </em>
           ),
           h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <h1 className="text-2xl font-bold mb-4" {...props}>
+            <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2" {...props}>
               {children}
             </h1>
           ),
           h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <h2 className="text-xl font-bold mb-3" {...props}>
+            <h2 className="text-xl font-bold mb-3 text-gray-900 dark:text-gray-100 mt-6" {...props}>
               {children}
             </h2>
           ),
           h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <h3 className="text-lg font-bold mb-2" {...props}>
+            <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200 mt-4" {...props}>
               {children}
             </h3>
           ),
+          h4: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+            <h4 className="text-base font-semibold mb-2 text-gray-800 dark:text-gray-200 mt-3" {...props}>
+              {children}
+            </h4>
+          ),
+          blockquote: ({ children, ...props }: React.HTMLAttributes<HTMLQuoteElement>) => (
+            <blockquote className="border-l-4 border-cyber-400 pl-4 my-4 italic text-gray-600 dark:text-gray-400" {...props}>
+              {children}
+            </blockquote>
+          ),
+          code: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+            <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono" {...props}>
+              {children}
+            </code>
+          ),
+          pre: ({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) => (
+            <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto mb-4" {...props}>
+              {children}
+            </pre>
+          ),
+        };
+
+        // Process grammar explanation content with robust formatting
+        const processGrammarContent = (content: string) => {
+          // Clean and normalize the content
+          const cleanedContent = content
+            .replace(/^\s+|\s+$/g, '') // Trim whitespace
+            .replace(/\r\n/g, '\n') // Normalize line endings
+            .replace(/\n{3,}/g, '\n\n'); // Normalize multiple line breaks
+
+          // Split content into paragraphs and process each one
+          const paragraphs = cleanedContent.split('\n\n').filter(p => p.trim());
+
+          return paragraphs.map((paragraph, index) => {
+            // Process bold text, italic text, and line breaks
+            const processedParagraph = paragraph
+              .replace(/\*\*([^*\n]+)\*\*/g, '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>')
+              .replace(/\*([^*\n]+)\*/g, '<em class="italic text-gray-600 dark:text-gray-400">$1</em>')
+              .replace(/\n/g, '<br>');
+
+            return (
+              <div
+                key={index}
+                className="mb-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300"
+                onDoubleClick={handleTextDoubleClick}
+                dangerouslySetInnerHTML={{
+                  __html: processedParagraph
+                }}
+              />
+            );
+          });
         };
 
         return (
-          <div className="prose prose-sm max-w-none">
-            <ReactMarkdown
-              key={explanationContent}
-              remarkPlugins={[remarkGfm]}
-              components={components}
-            >
-              {explanationContent}
-            </ReactMarkdown>
+          <div className="space-y-2">
+            {processGrammarContent(explanationContent)}
           </div>
         );
       }
@@ -1233,15 +1407,57 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           const word = safeStringify(item.word || item.name || 'Unknown word');
           const definition = safeStringify(item.definition || item.prompt || item.meaning || 'No definition available');
 
-          // Try to extract part of speech from definition or use provided value
+          // Improved part of speech detection
           let partOfSpeech = 'noun'; // default
           if (item.part_of_speech || item.partOfSpeech || item.pos) {
             partOfSpeech = safeStringify(item.part_of_speech || item.partOfSpeech || item.pos).toLowerCase();
           } else {
-            // Try to infer from definition
+            // Enhanced part of speech inference based on word patterns and definition
+            const wordLower = word.toLowerCase();
+            const defLower = definition.toLowerCase();
+
+            // Check definition for explicit part of speech mentions
             const posMatch = definition.match(/\b(noun|verb|adjective|adverb|preposition|conjunction|pronoun|interjection|article)\b/i);
             if (posMatch) {
               partOfSpeech = posMatch[1].toLowerCase();
+            }
+            // Specific word-based detection (most accurate)
+            else if (wordLower === 'cohabitate' || wordLower === 'communicate' || wordLower === 'participate' ||
+              wordLower === 'collaborate' || wordLower === 'negotiate') {
+              partOfSpeech = 'verb';
+            }
+            else if (wordLower === 'extended family' || wordLower === 'nuclear family' || wordLower === 'sibling rivalry' ||
+              wordLower === 'relationship status' || wordLower === 'in-laws' || wordLower.includes('family')) {
+              partOfSpeech = 'noun';
+            }
+            // Verb detection patterns
+            else if (wordLower.endsWith('ate') || wordLower.endsWith('ize') || wordLower.endsWith('ify') ||
+              defLower.includes('to ') || defLower.includes('action of') || defLower.includes('the act of') ||
+              defLower.includes('process of') || defLower.startsWith('to ')) {
+              partOfSpeech = 'verb';
+            }
+            // Adjective detection patterns
+            else if (wordLower.endsWith('ful') || wordLower.endsWith('less') || wordLower.endsWith('ous') ||
+              wordLower.endsWith('ive') || wordLower.endsWith('able') || wordLower.endsWith('ible') ||
+              defLower.includes('describes') || defLower.includes('quality') || defLower.includes('characteristic') ||
+              defLower.includes('having the quality')) {
+              partOfSpeech = 'adjective';
+            }
+            // Adverb detection patterns
+            else if (wordLower.endsWith('ly') || defLower.includes('manner') || defLower.includes('how ') ||
+              defLower.includes('in a way') || defLower.includes('to the degree')) {
+              partOfSpeech = 'adverb';
+            }
+            // Preposition detection
+            else if (['at', 'in', 'on', 'by', 'for', 'with', 'from', 'to', 'of', 'about', 'under', 'over', 'through', 'during'].includes(wordLower)) {
+              partOfSpeech = 'preposition';
+            }
+            // Compound noun detection (most family/relationship terms are nouns)
+            else if (wordLower.includes('relationship') || wordLower.includes('status') || wordLower.includes('rivalry') ||
+              wordLower.includes('laws') || defLower.includes('family') || defLower.includes('person') ||
+              defLower.includes('group') || defLower.includes('type of') || defLower.includes('a ') ||
+              defLower.includes('refers to') || defLower.includes('consists of')) {
+              partOfSpeech = 'noun';
             }
           }
 
@@ -1256,10 +1472,18 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
             if (!phonetic.endsWith('/')) phonetic = phonetic + '/';
           }
 
-          // Generate example sentences based on level
+          // Generate example sentences based on level (ensure correct counts)
           const currentLevel = lesson?.student?.level || 'intermediate';
-          const exampleCount = currentLevel.toLowerCase() === 'a1' || currentLevel.toLowerCase() === 'a2' ? 5 :
-            currentLevel.toLowerCase() === 'b1' || currentLevel.toLowerCase() === 'b2' ? 4 : 3;
+          const levelLower = currentLevel.toLowerCase();
+          let exampleCount = 4; // default
+
+          if (levelLower === 'a1' || levelLower === 'a2') {
+            exampleCount = 5;
+          } else if (levelLower === 'b1' || levelLower === 'b2') {
+            exampleCount = 4;
+          } else if (levelLower === 'c1' || levelLower === 'c2') {
+            exampleCount = 3;
+          }
 
           let examples: string[] = [];
           if (item.examples && Array.isArray(item.examples)) {
@@ -1268,24 +1492,58 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
             examples = item.example_sentences.map((ex: any) => safeStringify(ex));
           } else if (item.sentences && Array.isArray(item.sentences)) {
             examples = item.sentences.map((ex: any) => safeStringify(ex));
-          } else {
-            // Generate contextual example sentences based on the word and part of speech
-            examples = generateContextualExamples(word, partOfSpeech, definition, exampleCount, currentLevel);
           }
 
-          // Ensure we have the right number of examples
-          while (examples.length < exampleCount) {
-            examples.push(`This sentence demonstrates the use of "${word}" in context.`);
+          // Use AI-generated examples from lesson content if available, otherwise use fallback
+          if (item.examples && Array.isArray(item.examples) && item.examples.length > 0) {
+            examples = item.examples.map((ex: any) => safeStringify(ex));
+            console.log(`✅ Using AI-generated examples from lesson content for: ${word}`, examples);
+          } else if (item.example_sentences && Array.isArray(item.example_sentences) && item.example_sentences.length > 0) {
+            examples = item.example_sentences.map((ex: any) => safeStringify(ex));
+            console.log(`✅ Using AI-generated example sentences from lesson content for: ${word}`, examples);
+          } else if (item.sentences && Array.isArray(item.sentences) && item.sentences.length > 0) {
+            examples = item.sentences.map((ex: any) => safeStringify(ex));
+            console.log(`✅ Using AI-generated sentences from lesson content for: ${word}`, examples);
+          } else {
+            // Fallback: Use minimal contextual examples (no hardcoded generic ones)
+            const lessonContext = lesson?.interactive_lesson_content?.selected_sub_topic?.title || 'language learning';
+            examples = [
+              `The word "${word}" is used in the context of ${lessonContext}.`,
+              `Understanding "${word}" helps with communication skills.`,
+              `Students practice using "${word}" in relevant situations.`
+            ].slice(0, exampleCount);
+            console.log(`⚠️ Using minimal fallback examples for: ${word} (AI examples missing)`);
           }
+
+          // Bold the vocabulary word in the examples for better visual emphasis
+          const boldedExamples = examples.length > 0 ? boldVocabularyInExamples(examples, word) : [];
+
+          // Debug logging for vocabulary processing
+          console.log(`🔍 Processing vocabulary word: ${word}`, {
+            originalExamples: examples.length,
+            boldedExamples: boldedExamples.length,
+            finalExamples: boldedExamples.slice(0, exampleCount).length,
+            sampleExamples: boldedExamples.slice(0, 2)
+          });
 
           return {
             word,
             partOfSpeech,
             phonetic,
             definition,
-            examples: examples.slice(0, exampleCount),
+            examples: boldedExamples.slice(0, exampleCount),
             level: currentLevel
           };
+        });
+
+        // Debug logging before passing to EnhancedVocabularySection
+        console.log('🔍 LessonMaterialDisplay - Passing vocabulary items to EnhancedVocabularySection:', {
+          itemsCount: enhancedVocabularyItems.length,
+          sampleItem: enhancedVocabularyItems[0] ? {
+            word: enhancedVocabularyItems[0].word,
+            examplesCount: enhancedVocabularyItems[0].examples?.length || 0,
+            examples: enhancedVocabularyItems[0].examples
+          } : null
         });
 
         return (
@@ -1339,7 +1597,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                     </span>
                   </div>
                   <div className={`flex-1 p-3 rounded-lg ${isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
-                      'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                    'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                     }`}>
                     <p className={`font-medium ${isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
                       }`}>
@@ -1400,7 +1658,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                       </span>
                     </div>
                     <div className={`flex-1 p-3 rounded-lg ${isTeacher ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
-                        'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                      'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                       }`}>
                       <p className={`font-medium ${isTeacher ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-400'
                         }`}>
@@ -1535,7 +1793,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       default:
         return (
           <div className="text-center py-8 text-gray-500">
-            <p>Content type "{contentType}" will be displayed here.</p>
+            <p>Content type &quot;{contentType}&quot; will be displayed here.</p>
           </div>
         );
     }
@@ -1821,7 +2079,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           </div>
           <h3 className="text-lg font-semibold mb-2">No Lesson Content</h3>
           <p className="text-muted-foreground">
-            This lesson doesn't have any generated content yet. Generate lesson plans first, then use &quot;Use This Plan&quot; to create interactive material.
+            This lesson doesn&apos;t have any generated content yet. Generate lesson plans first, then use &quot;Use This Plan&quot; to create interactive material.
           </p>
         </div>
       )}

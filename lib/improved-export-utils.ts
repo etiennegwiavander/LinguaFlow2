@@ -1,4 +1,4 @@
-import { jsPDF } from 'jspdf';
+import { jsPDF } from "jspdf";
 
 // Define types for better type safety
 interface LessonContent {
@@ -9,10 +9,17 @@ interface LessonContent {
 }
 
 interface ContentSection {
-  type: 'heading' | 'paragraph' | 'list' | 'dialogue' | 'exercise' | 'vocabulary' | 'instruction';
+  type:
+    | "heading"
+    | "paragraph"
+    | "list"
+    | "dialogue"
+    | "exercise"
+    | "vocabulary"
+    | "instruction";
   content: string | string[] | DialogueLine[] | VocabularyItem[];
   level?: number; // For headings (1-6)
-  style?: 'instruction' | 'info' | 'exercise';
+  style?: "instruction" | "info" | "exercise";
   title?: string;
 }
 
@@ -31,178 +38,199 @@ interface VocabularyItem {
  */
 function parseHtmlToLessonContent(element: HTMLElement): LessonContent {
   const sections: ContentSection[] = [];
-  
+
   // Get lesson title
-  const titleElement = element.querySelector('h1, h2, .title, [class*="title"]');
-  const title = titleElement?.textContent?.trim() || 'Interactive Lesson Material';
-  
+  const titleElement = element.querySelector(
+    'h1, h2, .title, [class*="title"]'
+  );
+  const title =
+    titleElement?.textContent?.trim() || "Interactive Lesson Material";
+
   // Parse all content sections
-  const contentElements = element.querySelectorAll('h1, h2, h3, h4, h5, h6, p, ul, ol, .dialogue, .exercise, .vocabulary, .instruction, [class*="dialogue"], [class*="exercise"], [class*="vocabulary"], [class*="instruction"]');
-  
+  const contentElements = element.querySelectorAll(
+    'h1, h2, h3, h4, h5, h6, p, ul, ol, .dialogue, .exercise, .vocabulary, .instruction, [class*="dialogue"], [class*="exercise"], [class*="vocabulary"], [class*="instruction"]'
+  );
+
   contentElements.forEach((el) => {
     const tagName = el.tagName.toLowerCase();
-    const className = el.className || '';
-    const textContent = el.textContent?.trim() || '';
-    
+    const className = el.className || "";
+    const textContent = el.textContent?.trim() || "";
+
     if (!textContent) return;
-    
+
     // Handle headings
-    if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+    if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(tagName)) {
       sections.push({
-        type: 'heading',
+        type: "heading",
         content: textContent,
-        level: parseInt(tagName.charAt(1))
+        level: parseInt(tagName.charAt(1)),
       });
     }
     // Handle dialogues
-    else if (className.includes('dialogue') || el.querySelector('.dialogue-line, [class*="dialogue-line"]')) {
+    else if (
+      className.includes("dialogue") ||
+      el.querySelector('.dialogue-line, [class*="dialogue-line"]')
+    ) {
       const dialogueLines: DialogueLine[] = [];
-      const lines = el.querySelectorAll('.dialogue-line, [class*="dialogue-line"], p');
-      
+      const lines = el.querySelectorAll(
+        '.dialogue-line, [class*="dialogue-line"], p'
+      );
+
       lines.forEach((line, index) => {
         const lineText = line.textContent?.trim();
         if (lineText) {
           // Try to extract speaker and text
-          const colonIndex = lineText.indexOf(':');
+          const colonIndex = lineText.indexOf(":");
           if (colonIndex > 0 && colonIndex < 20) {
             dialogueLines.push({
               speaker: lineText.substring(0, colonIndex).trim(),
-              text: lineText.substring(colonIndex + 1).trim()
+              text: lineText.substring(colonIndex + 1).trim(),
             });
           } else {
             dialogueLines.push({
-              speaker: index % 2 === 0 ? 'Speaker A' : 'Speaker B',
-              text: lineText
+              speaker: index % 2 === 0 ? "Speaker A" : "Speaker B",
+              text: lineText,
             });
           }
         }
       });
-      
+
       if (dialogueLines.length > 0) {
         sections.push({
-          type: 'dialogue',
+          type: "dialogue",
           content: dialogueLines,
-          title: 'Dialogue Practice'
+          title: "Dialogue Practice",
         });
       }
     }
     // Handle vocabulary
-    else if (className.includes('vocabulary')) {
+    else if (className.includes("vocabulary")) {
       const vocabItems: VocabularyItem[] = [];
-      const items = el.querySelectorAll('.vocabulary-item, [class*="vocabulary-item"], li, p');
-      
+      const items = el.querySelectorAll(
+        '.vocabulary-item, [class*="vocabulary-item"], li, p'
+      );
+
       items.forEach((item) => {
         const itemText = item.textContent?.trim();
         if (itemText) {
           // Try to split word and definition
-          const dashIndex = itemText.indexOf(' - ');
-          const colonIndex = itemText.indexOf(': ');
+          const dashIndex = itemText.indexOf(" - ");
+          const colonIndex = itemText.indexOf(": ");
           const separatorIndex = dashIndex > 0 ? dashIndex : colonIndex;
-          
+
           if (separatorIndex > 0) {
             vocabItems.push({
               word: itemText.substring(0, separatorIndex).trim(),
-              definition: itemText.substring(separatorIndex + (dashIndex > 0 ? 3 : 2)).trim()
+              definition: itemText
+                .substring(separatorIndex + (dashIndex > 0 ? 3 : 2))
+                .trim(),
             });
           } else {
             vocabItems.push({
               word: itemText,
-              definition: 'Definition not provided'
+              definition: "Definition not provided",
             });
           }
         }
       });
-      
+
       if (vocabItems.length > 0) {
         sections.push({
-          type: 'vocabulary',
+          type: "vocabulary",
           content: vocabItems,
-          title: 'Vocabulary'
+          title: "Vocabulary",
         });
       }
     }
     // Handle exercises
-    else if (className.includes('exercise') || el.id.startsWith('exercise_')) {
+    else if (className.includes("exercise") || el.id.startsWith("exercise_")) {
       sections.push({
-        type: 'exercise',
+        type: "exercise",
         content: textContent,
-        style: 'exercise',
-        title: 'Exercise'
+        style: "exercise",
+        title: "Exercise",
       });
     }
     // Handle instructions
-    else if (className.includes('instruction')) {
+    else if (className.includes("instruction")) {
       sections.push({
-        type: 'instruction',
+        type: "instruction",
         content: textContent,
-        style: 'instruction'
+        style: "instruction",
       });
     }
     // Handle lists
-    else if (['ul', 'ol'].includes(tagName)) {
+    else if (["ul", "ol"].includes(tagName)) {
       const listItems: string[] = [];
-      const items = el.querySelectorAll('li');
+      const items = el.querySelectorAll("li");
       items.forEach((item) => {
         const itemText = item.textContent?.trim();
         if (itemText) listItems.push(itemText);
       });
-      
+
       if (listItems.length > 0) {
         sections.push({
-          type: 'list',
-          content: listItems
+          type: "list",
+          content: listItems,
         });
       }
     }
     // Handle paragraphs
-    else if (tagName === 'p' && !el.closest('.dialogue, .vocabulary, .exercise, .instruction')) {
+    else if (
+      tagName === "p" &&
+      !el.closest(".dialogue, .vocabulary, .exercise, .instruction")
+    ) {
       sections.push({
-        type: 'paragraph',
-        content: textContent
+        type: "paragraph",
+        content: textContent,
       });
     }
   });
-  
+
   return {
     title,
-    sections: sections.filter(section => 
-      (typeof section.content === 'string' && section.content.length > 0) ||
-      (Array.isArray(section.content) && section.content.length > 0)
-    )
+    sections: sections.filter(
+      (section) =>
+        (typeof section.content === "string" && section.content.length > 0) ||
+        (Array.isArray(section.content) && section.content.length > 0)
+    ),
   };
 }
 
 /**
  * Create a lightweight, text-based PDF export
  */
-export const exportToLightweightPdf = async (elementId: string, fileName: string = 'lesson-material'): Promise<void> => {
+export const exportToLightweightPdf = async (
+  elementId: string,
+  fileName: string = "lesson-material"
+): Promise<void> => {
   try {
     const element = document.getElementById(elementId);
     if (!element) {
-      throw new Error('Element not found');
+      throw new Error("Element not found");
     }
 
     // Show loading toast
     const toast = (window as any).toast;
     if (toast) {
-      toast.info('Preparing lightweight PDF export...');
+      toast.info("Preparing lightweight PDF export...");
     }
 
     // Parse content
     const lessonContent = parseHtmlToLessonContent(element);
-    
+
     // Create PDF
     const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
     });
 
     // Page dimensions
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 20;
-    const contentWidth = pageWidth - (margin * 2);
+    const contentWidth = pageWidth - margin * 2;
     let currentY = margin;
 
     // LinguaFlow colors
@@ -229,37 +257,39 @@ export const exportToLightweightPdf = async (elementId: string, fileName: string
 
     // Title Page
     pdf.setFillColor(248, 250, 252); // Very light background
-    pdf.rect(margin, margin, contentWidth, pageHeight - (margin * 2), 'F');
-    
+    pdf.rect(margin, margin, contentWidth, pageHeight - margin * 2, "F");
+
     // LinguaFlow Title
-    pdf.setTextColor(...cyberBlue);
+    pdf.setTextColor(cyberBlue[0], cyberBlue[1], cyberBlue[2]);
     pdf.setFontSize(24);
-    pdf.setFont('helvetica', 'bold');
+    pdf.setFont("helvetica", "bold");
     const titleY = pageHeight / 2 - 40;
-    pdf.text('LinguaFlow', pageWidth / 2, titleY, { align: 'center' });
-    
+    pdf.text("LinguaFlow", pageWidth / 2, titleY, { align: "center" });
+
     // Lesson Title
-    pdf.setTextColor(...darkGray);
+    pdf.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
     pdf.setFontSize(20);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(lessonContent.title, pageWidth / 2, titleY + 20, { align: 'center' });
-    
-    // Date
-    pdf.setTextColor(...neutralGray);
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'normal');
-    const currentDate = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    pdf.setFont("helvetica", "bold");
+    pdf.text(lessonContent.title, pageWidth / 2, titleY + 20, {
+      align: "center",
     });
-    pdf.text(currentDate, pageWidth / 2, titleY + 35, { align: 'center' });
-    
+
+    // Date
+    pdf.setTextColor(neutralGray[0], neutralGray[1], neutralGray[2]);
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
+    const currentDate = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    pdf.text(currentDate, pageWidth / 2, titleY + 35, { align: "center" });
+
     // Add decorative line
-    pdf.setDrawColor(...cyberBlue);
+    pdf.setDrawColor(cyberBlue[0], cyberBlue[1], cyberBlue[2]);
     pdf.setLineWidth(1);
     pdf.line(margin + 50, titleY + 45, pageWidth - margin - 50, titleY + 45);
-    
+
     // Start new page for content
     pdf.addPage();
     currentY = margin;
@@ -267,35 +297,40 @@ export const exportToLightweightPdf = async (elementId: string, fileName: string
     // Process sections
     lessonContent.sections.forEach((section, index) => {
       switch (section.type) {
-        case 'heading':
+        case "heading":
           checkPageBreak(15);
-          
+
           // Add some space before headings (except first)
           if (index > 0) currentY += 8;
-          
-          pdf.setTextColor(...cyberBlue);
-          const headingSize = section.level === 1 ? 18 : section.level === 2 ? 16 : 14;
+
+          pdf.setTextColor(cyberBlue[0], cyberBlue[1], cyberBlue[2]);
+          const headingSize =
+            section.level === 1 ? 18 : section.level === 2 ? 16 : 14;
           pdf.setFontSize(headingSize);
-          pdf.setFont('helvetica', 'bold');
-          
+          pdf.setFont("helvetica", "bold");
+
           // Add background for h2 headings
           if (section.level === 2) {
             pdf.setFillColor(33, 197, 240, 0.1 * 255);
-            pdf.rect(margin, currentY - 3, contentWidth, 10, 'F');
+            pdf.rect(margin, currentY - 3, contentWidth, 10, "F");
           }
-          
+
           pdf.text(section.content as string, margin, currentY + 5);
           currentY += 12;
           break;
 
-        case 'paragraph':
+        case "paragraph":
           checkPageBreak(20);
-          
-          pdf.setTextColor(...darkGray);
+
+          pdf.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
           pdf.setFontSize(11);
-          pdf.setFont('helvetica', 'normal');
-          
-          const wrappedText = wrapText(section.content as string, contentWidth, 11);
+          pdf.setFont("helvetica", "normal");
+
+          const wrappedText = wrapText(
+            section.content as string,
+            contentWidth,
+            11
+          );
           wrappedText.forEach((line: string) => {
             checkPageBreak(6);
             pdf.text(line, margin, currentY);
@@ -304,100 +339,116 @@ export const exportToLightweightPdf = async (elementId: string, fileName: string
           currentY += 4;
           break;
 
-        case 'list':
+        case "list":
           checkPageBreak(20);
-          
-          pdf.setTextColor(...darkGray);
+
+          pdf.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
           pdf.setFontSize(11);
-          pdf.setFont('helvetica', 'normal');
-          
+          pdf.setFont("helvetica", "normal");
+
           (section.content as string[]).forEach((item) => {
             checkPageBreak(8);
-            pdf.text('• ' + item, margin + 5, currentY);
+            pdf.text("• " + item, margin + 5, currentY);
             currentY += 6;
           });
           currentY += 4;
           break;
 
-        case 'dialogue':
+        case "dialogue":
           checkPageBreak(50);
-          
+
           // Dialogue header with book icon (using text symbol)
-          pdf.setTextColor(...darkGray);
+          pdf.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
           pdf.setFontSize(16);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text('📖 Example Dialogue', margin, currentY);
+          pdf.setFont("helvetica", "bold");
+          pdf.text("📖 Example Dialogue", margin, currentY);
           currentY += 15;
-          
+
           // Instruction box
           pdf.setFillColor(255, 248, 220); // Light beige background
           pdf.setDrawColor(218, 165, 32); // Golden border
           pdf.setLineWidth(0.5);
-          pdf.rect(margin, currentY - 2, contentWidth, 12, 'FD');
-          
+          pdf.rect(margin, currentY - 2, contentWidth, 12, "FD");
+
           pdf.setTextColor(139, 69, 19); // Brown text
           pdf.setFontSize(10);
-          pdf.setFont('helvetica', 'italic');
-          pdf.text('Read or listen to this conversation related to the topic.', margin + 3, currentY + 5);
+          pdf.setFont("helvetica", "italic");
+          pdf.text(
+            "Read or listen to this conversation related to the topic.",
+            margin + 3,
+            currentY + 5
+          );
           currentY += 18;
-          
+
           // Process dialogue lines with chat-like formatting
           (section.content as DialogueLine[]).forEach((line, lineIndex) => {
             checkPageBreak(20);
-            
+
             // Get speaker initial and assign color
             const speakerInitial = line.speaker.charAt(0).toUpperCase();
             let speakerColor: number[];
             let bubbleColor: number[];
-            
+
             // Assign colors based on speaker
-            if (speakerInitial === 'M') {
+            if (speakerInitial === "M") {
               speakerColor = [33, 150, 243]; // Blue
               bubbleColor = [227, 242, 253]; // Light blue
-            } else if (speakerInitial === 'P') {
+            } else if (speakerInitial === "P") {
               speakerColor = [156, 39, 176]; // Purple
               bubbleColor = [248, 231, 255]; // Light purple
             } else {
               // Default colors for other speakers
-              speakerColor = lineIndex % 2 === 0 ? [33, 150, 243] : [156, 39, 176];
-              bubbleColor = lineIndex % 2 === 0 ? [227, 242, 253] : [248, 231, 255];
+              speakerColor =
+                lineIndex % 2 === 0 ? [33, 150, 243] : [156, 39, 176];
+              bubbleColor =
+                lineIndex % 2 === 0 ? [227, 242, 253] : [248, 231, 255];
             }
-            
+
             // Speaker initial circle
-            pdf.setFillColor(...speakerColor);
-            pdf.circle(margin + 5, currentY + 3, 3, 'F');
-            
+            pdf.setFillColor(speakerColor[0], speakerColor[1], speakerColor[2]);
+            pdf.circle(margin + 5, currentY + 3, 3, "F");
+
             // Speaker initial text
             pdf.setTextColor(255, 255, 255); // White text
             pdf.setFontSize(8);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text(speakerInitial, margin + 5, currentY + 4.5, { align: 'center' });
-            
+            pdf.setFont("helvetica", "bold");
+            pdf.text(speakerInitial, margin + 5, currentY + 4.5, {
+              align: "center",
+            });
+
             // Speech bubble background
             const bubbleX = margin + 12;
             const bubbleWidth = contentWidth - 17;
             const bubbleHeight = 14;
-            
-            pdf.setFillColor(...bubbleColor);
+
+            pdf.setFillColor(bubbleColor[0], bubbleColor[1], bubbleColor[2]);
             pdf.setDrawColor(200, 200, 200); // Light gray border
             pdf.setLineWidth(0.3);
-            pdf.roundedRect(bubbleX, currentY - 2, bubbleWidth, bubbleHeight, 2, 2, 'FD');
-            
+            pdf.roundedRect(
+              bubbleX,
+              currentY - 2,
+              bubbleWidth,
+              bubbleHeight,
+              2,
+              2,
+              "FD"
+            );
+
             // Speaker name (bold, colored)
-            pdf.setTextColor(...speakerColor);
+            pdf.setTextColor(speakerColor[0], speakerColor[1], speakerColor[2]);
             pdf.setFontSize(10);
-            pdf.setFont('helvetica', 'bold');
+            pdf.setFont("helvetica", "bold");
             pdf.text(`${line.speaker}:`, bubbleX + 3, currentY + 4);
-            
+
             // Dialogue text (normal, dark)
-            pdf.setTextColor(...darkGray);
+            pdf.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
             pdf.setFontSize(10);
-            pdf.setFont('helvetica', 'normal');
-            
+            pdf.setFont("helvetica", "normal");
+
             // Wrap the dialogue text to fit in the bubble
             const dialogueText = wrapText(line.text, bubbleWidth - 6, 10);
             let textY = currentY + 8;
-            
+
             dialogueText.forEach((textLine: string, textIndex: number) => {
               if (textIndex > 0) {
                 checkPageBreak(6);
@@ -405,86 +456,94 @@ export const exportToLightweightPdf = async (elementId: string, fileName: string
               }
               pdf.text(textLine, bubbleX + 3, textY);
             });
-            
+
             currentY += Math.max(bubbleHeight + 3, dialogueText.length * 5 + 8);
           });
-          
+
           currentY += 8;
           break;
 
-        case 'vocabulary':
+        case "vocabulary":
           checkPageBreak(30);
-          
+
           // Vocabulary header
-          pdf.setTextColor(...cyberBlue);
+          pdf.setTextColor(cyberBlue[0], cyberBlue[1], cyberBlue[2]);
           pdf.setFontSize(14);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(section.title || 'Vocabulary', margin, currentY);
+          pdf.setFont("helvetica", "bold");
+          pdf.text(section.title || "Vocabulary", margin, currentY);
           currentY += 10;
-          
-          pdf.setTextColor(...darkGray);
+
+          pdf.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
           pdf.setFontSize(11);
-          
+
           (section.content as VocabularyItem[]).forEach((item) => {
             checkPageBreak(12);
-            
+
             // Vocabulary item background
             pdf.setFillColor(33, 197, 240, 0.05 * 255);
-            pdf.rect(margin, currentY - 2, contentWidth, 10, 'F');
-            
+            pdf.rect(margin, currentY - 2, contentWidth, 10, "F");
+
             // Word (bold)
-            pdf.setFont('helvetica', 'bold');
+            pdf.setFont("helvetica", "bold");
             pdf.text(item.word, margin + 3, currentY + 2);
-            
+
             // Definition (normal)
-            pdf.setFont('helvetica', 'normal');
-            pdf.text(' - ' + item.definition, margin + 3 + pdf.getTextWidth(item.word), currentY + 2);
-            
+            pdf.setFont("helvetica", "normal");
+            pdf.text(
+              " - " + item.definition,
+              margin + 3 + pdf.getTextWidth(item.word),
+              currentY + 2
+            );
+
             currentY += 12;
           });
           currentY += 4;
           break;
 
-        case 'exercise':
+        case "exercise":
           checkPageBreak(25);
-          
+
           // Exercise background
           const exerciseHeight = 20;
           pdf.setFillColor(33, 197, 240, 0.05 * 255);
-          pdf.setDrawColor(...cyberBlue);
+          pdf.setDrawColor(cyberBlue[0], cyberBlue[1], cyberBlue[2]);
           pdf.setLineWidth(0.5);
-          pdf.rect(margin, currentY - 2, contentWidth, exerciseHeight, 'FD');
-          
+          pdf.rect(margin, currentY - 2, contentWidth, exerciseHeight, "FD");
+
           // Exercise header
-          pdf.setTextColor(...cyberBlue);
+          pdf.setTextColor(cyberBlue[0], cyberBlue[1], cyberBlue[2]);
           pdf.setFontSize(12);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(section.title || 'Exercise', margin + 3, currentY + 4);
-          
+          pdf.setFont("helvetica", "bold");
+          pdf.text(section.title || "Exercise", margin + 3, currentY + 4);
+
           // Exercise content
-          pdf.setTextColor(...darkGray);
+          pdf.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
           pdf.setFontSize(11);
-          pdf.setFont('helvetica', 'normal');
-          const exerciseText = wrapText(section.content as string, contentWidth - 6, 11);
+          pdf.setFont("helvetica", "normal");
+          const exerciseText = wrapText(
+            section.content as string,
+            contentWidth - 6,
+            11
+          );
           let exerciseY = currentY + 10;
           exerciseText.forEach((line: string) => {
             pdf.text(line, margin + 3, exerciseY);
             exerciseY += 6;
           });
-          
+
           currentY += exerciseHeight + 4;
           break;
 
-        case 'instruction':
+        case "instruction":
           checkPageBreak(15);
-          
+
           // Instruction background
           pdf.setFillColor(232, 121, 249, 0.1 * 255);
-          pdf.rect(margin, currentY - 2, contentWidth, 12, 'F');
-          
-          pdf.setTextColor(...neutralGray);
+          pdf.rect(margin, currentY - 2, contentWidth, 12, "F");
+
+          pdf.setTextColor(neutralGray[0], neutralGray[1], neutralGray[2]);
           pdf.setFontSize(10);
-          pdf.setFont('helvetica', 'italic');
+          pdf.setFont("helvetica", "italic");
           pdf.text(section.content as string, margin + 3, currentY + 4);
           currentY += 16;
           break;
@@ -495,31 +554,36 @@ export const exportToLightweightPdf = async (elementId: string, fileName: string
     const pageCount = pdf.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i);
-      
+
       // Footer line
-      pdf.setDrawColor(...neutralGray);
+      pdf.setDrawColor(neutralGray[0], neutralGray[1], neutralGray[2]);
       pdf.setLineWidth(0.3);
       pdf.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
-      
+
       // Footer text
-      pdf.setTextColor(...neutralGray);
+      pdf.setTextColor(neutralGray[0], neutralGray[1], neutralGray[2]);
       pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text('Generated by LinguaFlow', margin, pageHeight - 8);
-      pdf.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Generated by LinguaFlow", margin, pageHeight - 8);
+      pdf.text(
+        `Page ${i} of ${pageCount}`,
+        pageWidth - margin,
+        pageHeight - 8,
+        { align: "right" }
+      );
     }
 
     // Save the PDF
     pdf.save(`${fileName}.pdf`);
 
     if (toast) {
-      toast.success('Lightweight PDF exported successfully!');
+      toast.success("Lightweight PDF exported successfully!");
     }
   } catch (error) {
-    console.error('Error exporting lightweight PDF:', error);
+    console.error("Error exporting lightweight PDF:", error);
     const toast = (window as any).toast;
     if (toast) {
-      toast.error('Failed to export PDF. Please try again.');
+      toast.error("Failed to export PDF. Please try again.");
     }
   }
 };
@@ -527,21 +591,24 @@ export const exportToLightweightPdf = async (elementId: string, fileName: string
 /**
  * Create a lightweight Word document export
  */
-export const exportToLightweightWord = async (elementId: string, fileName: string = 'lesson-material'): Promise<void> => {
+export const exportToLightweightWord = async (
+  elementId: string,
+  fileName: string = "lesson-material"
+): Promise<void> => {
   try {
     const element = document.getElementById(elementId);
     if (!element) {
-      throw new Error('Element not found');
+      throw new Error("Element not found");
     }
 
     const toast = (window as any).toast;
     if (toast) {
-      toast.info('Preparing lightweight Word document...');
+      toast.info("Preparing lightweight Word document...");
     }
 
     // Parse content
     const lessonContent = parseHtmlToLessonContent(element);
-    
+
     // Create Word document HTML
     const wordHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" 
@@ -769,10 +836,10 @@ export const exportToLightweightWord = async (elementId: string, fileName: strin
         <div class="title-page">
           <h1>${lessonContent.title}</h1>
           <h2>LinguaFlow</h2>
-          <p>${new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+          <p>${new Date().toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
           })}</p>
         </div>
         
@@ -788,27 +855,27 @@ export const exportToLightweightWord = async (elementId: string, fileName: strin
     `;
 
     // Create and download the file
-    const blob = new Blob([wordHtml], { type: 'application/msword' });
+    const blob = new Blob([wordHtml], { type: "application/msword" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${fileName}.doc`;
     document.body.appendChild(a);
     a.click();
-    
+
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 0);
 
     if (toast) {
-      toast.success('Lightweight Word document exported successfully!');
+      toast.success("Lightweight Word document exported successfully!");
     }
   } catch (error) {
-    console.error('Error exporting lightweight Word:', error);
+    console.error("Error exporting lightweight Word:", error);
     const toast = (window as any).toast;
     if (toast) {
-      toast.error('Failed to export Word document. Please try again.');
+      toast.error("Failed to export Word document. Please try again.");
     }
   }
 };
@@ -817,49 +884,49 @@ export const exportToLightweightWord = async (elementId: string, fileName: strin
  * Generate Word document content from parsed lesson content
  */
 function generateWordContent(lessonContent: LessonContent): string {
-  let html = '';
-  
+  let html = "";
+
   lessonContent.sections.forEach((section) => {
     switch (section.type) {
-      case 'heading':
+      case "heading":
         const headingTag = `h${section.level || 2}`;
         html += `<${headingTag}>${section.content}</${headingTag}>`;
         break;
-        
-      case 'paragraph':
+
+      case "paragraph":
         html += `<p>${section.content}</p>`;
         break;
-        
-      case 'list':
-        html += '<ul>';
+
+      case "list":
+        html += "<ul>";
         (section.content as string[]).forEach((item) => {
           html += `<li>${item}</li>`;
         });
-        html += '</ul>';
+        html += "</ul>";
         break;
-        
-      case 'dialogue':
+
+      case "dialogue":
         html += `<div class="dialogue">`;
         html += `<div class="dialogue-header">Example Dialogue</div>`;
         html += `<div class="dialogue-instruction">Read or listen to this conversation related to the topic.</div>`;
-        
+
         (section.content as DialogueLine[]).forEach((line) => {
           const speakerInitial = line.speaker.charAt(0).toUpperCase();
-          let speakerClass = 'speaker-other';
-          let bubbleClass = 'bubble-other';
-          let nameClass = 'name-other';
-          
+          let speakerClass = "speaker-other";
+          let bubbleClass = "bubble-other";
+          let nameClass = "name-other";
+
           // Assign classes based on speaker initial
-          if (speakerInitial === 'M') {
-            speakerClass = 'speaker-m';
-            bubbleClass = 'bubble-m';
-            nameClass = 'name-m';
-          } else if (speakerInitial === 'P') {
-            speakerClass = 'speaker-p';
-            bubbleClass = 'bubble-p';
-            nameClass = 'name-p';
+          if (speakerInitial === "M") {
+            speakerClass = "speaker-m";
+            bubbleClass = "bubble-m";
+            nameClass = "name-m";
+          } else if (speakerInitial === "P") {
+            speakerClass = "speaker-p";
+            bubbleClass = "bubble-p";
+            nameClass = "name-p";
           }
-          
+
           html += `<div class="dialogue-line">`;
           html += `<div class="speaker-initial ${speakerClass}">${speakerInitial}</div>`;
           html += `<div class="speech-bubble ${bubbleClass}">`;
@@ -868,64 +935,68 @@ function generateWordContent(lessonContent: LessonContent): string {
           html += `</div>`;
           html += `</div>`;
         });
-        
-        html += '</div>';
+
+        html += "</div>";
         break;
-        
-      case 'vocabulary':
+
+      case "vocabulary":
         html += '<div class="vocabulary">';
-        html += `<h3>${section.title || 'Vocabulary'}</h3>`;
+        html += `<h3>${section.title || "Vocabulary"}</h3>`;
         (section.content as VocabularyItem[]).forEach((item) => {
           html += `<div class="vocabulary-item">`;
           html += `<span class="vocabulary-word">${item.word}</span> - ${item.definition}`;
-          html += '</div>';
+          html += "</div>";
         });
-        html += '</div>';
+        html += "</div>";
         break;
-        
-      case 'exercise':
+
+      case "exercise":
         html += `<div class="exercise">`;
-        html += `<h4>${section.title || 'Exercise'}</h4>`;
+        html += `<h4>${section.title || "Exercise"}</h4>`;
         html += `<p>${section.content}</p>`;
-        html += '</div>';
+        html += "</div>";
         break;
-        
-      case 'instruction':
+
+      case "instruction":
         html += `<div class="instruction">${section.content}</div>`;
         break;
     }
   });
-  
+
   return html;
 }
 
 /**
  * Show improved export dialog with lightweight options
  */
-export const showImprovedExportDialog = (elementId: string, fileName: string = 'lesson-material'): void => {
-  const dialog = document.createElement('div');
-  dialog.style.position = 'fixed';
-  dialog.style.top = '0';
-  dialog.style.left = '0';
-  dialog.style.width = '100%';
-  dialog.style.height = '100%';
-  dialog.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-  dialog.style.display = 'flex';
-  dialog.style.alignItems = 'center';
-  dialog.style.justifyContent = 'center';
-  dialog.style.zIndex = '9999';
-  dialog.style.backdropFilter = 'blur(4px)';
+export const showImprovedExportDialog = (
+  elementId: string,
+  fileName: string = "lesson-material"
+): void => {
+  const dialog = document.createElement("div");
+  dialog.style.position = "fixed";
+  dialog.style.top = "0";
+  dialog.style.left = "0";
+  dialog.style.width = "100%";
+  dialog.style.height = "100%";
+  dialog.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+  dialog.style.display = "flex";
+  dialog.style.alignItems = "center";
+  dialog.style.justifyContent = "center";
+  dialog.style.zIndex = "9999";
+  dialog.style.backdropFilter = "blur(4px)";
 
-  const content = document.createElement('div');
-  content.style.backgroundColor = 'white';
-  content.style.borderRadius = '12px';
-  content.style.padding = '24px';
-  content.style.width = '450px';
-  content.style.maxWidth = '90%';
-  content.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.1)';
-  content.style.border = '1px solid rgba(33, 197, 240, 0.3)';
-  content.style.background = 'linear-gradient(to bottom right, white, rgba(33, 197, 240, 0.05))';
-  
+  const content = document.createElement("div");
+  content.style.backgroundColor = "white";
+  content.style.borderRadius = "12px";
+  content.style.padding = "24px";
+  content.style.width = "450px";
+  content.style.maxWidth = "90%";
+  content.style.boxShadow = "0 10px 25px rgba(0, 0, 0, 0.1)";
+  content.style.border = "1px solid rgba(33, 197, 240, 0.3)";
+  content.style.background =
+    "linear-gradient(to bottom right, white, rgba(33, 197, 240, 0.05))";
+
   content.innerHTML = `
     <h2 style="margin-top: 0; margin-bottom: 8px; font-size: 20px; font-weight: bold; color: #21c5f0; display: flex; align-items: center;">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
@@ -969,21 +1040,25 @@ export const showImprovedExportDialog = (elementId: string, fileName: string = '
   document.body.appendChild(dialog);
 
   // Event listeners
-  document.getElementById('export-pdf-improved')?.addEventListener('click', async () => {
+  document
+    .getElementById("export-pdf-improved")
+    ?.addEventListener("click", async () => {
+      document.body.removeChild(dialog);
+      await exportToLightweightPdf(elementId, fileName);
+    });
+
+  document
+    .getElementById("export-word-improved")
+    ?.addEventListener("click", async () => {
+      document.body.removeChild(dialog);
+      await exportToLightweightWord(elementId, fileName);
+    });
+
+  document.getElementById("export-cancel")?.addEventListener("click", () => {
     document.body.removeChild(dialog);
-    await exportToLightweightPdf(elementId, fileName);
   });
 
-  document.getElementById('export-word-improved')?.addEventListener('click', async () => {
-    document.body.removeChild(dialog);
-    await exportToLightweightWord(elementId, fileName);
-  });
-
-  document.getElementById('export-cancel')?.addEventListener('click', () => {
-    document.body.removeChild(dialog);
-  });
-
-  dialog.addEventListener('click', (e) => {
+  dialog.addEventListener("click", (e) => {
     if (e.target === dialog) {
       document.body.removeChild(dialog);
     }

@@ -25,7 +25,7 @@ const PRE_GENERATED_IMAGES = {
   ]
 };
 
-function getEducationalFallbackImage(prompt: string = 'Generated Banner'): string {
+function getEducationalFallbackImage(prompt: string): string {
   // Use prompt to select appropriate category and image
   const lowerPrompt = prompt.toLowerCase();
   let category = 'general';
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (!geminiApiKey) {
       console.warn('Gemini API key not found, using educational fallback image');
       // Return a pre-generated educational image
-      const fallbackUrl = getEducationalFallbackImage(prompt);
+      const fallbackUrl = getEducationalFallbackImage(prompt || 'Generated Banner');
       return NextResponse.json({ imageUrl: fallbackUrl });
     }
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         const enhancedPrompt = enhancedData.candidates?.[0]?.content?.parts?.[0]?.text || prompt;
         
         // Return educational fallback image with enhanced prompt context
-        const fallbackUrl = getEducationalFallbackImage(enhancedPrompt);
+        const fallbackUrl = getEducationalFallbackImage(enhancedPrompt || prompt);
         return NextResponse.json({ imageUrl: fallbackUrl });
       }
     } catch (geminiError) {
@@ -92,14 +92,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Fallback to educational image
-    const fallbackUrl = getEducationalFallbackImage(prompt);
+    const fallbackUrl = getEducationalFallbackImage(prompt || 'Generated Banner');
     return NextResponse.json({ imageUrl: fallbackUrl });
     
   } catch (error) {
     console.error('Gemini image generation error:', error);
     
     // Return educational fallback image on any error
-    const fallbackUrl = getEducationalFallbackImage(prompt);
+    const fallbackUrl = getEducationalFallbackImage('Generated Banner');
     return NextResponse.json({ imageUrl: fallbackUrl });
   }
 }

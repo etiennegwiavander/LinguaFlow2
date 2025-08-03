@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useState, useCallback, ReactNode, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface CompletedSubTopic {
   id: string;
@@ -32,48 +33,85 @@ interface ProgressProviderProps {
 }
 
 export function ProgressProvider({ children }: ProgressProviderProps) {
-  // Store completed sub-topics with timestamps
-  const [completedSubTopicsWithTimestamps, setCompletedSubTopicsWithTimestamps] = useState<CompletedSubTopic[]>(() => {
-    // Initialize from localStorage on mount
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('completedSubTopicsWithTimestamps');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          // Debug logging removed to prevent infinite loop
-          return Array.isArray(parsed) ? parsed : [];
-        }
-      } catch (error) {
-        console.error('❌ Error loading completed sub-topics with timestamps from localStorage:', error);
-      }
-    }
-    return [];
-  });
+  // FIXED: User-specific localStorage to prevent data leakage
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Helper function to get user-specific localStorage keys
+  const getUserSpecificKey = (baseKey: string) => {
+    if (!currentUserId) return `${baseKey}_anonymous`;
+    return `${baseKey}_${currentUserId}`;
+  };
+
+  // Store completed sub-topics with timestamps (user-specific)
+  const [completedSubTopicsWithTimestamps, setCompletedSubTopicsWithTimestamps] = useState<CompletedSubTopic[]>([]);
 
   // Maintain backward compatibility - derive simple array from timestamped data
-  const [completedSubTopics, setCompletedSubTopics] = useState<string[]>(() => {
-    // Initialize from localStorage on mount (backward compatibility)
-    if (typeof window !== 'undefined') {
+  const [completedSubTopics, setCompletedSubTopics] = useState<string[]>([]);
+
+  // Load user-specific data when user changes
+  useEffect(() => {
+    const loadUserSpecificData = async () => {
       try {
-        const storedWithTimestamps = localStorage.getItem('completedSubTopicsWithTimestamps');
-        if (storedWithTimestamps) {
-          const parsed = JSON.parse(storedWithTimestamps);
-          return Array.isArray(parsed) ? parsed.map((item: CompletedSubTopic) => item.id) : [];
-        }
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id || null;
         
-        // Fallback to old format
-        const stored = localStorage.getItem('completedSubTopics');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          // Debug logging removed to prevent infinite loop
-          return Array.isArray(parsed) ? parsed : [];
+        if (userId !== currentUserId) {
+          setCurrentUserId(userId);
+          
+          // Clean up old global localStorage data (data leakage fix)
+          if (typeof window !== 'undefined') {
+            try {
+              const oldGlobalData = localStorage.getItem('completedSubTopicsWithTimestamps');
+              const oldGlobalSimple = localStorage.getItem('completedSubTopics');
+              
+              if (oldGlobalData || oldGlobalSimple) {
+                console.log('🧹 Cleaning up old global localStorage data to prevent data leakage');
+                localStorage.removeItem('completedSubTopicsWithTimestamps');
+                localStorage.removeItem('completedSubTopics');
+              }
+            } catch (error) {
+              console.error('❌ Error cleaning up old localStorage data:', error);
+            }
+          }
+          
+          // Load user-specific data from localStorage
+          if (typeof window !== 'undefined' && userId) {
+            try {
+              const timestampedKey = `completedSubTopicsWithTimestamps_${userId}`;
+              const stored = localStorage.getItem(timestampedKey);
+              
+              if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) {
+                  setCompletedSubTopicsWithTimestamps(parsed);
+                  setCompletedSubTopics(parsed.map((item: CompletedSubTopic) => item.id));
+                  console.log('✅ Loaded user-specific progress data for user:', userId);
+                  return;
+                }
+              }
+              
+              // If no user-specific data, start fresh
+              setCompletedSubTopicsWithTimestamps([]);
+              setCompletedSubTopics([]);
+              console.log('🆕 Starting fresh progress for user:', userId);
+            } catch (error) {
+              console.error('❌ Error loading user-specific progress:', error);
+              setCompletedSubTopicsWithTimestamps([]);
+              setCompletedSubTopics([]);
+            }
+          } else {
+            // No user, clear data
+            setCompletedSubTopicsWithTimestamps([]);
+            setCompletedSubTopics([]);
+          }
         }
       } catch (error) {
-        console.error('❌ Error loading completed sub-topics from localStorage:', error);
+        console.error('❌ Error in loadUserSpecificData:', error);
       }
-    }
-    return [];
-  });
+    };
+
+    loadUserSpecificData();
+  }, [currentUserId]);
 
   // Function to initialize completed sub-topics from lesson data
   const initializeFromLessonData = useCallback((lessonData: any) => {
@@ -142,37 +180,41 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
   const resetProgress = useCallback(() => {
     setCompletedSubTopics([]);
     setCompletedSubTopicsWithTimestamps([]);
-    // Also clear from localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('completedSubTopics');
-      localStorage.removeItem('completedSubTopicsWithTimestamps');
-      console.log('🗑️ Cleared completed sub-topics from localStorage');
+    // Also clear from user-specific localStorage
+    if (typeof window !== 'undefined' && currentUserId) {
+      const timestampedKey = `completedSubTopicsWithTimestamps_${currentUserId}`;
+      const simpleKey = `completedSubTopics_${currentUserId}`;
+      localStorage.removeItem(simpleKey);
+      localStorage.removeItem(timestampedKey);
+      console.log('🗑️ Cleared user-specific completed sub-topics from localStorage for user:', currentUserId);
     }
-  }, []);
+  }, [currentUserId]);
 
-  // Save to localStorage whenever completedSubTopics changes
+  // Save to user-specific localStorage whenever completedSubTopics changes
   useEffect(() => {
-    if (typeof window !== 'undefined' && completedSubTopics.length > 0) {
+    if (typeof window !== 'undefined' && currentUserId && completedSubTopics.length > 0) {
       try {
-        localStorage.setItem('completedSubTopics', JSON.stringify(completedSubTopics));
-        // Debug logging removed to prevent infinite loop
+        const userKey = `completedSubTopics_${currentUserId}`;
+        localStorage.setItem(userKey, JSON.stringify(completedSubTopics));
+        console.log('💾 Saved user-specific progress for user:', currentUserId);
       } catch (error) {
-        console.error('❌ Error saving completed sub-topics to localStorage:', error);
+        console.error('❌ Error saving user-specific completed sub-topics to localStorage:', error);
       }
     }
-  }, [completedSubTopics]);
+  }, [completedSubTopics, currentUserId]);
 
-  // Save timestamped data to localStorage whenever it changes
+  // Save timestamped data to user-specific localStorage whenever it changes
   useEffect(() => {
-    if (typeof window !== 'undefined' && completedSubTopicsWithTimestamps.length > 0) {
+    if (typeof window !== 'undefined' && currentUserId && completedSubTopicsWithTimestamps.length > 0) {
       try {
-        localStorage.setItem('completedSubTopicsWithTimestamps', JSON.stringify(completedSubTopicsWithTimestamps));
-        // Debug logging removed to prevent infinite loop
+        const userKey = `completedSubTopicsWithTimestamps_${currentUserId}`;
+        localStorage.setItem(userKey, JSON.stringify(completedSubTopicsWithTimestamps));
+        console.log('💾 Saved user-specific timestamped progress for user:', currentUserId);
       } catch (error) {
-        console.error('❌ Error saving completed sub-topics with timestamps to localStorage:', error);
+        console.error('❌ Error saving user-specific completed sub-topics with timestamps to localStorage:', error);
       }
     }
-  }, [completedSubTopicsWithTimestamps]);
+  }, [completedSubTopicsWithTimestamps, currentUserId]);
 
   return (
     <ProgressContext.Provider 

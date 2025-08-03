@@ -205,7 +205,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     } finally {
       setLoadingUpcomingLesson(false);
     }
-  });
+  }, [initializeFromLessonData, student.id]);
 
   // Load lesson history with completed sub-topics (based on local progress context)
   const loadLessonHistory = useCallback(async () => {
