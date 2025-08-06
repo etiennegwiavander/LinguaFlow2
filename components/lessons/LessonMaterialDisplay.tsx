@@ -31,7 +31,10 @@ import {
   MessageCircle,
   Globe,
   Download,
-  FileText
+  FileText,
+  Share2,
+  Copy,
+  ExternalLink
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1146,6 +1149,50 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     showImprovedExportDialog('lesson-content-container', fileName);
   };
 
+  const handleShareLesson = async () => {
+    if (!lesson) return;
+
+    try {
+      // Create a shareable lesson record in the database
+      const shareableData = {
+        lesson_id: lesson.id,
+        student_name: lesson.student?.name || 'Student',
+        lesson_title: (lesson.materials && lesson.materials.length > 0 ? lesson.materials[0] : null) || 'Interactive Lesson',
+        shared_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+        is_active: true
+      };
+
+      const { data: shareRecord, error } = await supabaseRequest(() =>
+        supabase
+          .from('shared_lessons')
+          .insert(shareableData)
+          .select()
+          .single()
+      );
+
+      if (error) throw error;
+
+      // Generate shareable URL
+      const shareUrl = `${window.location.origin}/shared-lesson/${shareRecord.id}`;
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      
+      toast.success('Lesson link copied to clipboard! Share this with your student.', {
+        description: 'The link will expire in 7 days for security.',
+        action: {
+          label: 'Open Link',
+          onClick: () => window.open(shareUrl, '_blank')
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Error sharing lesson:', error);
+      toast.error('Failed to create shareable link. Please try again.');
+    }
+  };
+
   const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
     if (!template) return null;
 
@@ -2096,6 +2143,14 @@ Apply these concepts in academic writing, professional presentations, and sophis
           </Button>
           <Button
             size="lg"
+            className="px-8 bg-gradient-to-r from-blue-400 to-indigo-400 hover:from-blue-500 hover:to-indigo-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+            onClick={handleShareLesson}
+          >
+            <Share2 className="w-5 h-5 mr-2" />
+            Share with Student
+          </Button>
+          <Button
+            size="lg"
             className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
             onClick={handleExportLesson}
           >
@@ -2226,7 +2281,15 @@ Apply these concepts in academic writing, professional presentations, and sophis
             </Card>
           ))}
 
-          <div className="flex justify-center pt-4">
+          <div className="flex justify-center pt-4 space-x-4">
+            <Button
+              size="lg"
+              className="px-8 bg-gradient-to-r from-blue-400 to-indigo-400 hover:from-blue-500 hover:to-indigo-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+              onClick={handleShareLesson}
+            >
+              <Share2 className="w-5 h-5 mr-2" />
+              Share with Student
+            </Button>
             <Button
               size="lg"
               className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"

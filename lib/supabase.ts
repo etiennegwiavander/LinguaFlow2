@@ -277,6 +277,41 @@ export type Database = {
           updated_at?: string;
         };
       };
+      shared_lessons: {
+        Row: {
+          id: string;
+          lesson_id: string;
+          student_name: string;
+          lesson_title: string;
+          shared_at: string;
+          expires_at: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          lesson_id: string;
+          student_name: string;
+          lesson_title: string;
+          shared_at?: string;
+          expires_at: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          lesson_id?: string;
+          student_name?: string;
+          lesson_title?: string;
+          shared_at?: string;
+          expires_at?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 };

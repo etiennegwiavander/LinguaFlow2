@@ -10,8 +10,9 @@
     - Maintains existing security model while enabling registration flow
 */
 
-CREATE POLICY "Users can insert own tutor record"
-  ON tutors
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = id);
+-- Policy already exists in initial schema, skipping
+-- CREATE POLICY "Users can insert own tutor record"
+--   ON tutors
+--   FOR INSERT
+--   TO authenticated
+--   WITH CHECK (auth.uid() = id);

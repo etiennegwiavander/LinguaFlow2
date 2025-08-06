@@ -35,6 +35,21 @@ const UNPROTECTED_ROUTES = [
   '/privacy'
 ];
 
+// Function to check if a path should be unprotected
+const isUnprotectedRoute = (path: string): boolean => {
+  // Check exact matches first
+  if (UNPROTECTED_ROUTES.includes(path)) {
+    return true;
+  }
+  
+  // Check for shared lesson routes (any path starting with /shared-lesson/)
+  if (path.startsWith('/shared-lesson/')) {
+    return true;
+  }
+  
+  return false;
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         // User is not logged in
-        if (!UNPROTECTED_ROUTES.includes(path)) {
+        if (!isUnprotectedRoute(path)) {
           router.replace('/auth/login');
         }
       }
@@ -118,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         const currentPath = window.location.pathname;
-        if (!UNPROTECTED_ROUTES.includes(currentPath)) {
+        if (!isUnprotectedRoute(currentPath)) {
           router.replace('/auth/login');
         }
       }
