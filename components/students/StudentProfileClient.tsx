@@ -58,6 +58,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import LessonHistoryCard from '@/components/lessons/LessonHistoryCard';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -1306,108 +1307,29 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                       <span className="ml-2 text-muted-foreground">Loading lesson history...</span>
                     </div>
                   ) : lessonHistory.length > 0 ? (
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {lessonHistory.map((lessonEntry, index) => {
-                        // Use the actual completion timestamp instead of lesson date
-                        const completionDate = new Date(lessonEntry.completedAt);
-                        const completedSubTopic = lessonEntry.completedSubTopic;
-                        const hasInteractiveContent = !!lessonEntry.interactive_lesson_content;
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[800px] overflow-y-auto">
+                      {lessonHistory.map((lessonEntry, index) => (
+                        <LessonHistoryCard
+                          key={lessonEntry.entryId}
+                          lessonEntry={lessonEntry}
+                          onViewLesson={(lessonEntry) => {
+                            setSelectedLessonId(lessonEntry.id);
+                            setSelectedHistoryLesson(lessonEntry);
 
-                        return (
-                          <Card key={lessonEntry.entryId} className="border-cyber-400/20 bg-gradient-to-r from-green-50/30 to-blue-50/30 dark:from-green-950/10 dark:to-blue-950/10">
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="space-y-2 flex-1">
-                                  <div className="flex items-center space-x-2">
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                    <span className="font-medium text-sm">
-                                      {completionDate.toLocaleDateString(undefined, {
-                                        weekday: 'short',
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric'
-                                      })}
-                                    </span>
-                                    <Badge variant="outline" className="text-xs border-green-400/30 text-green-700 dark:text-green-400">
-                                      Completed
-                                    </Badge>
-                                  </div>
+                            // Set persistent lesson data for history lesson with specific sub-topic context
+                            setPersistentLessonData({
+                              lessonId: lessonEntry.id,
+                              lessonData: {
+                                ...lessonEntry,
+                                // Add context about which specific sub-topic was completed
+                                selectedSubTopic: lessonEntry.completedSubTopic
+                              }
+                            });
 
-                                  <div className="space-y-1">
-                                    <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                                      {completedSubTopic.title}
-                                    </p>
-
-                                    <p className="text-xs text-muted-foreground">
-                                      {completedSubTopic.description || 'No description available'}
-                                    </p>
-
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <span>Category: {completedSubTopic.category}</span>
-                                      <span>•</span>
-                                      <span>Level: {completedSubTopic.level}</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex flex-wrap gap-1 mt-2">
-                                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                                      <CheckCircle className="w-3 h-3 mr-1" />
-                                      Sub-topic Completed
-                                    </Badge>
-                                    {hasInteractiveContent && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        <BookOpen className="w-3 h-3 mr-1" />
-                                        Interactive Material
-                                      </Badge>
-                                    )}
-                                    {lessonEntry.lesson_template_id && (
-                                      <Badge variant="outline" className="text-xs border-cyber-400/30">
-                                        <Target className="w-3 h-3 mr-1" />
-                                        Template Applied
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center space-x-2 ml-4">
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            setSelectedLessonId(lessonEntry.id);
-                                            setSelectedHistoryLesson(lessonEntry);
-
-                                            // Set persistent lesson data for history lesson with specific sub-topic context
-                                            setPersistentLessonData({
-                                              lessonId: lessonEntry.id,
-                                              lessonData: {
-                                                ...lessonEntry,
-                                                // Add context about which specific sub-topic was completed
-                                                selectedSubTopic: completedSubTopic
-                                              }
-                                            });
-
-                                            setActiveTab("lesson-material");
-                                          }}
-                                          className="border-cyber-400/30 hover:bg-cyber-400/10"
-                                        >
-                                          <BookOpen className="h-3 w-3" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>View lesson material</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
+                            setActiveTab("lesson-material");
+                          }}
+                        />
+                      ))}
                     </div>
                   ) : (
                     <div className="text-center p-8 border border-cyber-400/20 rounded-lg bg-gradient-to-r from-gray-50/50 to-blue-50/50 dark:from-gray-950/20 dark:to-blue-950/20">

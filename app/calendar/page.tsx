@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MainLayout from "@/components/main-layout";
-import { Calendar, RefreshCcw, CheckCircle, XCircle, Clock, AlertCircle, ExternalLink, Info, Zap } from "lucide-react";
+import { Calendar, RefreshCcw, CheckCircle, XCircle, Clock, AlertCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import { googleCalendarService, CalendarEvent } from "@/lib/google-calendar";
 import { toast } from "sonner";
 import { format, addWeeks, parseISO } from "date-fns";
@@ -21,7 +21,7 @@ export default function CalendarPage() {
   const [email, setEmail] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPopupBlockedAlert, setShowPopupBlockedAlert] = useState(false);
+
   const [connectionStatus, setConnectionStatus] = useState<{
     connected: boolean;
     email?: string;
@@ -36,103 +36,40 @@ export default function CalendarPage() {
   }>({ connected: false });
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Handle postMessage from OAuth popup
+  // Handle OAuth return from same-tab redirect
   useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      // Verify origin for security
-      const expectedOrigin = window.location.origin;
-      if (event.origin !== expectedOrigin) {
-        return;
-      }
-
-      // Check if this is our OAuth callback message
-      if (event.data && event.data.type === 'google-oauth-callback') {
+    const handleOAuthReturn = async () => {
+      try {
+        const result = await googleCalendarService.handleOAuthReturn();
         
-        const { status, data, message } = event.data;
-        
-        if (status === 'success') {
-          
-          try {
-            // Store the tokens using the data from the popup
-            if (data && data.access_token && data.refresh_token && data.expires_at) {
-              await googleCalendarService.storeTokens({
-                access_token: data.access_token,
-                refresh_token: data.refresh_token,
-                expires_at: data.expires_at,
-                scope: data.scope || 'https://www.googleapis.com/auth/calendar.readonly',
-                email: data.email || undefined
-              });
-              
-              // Update connection status
-              await checkConnectionStatus();
-              
-              toast.success('Google Calendar connected successfully!');
-              
-              // Auto-sync after connection
-              await handleSync();
-              
-            } else {
-              toast.error('Incomplete OAuth data received');
-            }
-          } catch (error: any) {
-            toast.error(error.message || 'Failed to complete Google Calendar connection');
-          }
-        } else {
-          toast.error(`Google Calendar connection failed: ${message}`);
-        }
-      }
-    };
-
-    // Add event listener for postMessage
-    window.addEventListener('message', handleMessage);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, []);
-
-  // Handle URL-based OAuth callback (fallback for manual connection)
-  useEffect(() => {
-    const handleUrlCallback = async () => {
-      const authStatus = searchParams.get('google_auth_status');
-      
-      if (authStatus === 'success') {
-        
-        // For manual connections, we don't have token data in URL
-        // Just check connection status and sync
-        try {
+        if (result.success) {
           await checkConnectionStatus();
-          toast.success('Google Calendar connected successfully!');
+          toast.success(result.message || 'Google Calendar connected successfully!');
           
           // Auto-sync after connection
-          await handleSync();
-          
-        } catch (error: any) {
-          toast.error(error.message || 'Failed to complete Google Calendar connection');
+          if (result.shouldSync) {
+            // Call sync directly instead of using handleSync to avoid dependency issues
+            try {
+              const syncResult = await googleCalendarService.syncCalendar();
+              await checkConnectionStatus();
+              await loadCalendarEvents();
+              toast.success(`Successfully synced ${syncResult.events_count} calendar events`);
+            } catch (syncError: any) {
+              toast.error(syncError.message || 'Failed to sync calendar');
+            }
+          }
+        } else if (result.message) {
+          toast.error(result.message);
         }
-        
-        // Clean up URL parameters
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('google_auth_status');
-        newUrl.searchParams.delete('message');
-        router.replace(newUrl.pathname);
-        
-      } else if (authStatus === 'error') {
-        const errorMessage = searchParams.get('message') || 'Unknown error occurred';
-        toast.error(`Google Calendar connection failed: ${errorMessage}`);
-        
-        // Clean up URL parameters
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('google_auth_status');
-        newUrl.searchParams.delete('message');
-        router.replace(newUrl.pathname);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to handle OAuth return');
       }
     };
 
-    handleUrlCallback();
-  }, [searchParams, router]);
+    handleOAuthReturn();
+  }, []); // Remove handleSync dependency
 
   useEffect(() => {
     checkConnectionStatus();
@@ -140,6 +77,15 @@ export default function CalendarPage() {
       loadCalendarEvents();
     }
   }, [isConnected]);
+
+  // Real-time updates for ongoing events
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   const checkConnectionStatus = async () => {
     try {
@@ -181,38 +127,19 @@ export default function CalendarPage() {
     }
 
     setIsLoading(true);
-    setShowPopupBlockedAlert(false);
     
     try {
-      
-      // Try to initiate OAuth with popup
+      // Initiate OAuth with same-tab redirect
       await googleCalendarService.initiateOAuth(email);
-      
     } catch (error: any) {
-      
-      if (error.message === 'POPUP_BLOCKED') {
-        // Show popup blocked alert with manual option
-        setShowPopupBlockedAlert(true);
-        toast.error('Popup was blocked. Please use the manual connection option below.');
-      } else {
-        toast.error(error.message || 'Failed to connect Google Calendar');
-      }
-    } finally {
+      toast.error(error.message || 'Failed to connect Google Calendar');
       setIsLoading(false);
     }
   };
 
-  const handleManualConnect = async () => {
-    try {
-      const authUrl = await googleCalendarService.getOAuthUrl(email);
-      // Open in same tab
-      window.location.href = authUrl;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to generate authorization URL');
-    }
-  };
 
-  const handleSync = async () => {
+
+  const handleSync = useCallback(async () => {
     setIsSyncing(true);
     try {
       const result = await googleCalendarService.syncCalendar();
@@ -224,7 +151,7 @@ export default function CalendarPage() {
     } finally {
       setIsSyncing(false);
     }
-  };
+  });
 
   const handleDisconnect = async () => {
     if (!confirm('Are you sure you want to disconnect Google Calendar? This will remove all synced events.')) {
@@ -237,7 +164,7 @@ export default function CalendarPage() {
       setConnectionStatus({ connected: false });
       setEvents([]);
       setEmail("");
-      setShowPopupBlockedAlert(false);
+
       toast.success('Google Calendar disconnected successfully');
     } catch (error: any) {
       toast.error(error.message || 'Failed to disconnect Google Calendar');
@@ -303,12 +230,31 @@ export default function CalendarPage() {
     );
   };
 
-  // Sort events by start time and filter to upcoming events only
+  // Helper function to determine event status and visibility
+  const getEventStatus = (event: CalendarEvent) => {
+    const eventStart = parseISO(event.start_time);
+    const eventEnd = parseISO(event.end_time);
+    
+    // Calculate 3/4 point of the event duration
+    const eventDuration = eventEnd.getTime() - eventStart.getTime();
+    const threeQuarterPoint = new Date(eventStart.getTime() + (eventDuration * 0.75));
+    
+    if (currentTime < eventStart) {
+      return { status: 'upcoming', visible: true };
+    } else if (currentTime >= eventStart && currentTime < threeQuarterPoint) {
+      return { status: 'ongoing', visible: true };
+    } else {
+      return { status: 'completed', visible: false };
+    }
+  };
+
+  // Filter and sort events - include upcoming and ongoing events
   const upcomingEvents = events
-    .filter(event => {
-      const eventStart = parseISO(event.start_time);
-      return eventStart >= new Date(); // Only show future events
-    })
+    .map(event => ({
+      ...event,
+      eventStatus: getEventStatus(event)
+    }))
+    .filter(event => event.eventStatus.visible)
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
   const now = new Date();
@@ -373,34 +319,7 @@ export default function CalendarPage() {
                   </p>
                 </div>
 
-                {/* Popup Blocked Alert */}
-                {showPopupBlockedAlert && (
-                  <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
-                    <Info className="h-4 w-4" />
-                    <AlertDescription className="space-y-3">
-                      <p>
-                        Your browser blocked the popup window. You can either:
-                      </p>
-                      <div className="space-y-2">
-                        <p className="text-sm">
-                          <strong>Option 1:</strong> Allow popups for this site and try again
-                        </p>
-                        <p className="text-sm">
-                          <strong>Option 2:</strong> Use manual connection (opens in same tab)
-                        </p>
-                      </div>
-                      <Button
-                        onClick={handleManualConnect}
-                        variant="outline"
-                        className="flex items-center btn-ghost-cyber"
-                        disabled={!email.trim()}
-                      >
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        Connect Manually
-                      </Button>
-                    </AlertDescription>
-                  </Alert>
-                )}
+
               </div>
             )}
 
@@ -553,13 +472,16 @@ export default function CalendarPage() {
                 <div className="space-y-4">
                   {upcomingEvents.map((event, index) => {
                     const eventDate = parseISO(event.start_time);
+                    const eventEnd = parseISO(event.end_time);
                     const isToday = format(eventDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
                     const isTomorrow = format(eventDate, 'yyyy-MM-dd') === format(addWeeks(now, 0).setDate(now.getDate() + 1), 'yyyy-MM-dd');
+                    const isOngoing = event.eventStatus.status === 'ongoing';
                     
                     return (
                       <div 
                         key={event.id} 
                         className={`flex items-start space-x-4 p-4 border rounded-lg transition-colors hover-lift animate-scale-in ${
+                          isOngoing ? 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20' :
                           isToday ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20' : 
                           isTomorrow ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 
                           'border-cyber-400/30 hover:border-cyber-400/50'
@@ -569,12 +491,12 @@ export default function CalendarPage() {
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-1">
                             <h3 className="font-medium">{event.summary}</h3>
-                            {isToday && (
+                            {isToday && !isOngoing && (
                               <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
                                 Today
                               </Badge>
                             )}
-                            {isTomorrow && (
+                            {isTomorrow && !isOngoing && (
                               <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
                                 Tomorrow
                               </Badge>
@@ -591,7 +513,7 @@ export default function CalendarPage() {
                               <span>{format(eventDate, "EEE, MMM d")}</span>
                             </span>
                             <span>
-                              {format(eventDate, "h:mm a")}
+                              {format(eventDate, "h:mm a")} - {format(eventEnd, "h:mm a")}
                             </span>
                             {event.location && (
                               <>
@@ -600,6 +522,18 @@ export default function CalendarPage() {
                               </>
                             )}
                           </div>
+                          
+                          {/* Ongoing badge at the bottom */}
+                          {isOngoing && (
+                            <div className="mt-3 pt-2 border-t border-orange-200 dark:border-orange-800">
+                              <Badge className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                <div className="flex items-center space-x-1">
+                                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                                  <span>Ongoing...</span>
+                                </div>
+                              </Badge>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -608,7 +542,7 @@ export default function CalendarPage() {
                   {events.length > upcomingEvents.length && (
                     <div className="text-center pt-4 border-t border-cyber-400/20">
                       <p className="text-sm text-muted-foreground">
-                        Showing {upcomingEvents.length} upcoming events • {events.length} total synced events
+                        Showing {upcomingEvents.length} visible events • {events.length} total synced events
                       </p>
                     </div>
                   )}

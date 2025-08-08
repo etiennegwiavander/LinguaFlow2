@@ -27,7 +27,7 @@
     --primary: 199 89% 48%;
     --primary-foreground: 0 0% 98%;
     --secondary: 239 68% 73%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary-foreground: 20 14% 11%;
     --muted: 20 6% 90%;
     --muted-foreground: 20 5% 45%;
     --accent: 160 84% 39%;
@@ -132,6 +132,15 @@
     @apply border border-ocean-300/60 dark:border-ocean-700/60 text-ocean-600 dark:text-ocean-400 hover:bg-ocean-50 dark:hover:bg-ocean-900/20 hover:border-ocean-400 dark:hover:border-ocean-600 transition-all duration-300;
   }
   
+  /* Primary button overrides for better visibility */
+  .btn-primary {
+    @apply bg-ocean-500 hover:bg-ocean-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 font-medium;
+  }
+  
+  .btn-primary:hover {
+    @apply bg-ocean-600 text-white;
+  }
+  
   /* Professional input styles */
   .input-cyber {
     @apply border-ocean-200 dark:border-ocean-800 focus:border-ocean-400 dark:focus:border-ocean-600 focus:ring-ocean-400/20 dark:focus:ring-ocean-600/20 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm;
@@ -150,9 +159,48 @@
     @apply text-muted-foreground hover:bg-ocean-50/50 dark:hover:bg-ocean-900/20 hover:text-ocean-600 dark:hover:text-ocean-400;
   }
   
-  /* Professional badge styles */
+  /* Professional badge styles - Enhanced visibility */
   .badge-cyber {
-    @apply bg-gradient-to-r from-ocean-50 to-indigo-50 dark:from-ocean-900/30 dark:to-indigo-900/30 text-ocean-700 dark:text-ocean-300 border-ocean-200 dark:border-ocean-700;
+    @apply bg-gradient-to-r from-ocean-200 to-indigo-200 dark:from-ocean-800/80 dark:to-indigo-800/80 text-ocean-900 dark:text-ocean-100 border-ocean-400 dark:border-ocean-500 shadow-md font-medium;
+  }
+  
+  .badge-cyber:hover {
+    @apply bg-gradient-to-r from-ocean-300 to-indigo-300 dark:from-ocean-700/90 dark:to-indigo-700/90 text-ocean-950 dark:text-white border-ocean-500 dark:border-ocean-400 shadow-lg;
+  }
+  
+  /* Primary badge variant for maximum visibility */
+  .badge-primary {
+    @apply bg-ocean-500 text-white border-ocean-600 shadow-md font-medium;
+  }
+  
+  .badge-primary:hover {
+    @apply bg-ocean-600 text-white border-ocean-700 shadow-lg;
+  }
+  
+  /* Enhanced visibility for primary elements */
+  .bg-primary {
+    @apply bg-ocean-500 text-white;
+  }
+  
+  .bg-primary:hover {
+    @apply bg-ocean-600 text-white;
+  }
+  
+  .text-primary-foreground {
+    @apply text-white;
+  }
+  
+  .hover\:bg-primary\/80:hover {
+    @apply bg-ocean-600 text-white;
+  }
+  
+  /* Ensure badges with primary background are always visible */
+  .border-transparent.bg-primary {
+    @apply bg-ocean-500 text-white border-ocean-600;
+  }
+  
+  .border-transparent.bg-primary:hover {
+    @apply bg-ocean-600 text-white border-ocean-700;
   }
   
   .badge-success {
@@ -167,17 +215,46 @@
     @apply bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700;
   }
   
-  /* Professional layout styles */
+  /* Professional layout styles - Ultra clean backgrounds */
   .page-container {
-    @apply min-h-screen bg-gradient-to-br from-neutral-50 via-ocean-50/30 to-indigo-50/20 dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900 relative overflow-hidden;
+    @apply min-h-screen bg-neutral-50 dark:bg-neutral-900 relative;
   }
   
+  /* Professional app background with imperceptible depth */
+  .page-container-app {
+    @apply min-h-screen relative;
+    background: linear-gradient(180deg, 
+      hsl(20, 6%, 98%) 0%, 
+      hsl(20, 6%, 97%) 100%
+    );
+  }
+  
+  .dark .page-container-app {
+    background: linear-gradient(180deg, 
+      hsl(20, 14%, 4%) 0%, 
+      hsl(20, 14%, 3.5%) 100%
+    );
+  }
+  
+  /* Completely clean background - zero patterns */
   .page-background {
-    @apply absolute inset-0 grid-background opacity-30 pointer-events-none;
+    @apply absolute inset-0 pointer-events-none;
+    background: transparent;
   }
   
+  /* Alternative: Barely perceptible professional depth */
+  .page-background-subtle {
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(180deg, 
+      transparent 0%, 
+      rgba(14, 165, 233, 0.005) 50%, 
+      transparent 100%
+    );
+  }
+  
+  /* Disabled floating elements for professional focus */
   .floating-elements {
-    @apply fixed top-20 left-10 w-20 h-20 bg-ocean-200/30 dark:bg-ocean-800/30 rounded-full blur-xl animate-float pointer-events-none;
+    display: none;
   }
   
   /* Section headers */
@@ -195,7 +272,7 @@
   
   /* Status indicators */
   .status-active {
-    @apply bg-sage-50 dark:bg-sage-900/30 text-sage-700 dark:text-sage-300 border-sage-200 dark:border-sage-700;
+    @apply bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700;
   }
   
   .status-inactive {
@@ -314,19 +391,13 @@
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Professional grid background */
+/* Completely clean backgrounds - no patterns */
 .grid-background {
-  background-image: 
-    linear-gradient(rgba(14, 165, 233, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(14, 165, 233, 0.08) 1px, transparent 1px);
-  background-size: 50px 50px;
+  background: transparent;
 }
 
 .grid-background-dense {
-  background-image: 
-    linear-gradient(rgba(14, 165, 233, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(14, 165, 233, 0.04) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background: transparent;
 }
 
 /* Glitch effect */

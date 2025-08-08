@@ -35,8 +35,17 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get request body
-    const requestData: SyncCalendarRequest = await req.json();
+    // Get request body - handle empty body gracefully
+    let requestData: SyncCalendarRequest = {};
+    try {
+      const body = await req.text();
+      if (body.trim()) {
+        requestData = JSON.parse(body);
+      }
+    } catch (error) {
+      console.log('No JSON body provided, using empty object');
+      requestData = {};
+    }
     
     // Get user ID from auth token or request body
     let tutorId: string;
@@ -134,9 +143,9 @@ serve(async (req) => {
     const timeMax = new Date();
     timeMax.setDate(timeMax.getDate() + 90); // 90 days into the future
     
-    // Fetch events from Google Calendar
-    const calendarResponse = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=2500`,
+    // First, get all calendars the user has access to
+    const calendarsResponse = await fetch(
+      `https://www.googleapis.com/calendar/v3/users/me/calendarList`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -144,13 +153,56 @@ serve(async (req) => {
       }
     );
 
-    if (!calendarResponse.ok) {
-      const calendarError = await calendarResponse.json();
-      throw new Error(`Failed to fetch calendar events: ${JSON.stringify(calendarError)}`);
+    if (!calendarsResponse.ok) {
+      const calendarsError = await calendarsResponse.json();
+      throw new Error(`Failed to fetch calendar list: ${JSON.stringify(calendarsError)}`);
     }
 
-    const calendarData = await calendarResponse.json();
-    const events = calendarData.items || [];
+    const calendarsData = await calendarsResponse.json();
+    const calendars = calendarsData.items || [];
+    
+    console.log(`Found ${calendars.length} calendars for user ${tutorId}`);
+    
+    // Fetch events from all calendars
+    let allEvents: any[] = [];
+    
+    for (const calendar of calendars) {
+      try {
+        console.log(`Syncing calendar: ${calendar.summary} (${calendar.id})`);
+        
+        const calendarResponse = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=2500`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (calendarResponse.ok) {
+          const calendarData = await calendarResponse.json();
+          const events = calendarData.items || [];
+          
+          // Add calendar info to each event
+          const eventsWithCalendar = events.map((event: any) => ({
+            ...event,
+            calendar_id: calendar.id,
+            calendar_name: calendar.summary,
+          }));
+          
+          allEvents = allEvents.concat(eventsWithCalendar);
+          console.log(`Added ${events.length} events from ${calendar.summary}`);
+        } else {
+          console.log(`Failed to fetch events from calendar ${calendar.summary}: ${calendarResponse.status}`);
+        }
+      } catch (error) {
+        console.error(`Error fetching events from calendar ${calendar.summary}:`, error);
+        // Continue with other calendars even if one fails
+      }
+    }
+    
+    console.log(`Total events fetched: ${allEvents.length}`);
+    const events = allEvents;
 
     // Process events
     const processedEvents = events.map((event: any) => ({
