@@ -47,6 +47,14 @@ const proficiencyLevels = [
   { value: "c2", label: "C2 - Mastery" },
 ];
 
+const ageGroups = [
+  { value: "kid", label: "Kid (4-8 years)" },
+  { value: "teenager", label: "Teenager (13-17 years)" },
+  { value: "adult", label: "Adult (18-39 years)" },
+  { value: "middle_aged_adult", label: "Middle-aged Adult (40-64 years)" },
+  { value: "senior", label: "Senior (65+ years)" },
+];
+
 const learningStyles = [
   { id: "visual", label: "Visual" },
   { id: "auditory", label: "Auditory" },
@@ -59,6 +67,7 @@ const formSchema = z.object({
   targetLanguage: z.string().min(1, "Please select a target language"),
   nativeLanguage: z.string().optional(),
   proficiencyLevel: z.string().min(1, "Please select a proficiency level"),
+  ageGroup: z.string().min(1, "Please select an age group"),
   endGoals: z.string().min(1, "Please specify the student's end goals"),
   grammarWeaknesses: z.string(),
   vocabularyGaps: z.string(),
@@ -86,6 +95,7 @@ export default function StudentForm({ open, onOpenChange, student, initialName, 
       targetLanguage: "",
       nativeLanguage: "",
       proficiencyLevel: "",
+      ageGroup: "",
       endGoals: "",
       grammarWeaknesses: "",
       vocabularyGaps: "",
@@ -104,6 +114,7 @@ export default function StudentForm({ open, onOpenChange, student, initialName, 
         targetLanguage: student.target_language,
         nativeLanguage: student.native_language || "",
         proficiencyLevel: student.level,
+        ageGroup: (student as any).age_group || "adult", // Default to adult if not set
         endGoals: student.end_goals || "",
         grammarWeaknesses: student.grammar_weaknesses || "",
         vocabularyGaps: student.vocabulary_gaps || "",
@@ -119,6 +130,7 @@ export default function StudentForm({ open, onOpenChange, student, initialName, 
         targetLanguage: "",
         nativeLanguage: "",
         proficiencyLevel: "",
+        ageGroup: "adult", // Default to adult for new students
         endGoals: "",
         grammarWeaknesses: "",
         vocabularyGaps: "",
@@ -139,6 +151,7 @@ export default function StudentForm({ open, onOpenChange, student, initialName, 
         target_language: values.targetLanguage,
         native_language: values.nativeLanguage || null,
         level: values.proficiencyLevel,
+        age_group: values.ageGroup,
         tutor_id: user.id,
         end_goals: values.endGoals,
         grammar_weaknesses: values.grammarWeaknesses,
@@ -274,33 +287,66 @@ export default function StudentForm({ open, onOpenChange, student, initialName, 
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="proficiencyLevel"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Proficiency Level</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="border-cyber-400/30 focus:border-cyber-400">
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="glass-effect border-cyber-400/30">
-                      {proficiencyLevels.map((level) => (
-                        <SelectItem key={level.value} value={level.value}>
-                          {level.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="proficiencyLevel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Proficiency Level</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="border-cyber-400/30 focus:border-cyber-400">
+                          <SelectValue placeholder="Select level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="glass-effect border-cyber-400/30">
+                        {proficiencyLevels.map((level) => (
+                          <SelectItem key={level.value} value={level.value}>
+                            {level.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="ageGroup"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Age Group</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="border-cyber-400/30 focus:border-cyber-400">
+                          <SelectValue placeholder="Select age group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="glass-effect border-cyber-400/30">
+                        {ageGroups.map((ageGroup) => (
+                          <SelectItem key={ageGroup.value} value={ageGroup.value}>
+                            {ageGroup.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Used to select age-appropriate lesson templates and content
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

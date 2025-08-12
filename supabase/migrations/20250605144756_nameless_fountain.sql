@@ -9,7 +9,8 @@
 
 -- Create a new storage bucket for profile pictures
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('profiles', 'profiles', true);
+VALUES ('profiles', 'profiles', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Allow authenticated users to upload files to their own folder
 CREATE POLICY "Users can upload their own avatar"

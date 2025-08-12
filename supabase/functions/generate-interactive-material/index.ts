@@ -77,13 +77,21 @@ function constructInteractiveMaterialPrompt(
     languageMap[student.target_language] || student.target_language;
 
   if (template) {
-    // Use template-based prompt
-    return `You are an expert language tutor creating interactive lesson materials. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
+    // Use template-based prompt with hyper-personalization
+    return `You are an expert ${languageName} tutor creating hyper-personalized interactive lesson materials for ${student.name}. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
 
-Student Profile:
+CRITICAL INSTRUCTIONS:
+1. Generate ALL lesson content in ${languageName} (target language)
+2. Make this lesson feel like it was created specifically for ${student.name}
+3. Address their specific weaknesses and learning goals
+4. Use cultural references relevant to someone from ${student.native_language || 'their background'}
+5. Adapt content to their exact proficiency level: ${student.level.toUpperCase()}
+
+STUDENT PROFILE:
 - Name: ${student.name}
 - Target Language: ${languageName}
 - Proficiency Level: ${student.level.toUpperCase()}
+- Native Language: ${student.native_language || "Not specified"}
 - End Goals: ${student.end_goals || "General language improvement"}
 - Grammar Weaknesses: ${student.grammar_weaknesses || "None specified"}
 - Vocabulary Gaps: ${student.vocabulary_gaps || "None specified"}
@@ -96,8 +104,18 @@ Student Profile:
 - Learning Styles: ${student.learning_styles?.join(", ") || "Not specified"}
 - Additional Notes: ${student.notes || "None"}
 
+PERSONALIZATION REQUIREMENTS:
+1. Use ${student.name}'s name throughout the lesson
+2. Reference their specific goals: "${student.end_goals}"
+3. Address their weaknesses: "${student.grammar_weaknesses}"
+4. Include examples relevant to their native language (${student.native_language}) background
+5. Create content that feels personally crafted for ${student.name}
+
 Sub-Topic to Focus On:
 - Title: ${subTopic.title}
+- Category: ${subTopic.category}
+- Level: ${subTopic.level}
+- Description: ${subTopic.description || "No description provided"}
 - Category: ${subTopic.category}
 - Level: ${subTopic.level}
 - Description: ${subTopic.description || "No description provided"}

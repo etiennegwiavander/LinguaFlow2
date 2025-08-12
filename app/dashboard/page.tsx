@@ -121,26 +121,70 @@ export default function DashboardPage() {
 
       if (studentsError) throw studentsError;
 
-      // Fetch total lessons count
+      // Fetch total lessons count (only lessons with interactive materials created)
       const { count: lessonsCount, error: totalLessonsError } = await supabase
         .from('lessons')
         .select('*', { count: 'exact', head: true })
-        .eq('tutor_id', user.id);
+        .eq('tutor_id', user.id)
+        .not('interactive_lesson_content', 'is', null);
 
       if (totalLessonsError) throw totalLessonsError;
 
-      // Fetch lessons count for this month (all lessons, not just completed)
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
+      // Calculate date ranges for current and previous month
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
+      // Fetch lessons count for this month (only lessons with interactive materials)
       const { count: monthlyLessonsCount, error: monthlyError } = await supabase
         .from('lessons')
         .select('*', { count: 'exact', head: true })
         .eq('tutor_id', user.id)
-        .gte('date', startOfMonth.toISOString());
+        .gte('date', startOfMonth.toISOString())
+        .not('interactive_lesson_content', 'is', null);
 
       if (monthlyError) throw monthlyError;
+
+      // Fetch lessons count for last month (for comparison)
+      const { count: lastMonthLessonsCount, error: lastMonthError } = await supabase
+        .from('lessons')
+        .select('*', { count: 'exact', head: true })
+        .eq('tutor_id', user.id)
+        .gte('date', startOfLastMonth.toISOString())
+        .lte('date', endOfLastMonth.toISOString())
+        .not('interactive_lesson_content', 'is', null);
+
+      if (lastMonthError) throw lastMonthError;
+
+      // Calculate historical data for students (compare with last month)
+      const { count: lastMonthStudentsCount, error: lastMonthStudentsError } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true })
+        .eq('tutor_id', user.id)
+        .lte('created_at', endOfLastMonth.toISOString());
+
+      if (lastMonthStudentsError) throw lastMonthStudentsError;
+
+      // Calculate historical data for total lessons (compare with last month)
+      const { count: lastMonthTotalLessonsCount, error: lastMonthTotalError } = await supabase
+        .from('lessons')
+        .select('*', { count: 'exact', head: true })
+        .eq('tutor_id', user.id)
+        .lte('created_at', endOfLastMonth.toISOString())
+        .not('interactive_lesson_content', 'is', null);
+
+      if (lastMonthTotalError) throw lastMonthTotalError;
+
+      // Calculate percentage changes
+      const calculateChange = (current: number, previous: number): number => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / previous) * 100;
+      };
+
+      const studentsChange = calculateChange(studentsCount || 0, lastMonthStudentsCount || 0);
+      const totalLessonsChange = calculateChange(lessonsCount || 0, lastMonthTotalLessonsCount || 0);
+      const monthlyLessonsChange = calculateChange(monthlyLessonsCount || 0, lastMonthLessonsCount || 0);
 
       setUpcomingLessons(lessonsData as Lesson[]);
       setStats([
@@ -148,21 +192,23 @@ export default function DashboardPage() {
           id: '1',
           label: 'Total Students',
           value: studentsCount || 0,
-          change: 5.4,
-          icon: 'Users'
+          change: Math.round(studentsChange * 100) / 100, // Round to 2 decimal places
+          icon: 'Users',
+          clickable: true,
+          onClick: () => router.push('/students')
         },
         {
           id: '2',
           label: 'Total Lessons',
           value: lessonsCount || 0,
-          change: 8.2,
+          change: Math.round(totalLessonsChange * 100) / 100,
           icon: 'BarChart3'
         },
         {
           id: '3',
           label: 'Lessons This Month',
           value: monthlyLessonsCount || 0,
-          change: 12.7,
+          change: Math.round(monthlyLessonsChange * 100) / 100,
           icon: 'Calendar'
         }
       ]);

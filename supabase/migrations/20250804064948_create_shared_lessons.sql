@@ -65,7 +65,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_shared_lessons_updated_at
-    BEFORE UPDATE ON shared_lessons
-    FOR EACH ROW
-    EXECUTE FUNCTION update_shared_lessons_updated_at();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'update_shared_lessons_updated_at'
+  ) THEN
+    CREATE TRIGGER update_shared_lessons_updated_at
+        BEFORE UPDATE ON shared_lessons
+        FOR EACH ROW
+        EXECUTE FUNCTION update_shared_lessons_updated_at();
+  END IF;
+END $$;

@@ -17,7 +17,7 @@
 CREATE TABLE IF NOT EXISTS admin_credentials (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   username text UNIQUE NOT NULL,
-  hashed_password text NOT NULL,
+  password_hash text NOT NULL,
   created_at timestamptz DEFAULT now()
 );
 
@@ -42,7 +42,7 @@ CREATE POLICY "Admins can update their own credentials"
 -- Insert an initial admin user with password 'admin123'
 -- In production, you should use a properly hashed password
 -- This is just for demonstration purposes
-INSERT INTO admin_credentials (username, hashed_password)
+INSERT INTO admin_credentials (username, password_hash)
 VALUES ('admin', '$2a$10$X7oqG9Vu9Xj.UxQxM0QOIeYwvUy5zBKUU4xJ4xNR6oDUpsKJFkQgG')
 ON CONFLICT (username) DO NOTHING;
 

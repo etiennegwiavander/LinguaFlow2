@@ -13,6 +13,7 @@ export interface Student {
   target_language: string;
   native_language: string | null;
   level: string;
+  age_group?: string;
   tutor_id: string;
   end_goals: string | null;
   grammar_weaknesses: string | null;
@@ -61,6 +62,8 @@ export interface Stat {
   value: number;
   change: number;
   icon: string;
+  clickable?: boolean;
+  onClick?: () => void;
 }
 
 export interface NavItem {
