@@ -52,7 +52,7 @@ export default function DashboardPage() {
     if (!user) return;
 
     fetchDashboardData();
-    
+
     // Set up automatic refresh every 30 minutes
     const refreshInterval = setInterval(() => {
       if (isCalendarConnected) {
@@ -62,7 +62,7 @@ export default function DashboardPage() {
       }
       setLastRefreshTime(new Date());
     }, 30 * 60 * 1000); // 30 minutes in milliseconds
-    
+
     return () => {
       clearInterval(refreshInterval);
     };
@@ -71,7 +71,7 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     // Add null check for user at the beginning of the function
     if (!user) return;
-    
+
     try {
       setLoading(true);
       // Fetch tutor profile
@@ -222,12 +222,12 @@ export default function DashboardPage() {
   const fetchCalendarEvents = async () => {
     // Add null check for user at the beginning of the function
     if (!user) return;
-    
+
     try {
       // Fetch calendar events for the next 48 hours
       const now = new Date();
       const fortyEightHoursFromNow = addHours(now, 48);
-      
+
       const { data: calendarData, error: calendarError } = await supabase
         .from('calendar_events')
         .select('*')
@@ -251,19 +251,19 @@ export default function DashboardPage() {
 
     try {
       setIsSyncingCalendar(true);
-      
+
       // Import the googleCalendarService
       const { googleCalendarService } = await import('@/lib/google-calendar');
-      
+
       // Sync calendar
       const result = await googleCalendarService.syncCalendar();
-      
+
       // Fetch updated calendar events
       await fetchCalendarEvents();
-      
+
       // Refresh dashboard data to update stats
       await fetchDashboardData();
-      
+
       toast.success(`Calendar refreshed: ${result.events_count} events synced`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to refresh calendar');
@@ -290,10 +290,10 @@ export default function DashboardPage() {
     const start = parseISO(startTime);
     const end = parseISO(endTime);
     const now = new Date();
-    
+
     const isToday = format(start, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
     const isTomorrow = format(start, 'yyyy-MM-dd') === format(addHours(now, 24), 'yyyy-MM-dd');
-    
+
     let dateLabel = '';
     if (isToday) {
       dateLabel = 'Today';
@@ -302,7 +302,7 @@ export default function DashboardPage() {
     } else {
       dateLabel = format(start, 'EEE, MMM d');
     }
-    
+
     return {
       dateLabel,
       timeRange: `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`,
@@ -321,7 +321,7 @@ export default function DashboardPage() {
   const handleCalendarEventClick = (eventSummary: string) => {
     // Extract just the student name from the event summary
     const studentName = extractStudentNameFromEventSummary(eventSummary);
-    
+
     // Navigate to students page with the extracted student name as search parameter
     const searchParams = new URLSearchParams();
     searchParams.set('searchName', studentName);
@@ -410,8 +410,8 @@ export default function DashboardPage() {
                   Next 48 Hours - Calendar Events ({calendarEvents.length})
                 </h3>
                 {isCalendarConnected && (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={handleRefreshCalendar}
                     disabled={isSyncingCalendar}
@@ -425,21 +425,20 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {calendarEvents.map((event, index) => {
                   const timeInfo = formatCalendarEventTime(event.start_time, event.end_time);
-                  
+
                   return (
-                    <div 
-                      key={event.id} 
-                      className={`cyber-card p-4 rounded-lg cursor-pointer hover-lift ${
-                        timeInfo.isToday ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10' : 
+                    <div
+                      key={event.id}
+                      className={`cyber-card p-4 rounded-lg cursor-pointer hover-lift ${timeInfo.isToday ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10' :
                         timeInfo.isTomorrow ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10' : ''
-                      }`}
+                        }`}
                       style={{ animationDelay: `${0.6 + index * 0.1}s` }}
                       onClick={() => handleCalendarEventClick(event.summary)}
                       title="Click to find or create student"
                     >
                       {/* Gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-br from-cyber-400/5 to-neon-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
-                      
+
                       <div className="relative z-10">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 min-w-0">
@@ -456,18 +455,17 @@ export default function DashboardPage() {
                             )}
                           </div>
                           {(timeInfo.isToday || timeInfo.isTomorrow) && (
-                            <Badge 
-                              variant="secondary" 
-                              className={`text-xs ml-2 ${
-                                timeInfo.isToday ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 
+                            <Badge
+                              variant="secondary"
+                              className={`text-xs ml-2 ${timeInfo.isToday ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
                                 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                              }`}
+                                }`}
                             >
                               {timeInfo.dateLabel}
                             </Badge>
                           )}
                         </div>
-                        
+
                         <div className="space-y-2">
                           <div className="flex items-center text-xs text-muted-foreground">
                             <Calendar className="h-3 w-3 mr-2 text-cyber-400" />
@@ -511,8 +509,8 @@ export default function DashboardPage() {
               <p className="text-muted-foreground mb-4">Schedule some lessons or sync your calendar to see them here</p>
               <div className="flex flex-col sm:flex-row gap-2 justify-center">
                 {isCalendarConnected ? (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={handleRefreshCalendar}
                     disabled={isSyncingCalendar}
                     className="btn-ghost-cyber"

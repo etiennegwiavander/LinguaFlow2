@@ -644,7 +644,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
   // Character tracking for dialogue alternating colors
   const [dialogueCharacterMap, setDialogueCharacterMap] = useState<Record<string, number>>({});
-  
+
   // Simple alternating colors for dialogue participants (like in your image)
   const DIALOGUE_COLORS = [
     {
@@ -668,10 +668,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       console.log(`🎓 Fixed color for "${character}" (${role})`);
       return 0; // Index doesn't matter for fixed colors
     }
-    
+
     // SIMPLE DETERMINISTIC ALTERNATING: No state updates during render
     const characterName = character.toLowerCase().trim();
-    
+
     let colorIndex: number;
     if (characterName.includes('sarah')) {
       colorIndex = 0; // Purple
@@ -696,7 +696,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       colorIndex = Math.abs(hash) % 2;
       console.log(`🎭 HASH color assignment for "${character}": Index ${colorIndex} (${colorIndex === 0 ? 'Purple' : 'Emerald'})`);
     }
-    
+
     return colorIndex;
   };
 
@@ -715,7 +715,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         text: 'text-green-600 dark:text-green-200'
       };
     }
-    
+
     // Student: Always blue
     if (role === 'student') {
       return {
@@ -724,7 +724,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         text: 'text-blue-600 dark:text-blue-200'
       };
     }
-    
+
     // For all other characters: Use simple alternating dialogue colors (purple and emerald)
     // This creates the alternating effect like in your image
     return DIALOGUE_COLORS[colorIndex % DIALOGUE_COLORS.length];
@@ -736,7 +736,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
     const extractCharactersFromSections = (sections: TemplateSection[]): string[] => {
       const characters: string[] = [];
-      
+
       sections.forEach(section => {
         // Extract from dialogue_lines
         const dialogueLines = safeGetArray(section, 'dialogue_lines');
@@ -1175,10 +1175,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
       // Generate shareable URL
       const shareUrl = `${window.location.origin}/shared-lesson/${shareRecord.id}`;
-      
+
       // Copy to clipboard
       await navigator.clipboard.writeText(shareUrl);
-      
+
       toast.success('Lesson link copied to clipboard! Share this with your student.', {
         description: 'The link will expire in 7 days for security.',
         action: {
@@ -1350,6 +1350,75 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       case 'text': {
         const textContent = safeGetString(section, 'content', 'Content will be displayed here.');
 
+        // AGGRESSIVE GRAMMAR DETECTION: Format ANY content that contains grammar patterns
+        // This ensures NO asterisks or raw markdown EVER appears in grammar explanations
+        if (textContent.includes('**') || textContent.includes('* ') ||
+          textContent.includes('Imperative Verbs') || textContent.includes('Modal Verbs') ||
+          textContent.includes('Conditional Sentences') || textContent.includes('Passive voice') ||
+          textContent.includes('emergency situations') || textContent.includes('grammatical structures')) {
+
+          console.log('🎯 FORMATTING GRAMMAR CONTENT - No asterisks allowed!');
+
+          // Process grammar content with professional formatting
+          const sections = textContent.split('\n\n').filter(s => s.trim());
+
+          return (
+            <div className="space-y-8 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900 p-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              {sections.map((section, sectionIndex) => {
+                const lines = section.split('\n').filter(l => l.trim());
+
+                return (
+                  <div key={sectionIndex} className="space-y-6">
+                    {lines.map((line, lineIndex) => {
+                      const trimmedLine = line.trim();
+
+                      // Handle grammar rules like "**Imperative Verbs:** These are used..."
+                      if (trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/)) {
+                        const match = trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/);
+                        if (match) {
+                          const [, grammarType, explanation] = match;
+                          return (
+                            <div key={lineIndex} className="bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 p-6 rounded-lg border border-blue-300 dark:border-blue-700 shadow-sm">
+                              <div className="flex flex-col space-y-4">
+                                <h4 className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                                  {grammarType}
+                                </h4>
+                                <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base" onDoubleClick={handleTextDoubleClick}>
+                                  {explanation}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                      }
+
+                      // Handle regular paragraphs with enhanced formatting
+                      else if (trimmedLine.length > 0) {
+                        const processedContent = trimmedLine
+                          .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-slate-100">$1</strong>')
+                          .replace(/\*([^*]+)\*/g, '<em class="italic text-slate-600 dark:text-slate-400">$1</em>')
+                          .replace(/'([^']+)'/g, '<span class="font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-1 rounded">\'$1\'</span>');
+
+                        return (
+                          <p
+                            key={lineIndex}
+                            className="text-slate-700 dark:text-slate-300 leading-relaxed text-base mb-6"
+                            onDoubleClick={handleTextDoubleClick}
+                            dangerouslySetInnerHTML={{ __html: processedContent }}
+                          />
+                        );
+                      }
+
+                      return null;
+                    }).filter(Boolean)}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        }
+
+        // Default text rendering for non-grammar content
         return (
           <div className="prose max-w-none">
             <div
@@ -1774,7 +1843,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
               const isTeacher = characterInfo.isTeacher;
               const colorIndex = getDialogueCharacterIndex(character, isTeacher, characterInfo.role);
               const colorScheme = getCharacterColorScheme(character, isTeacher, characterInfo.role, colorIndex);
-              
+
               // Debug logging to see what's happening
               debugCharacterAssignment(character, colorIndex, colorScheme);
 
@@ -1782,7 +1851,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
                 <div key={index} className="flex items-start space-x-4 mb-4">
                   {/* Avatar with character name below - similar to the provided image */}
                   <div className="flex flex-col items-center space-y-1">
-                    <DialogueAvatarErrorBoundary 
+                    <DialogueAvatarErrorBoundary
                       fallbackCharacter={character}
                       fallbackSize="sm"
                     >
@@ -1798,10 +1867,10 @@ Apply these concepts in academic writing, professional presentations, and sophis
                       {character}
                     </span>
                   </div>
-                  
+
                   {/* Message bubble with professional alternating colors */}
                   <div className={`flex-1 p-3 rounded-lg ${colorScheme.bg} border ${colorScheme.border}`}>
-                    <p 
+                    <p
                       className={`leading-relaxed ${colorScheme.text}`}
                       onDoubleClick={handleTextDoubleClick}
                     >
@@ -1849,7 +1918,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
               if (determinedElementType === 'dialogue') {
                 const character = safeGetString(element, 'character', 'Speaker');
                 const text = safeGetString(element, 'text', 'No text available');
-                
+
                 // Get character information using the avatar system
                 const characterInfo = getCharacterInfo(character);
                 const isTeacher = characterInfo.isTeacher;
@@ -1860,7 +1929,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
                   <div key={index} className="flex items-start space-x-4 mb-4">
                     {/* Avatar with character name below - consistent with full_dialogue style */}
                     <div className="flex flex-col items-center space-y-1">
-                      <DialogueAvatarErrorBoundary 
+                      <DialogueAvatarErrorBoundary
                         fallbackCharacter={character}
                         fallbackSize="sm"
                       >
@@ -1876,10 +1945,10 @@ Apply these concepts in academic writing, professional presentations, and sophis
                         {character}
                       </span>
                     </div>
-                    
+
                     {/* Message bubble with professional alternating colors */}
                     <div className={`flex-1 p-3 rounded-lg ${colorScheme.bg} border ${colorScheme.border}`}>
-                      <p 
+                      <p
                         className={`leading-relaxed ${colorScheme.text}`}
                         onDoubleClick={handleTextDoubleClick}
                       >
@@ -2112,62 +2181,62 @@ Apply these concepts in academic writing, professional presentations, and sophis
           position="bottom-right"
           offset={{ x: 20, y: 40 }}
         />
-        
+
         <div id="lesson-content-container" className="space-y-6 max-w-4xl mx-auto" data-lesson-content>
 
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <div className="flex items-start space-x-2 flex-1">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-1" />
-            <div>
-              <h3 className="font-semibold text-green-800 dark:text-green-200">
-                Interactive Lesson Material Ready
-              </h3>
-              <p className="text-sm text-green-700 dark:text-green-300">
-                This lesson has been personalized for {lesson.student.name} using the {template.name} template.
-              </p>
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-start space-x-2 flex-1">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-1" />
+              <div>
+                <h3 className="font-semibold text-green-800 dark:text-green-200">
+                  Interactive Lesson Material Ready
+                </h3>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  This lesson has been personalized for {lesson.student.name} using the {template.name} template.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {sections.map((section, index) =>
-          renderTemplateSection(section, 0)
-        )}
+          {sections.map((section, index) =>
+            renderTemplateSection(section, 0)
+          )}
 
-        <div className="flex justify-center pt-8 space-x-4">
-          <Button
-            size="lg"
-            className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-          >
-            <CheckCircle2 className="w-5 h-5 mr-2" />
-            Complete Lesson
-          </Button>
-          <Button
-            size="lg"
-            className="px-8 bg-gradient-to-r from-blue-400 to-indigo-400 hover:from-blue-500 hover:to-indigo-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-            onClick={handleShareLesson}
-          >
-            <Share2 className="w-5 h-5 mr-2" />
-            Share with Student
-          </Button>
-          <Button
-            size="lg"
-            className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-            onClick={handleExportLesson}
-          >
-            <Download className="w-5 h-5 mr-2" />
-            Export Lesson
-          </Button>
-        </div>
+          <div className="flex justify-center pt-8 space-x-4">
+            <Button
+              size="lg"
+              className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+            >
+              <CheckCircle2 className="w-5 h-5 mr-2" />
+              Complete Lesson
+            </Button>
+            <Button
+              size="lg"
+              className="px-8 bg-gradient-to-r from-blue-400 to-indigo-400 hover:from-blue-500 hover:to-indigo-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+              onClick={handleShareLesson}
+            >
+              <Share2 className="w-5 h-5 mr-2" />
+              Share with Student
+            </Button>
+            <Button
+              size="lg"
+              className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+              onClick={handleExportLesson}
+            >
+              <Download className="w-5 h-5 mr-2" />
+              Export Lesson
+            </Button>
+          </div>
 
-        {/* Translation Popup */}
-        {translationPopup.isVisible && translationPopup.wordRect && (
-          <WordTranslationPopup
-            word={translationPopup.word}
-            translation={translationPopup.translation}
-            wordRect={translationPopup.wordRect}
-            onClose={() => setTranslationPopup(prev => ({ ...prev, isVisible: false }))}
-          />
-        )}
+          {/* Translation Popup */}
+          {translationPopup.isVisible && translationPopup.wordRect && (
+            <WordTranslationPopup
+              word={translationPopup.word}
+              translation={translationPopup.translation}
+              wordRect={translationPopup.wordRect}
+              onClose={() => setTranslationPopup(prev => ({ ...prev, isVisible: false }))}
+            />
+          )}
         </div>
       </>
     );
