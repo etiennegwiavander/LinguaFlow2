@@ -5,9 +5,9 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# Next.js specific configuration
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+# Next.js specific configuration - disabled due to plugin issues
+# [[plugins]]
+#   package = "@netlify/plugin-nextjs"
 
 [functions]
   node_bundler = "esbuild"

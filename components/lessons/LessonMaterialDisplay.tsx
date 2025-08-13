@@ -760,7 +760,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         });
       });
 
-      return [...new Set(characters)]; // Remove duplicates
+      return Array.from(new Set(characters)); // Remove duplicates
     };
 
     const characters = extractCharactersFromSections(template.template_json.sections);
@@ -1163,8 +1163,8 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         is_active: true
       };
 
-      const { data: shareRecord, error } = await supabaseRequest(() =>
-        supabase
+      const { data: shareRecord, error } = await supabaseRequest(async () =>
+        await supabase
           .from('shared_lessons')
           .insert(shareableData)
           .select()
@@ -1172,9 +1172,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       );
 
       if (error) throw error;
+      if (!shareRecord) throw new Error('Failed to create shareable lesson');
 
       // Generate shareable URL
-      const shareUrl = `${window.location.origin}/shared-lesson/${shareRecord.id}`;
+      const shareUrl = `${window.location.origin}/shared-lesson/${(shareRecord as any).id}`;
 
       // Copy to clipboard
       await navigator.clipboard.writeText(shareUrl);

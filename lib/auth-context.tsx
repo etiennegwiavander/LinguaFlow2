@@ -154,8 +154,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Check if user has a tutor profile using enhanced request wrapper
-      const { data: tutorData, error: tutorError } = await supabaseRequest(() =>
-        supabase
+      const { data: tutorData, error: tutorError } = await supabaseRequest(async () =>
+        await supabase
           .from('tutors')
           .select('*')
           .eq('id', data.user.id)

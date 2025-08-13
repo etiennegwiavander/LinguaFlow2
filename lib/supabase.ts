@@ -12,8 +12,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     // Detect session in URL (for OAuth flows)
     detectSessionInUrl: true,
-    // Refresh token before it expires (5 minutes before expiry)
-    refreshTokenMargin: 300, // 5 minutes in seconds
+
   },
   // Global request configuration
   global: {

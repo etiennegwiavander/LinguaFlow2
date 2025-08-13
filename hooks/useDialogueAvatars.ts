@@ -148,7 +148,7 @@ export function useDialogueAvatars(): UseDialogueAvatarsReturn {
 
   // Preload avatars for better performance
   const preloadAvatars = useCallback(async (characters: string[]): Promise<void> => {
-    const uniqueCharacters = [...new Set(characters)];
+    const uniqueCharacters = Array.from(new Set(characters));
     
     // Pre-detect roles for all characters to ensure consistency
     uniqueCharacters.forEach(character => {

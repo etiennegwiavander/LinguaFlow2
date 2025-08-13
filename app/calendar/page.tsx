@@ -151,7 +151,7 @@ export default function CalendarPage() {
     } finally {
       setIsSyncing(false);
     }
-  });
+  }, [checkConnectionStatus, loadCalendarEvents]);
 
   const handleDisconnect = async () => {
     if (!confirm('Are you sure you want to disconnect Google Calendar? This will remove all synced events.')) {
