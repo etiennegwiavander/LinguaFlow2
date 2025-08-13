@@ -359,6 +359,35 @@ Return ONLY a JSON object with this exact structure:
   }
 }
 
+// Simple rate limiter for Gemini API
+const rateLimiter = {
+  requests: [] as number[],
+  maxRequests: 12,
+  timeWindow: 60 * 1000, // 1 minute
+
+  async waitForSlot(): Promise<void> {
+    const now = Date.now();
+    
+    // Remove old requests outside the time window
+    this.requests = this.requests.filter(time => now - time < this.timeWindow);
+    
+    // If we're at the limit, wait
+    if (this.requests.length >= this.maxRequests) {
+      const oldestRequest = Math.min(...this.requests);
+      const waitTime = this.timeWindow - (now - oldestRequest) + 1000; // Add 1s buffer
+      
+      if (waitTime > 0) {
+        console.log(`⏳ Rate limit reached, waiting ${Math.round(waitTime/1000)}s...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        return this.waitForSlot(); // Recursive check
+      }
+    }
+    
+    // Record this request
+    this.requests.push(now);
+  }
+};
+
 // Gemini AI integration
 async function callGeminiAPI(prompt: string) {
   const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
@@ -366,6 +395,11 @@ async function callGeminiAPI(prompt: string) {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
   }
+
+  // Wait for rate limit slot
+  await rateLimiter.waitForSlot();
+  
+  console.log(`🚀 Making Gemini API call (${rateLimiter.requests.length}/${rateLimiter.maxRequests} used this minute)`);
 
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
     method: 'POST',
