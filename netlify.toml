@@ -5,9 +5,9 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# Next.js specific configuration - disabled due to plugin issues
-# [[plugins]]
-#   package = "@netlify/plugin-nextjs"
+# Next.js specific configuration - re-enabled with minimal config
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 [functions]
   node_bundler = "esbuild"
@@ -21,6 +21,12 @@
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
+  status = 200
+
+# Catch-all for Next.js client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
   status = 200
 
 [[headers]]
