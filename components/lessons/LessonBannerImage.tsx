@@ -33,10 +33,10 @@ export default function LessonBannerImage({
   // Check if this is a fallback image that could be upgraded
   useEffect(() => {
     if (image && !loading) {
-      // Check if it's a fallback (SVG data URL or placeholder)
+      // Only treat SVG data URLs and placeholder.com as fallback images
+      // Unsplash images from ai-image-generator.ts are high-quality curated images, not fallbacks
       const isFallback = image.url.startsWith('data:image/svg') ||
-        image.url.includes('via.placeholder.com') ||
-        image.url.includes('unsplash.com');
+        image.url.includes('via.placeholder.com');
 
       if (isFallback) {
         // Show upgrade notification after 2 seconds
@@ -53,23 +53,12 @@ export default function LessonBannerImage({
 
   return (
     <div className={`relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden shadow-lg ${className}`}>
-      {/* Loading State - Show educational image immediately */}
+      {/* Loading State - Minimal since images load instantly */}
       {loading && (
-        <div className="absolute inset-0">
-          {/* Show educational fallback image while loading */}
-          <img
-            src={`https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1792&h=1024&fit=crop&crop=center`}
-            alt={`Banner for ${title}`}
-            className="w-full h-full object-cover opacity-50"
-          />
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-2" />
-              <p className="text-sm text-white flex items-center">
-                <Sparkles className="w-4 h-4 mr-1" />
-                Generating AI banner...
-              </p>
-            </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-2" />
+            <p className="text-xs text-blue-700">Loading...</p>
           </div>
         </div>
       )}

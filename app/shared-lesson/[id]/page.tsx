@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
   BookOpen,
@@ -76,6 +77,7 @@ function SharedLessonPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpired, setIsExpired] = useState(false);
+  const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
 
   const { getCharacterInfo } = useDialogueAvatars();
 
@@ -85,8 +87,6 @@ function SharedLessonPage() {
       setError(null);
 
       // Fetch shared lesson data with lesson details
-      console.log('Fetching shared lesson with ID:', shareId);
-
       const { data: sharedData, error: sharedError } = await supabase
         .from('shared_lessons')
         .select(`
@@ -107,29 +107,14 @@ function SharedLessonPage() {
             )
           )
         `)
-        .eq('id', shareId)
+        .eq('share_token', shareId)
         .single();
 
-      console.log('Database query result:', {
-        hasSharedData: !!sharedData,
-        sharedError,
-        errorCode: sharedError?.code,
-        errorMessage: sharedError?.message
-      });
-
       if (sharedError) {
-        console.error('Database error:', sharedError);
-        console.error('Error details:', {
-          code: sharedError.code,
-          message: sharedError.message,
-          details: sharedError.details,
-          hint: sharedError.hint
-        });
         throw new Error(`Shared lesson not found: ${sharedError.message}`);
       }
 
       if (!sharedData) {
-        console.error('No shared lesson data returned');
         throw new Error('Shared lesson not found');
       }
 
@@ -145,13 +130,9 @@ function SharedLessonPage() {
 
       setSharedLesson(sharedData);
 
-      console.log('Full shared lesson data:', JSON.stringify(sharedData, null, 2));
-
       // Parse lesson materials - prioritize interactive_lesson_content
       if (sharedData.lesson?.interactive_lesson_content) {
         try {
-          console.log('Raw interactive_lesson_content:', sharedData.lesson.interactive_lesson_content);
-
           let interactiveContent;
           if (typeof sharedData.lesson.interactive_lesson_content === 'string') {
             interactiveContent = JSON.parse(sharedData.lesson.interactive_lesson_content);
@@ -159,15 +140,12 @@ function SharedLessonPage() {
             interactiveContent = sharedData.lesson.interactive_lesson_content;
           }
 
-          console.log('Parsed interactive lesson content:', interactiveContent);
           setLessonContent(interactiveContent);
 
           // Check for template in different possible locations
           if (interactiveContent.template) {
-            console.log('Found template in interactiveContent.template');
             setTemplate(interactiveContent.template);
           } else if (interactiveContent.sections) {
-            console.log('Found sections directly in interactiveContent, creating mock template');
             // Create a mock template structure
             const mockTemplate = {
               template_json: {
@@ -177,7 +155,6 @@ function SharedLessonPage() {
             };
             setTemplate(mockTemplate);
           } else {
-            console.log('No template or sections found, using interactiveContent as template');
             // Use the entire interactive content as template
             const mockTemplate = {
               template_json: interactiveContent
@@ -185,25 +162,20 @@ function SharedLessonPage() {
             setTemplate(mockTemplate);
           }
         } catch (parseError) {
-          console.error('Error parsing interactive lesson content:', parseError);
-          console.error('Raw content that failed to parse:', sharedData.lesson.interactive_lesson_content);
           setError('Error loading interactive lesson content');
         }
       } else if (sharedData.lesson?.materials && sharedData.lesson.materials.length > 0) {
         const rawMaterial = sharedData.lesson.materials[0];
-        console.log('Raw lesson materials:', rawMaterial);
 
         try {
           // Try to parse as JSON first
           const materialData = JSON.parse(rawMaterial);
-          console.log('Parsed lesson materials as JSON:', materialData);
           setLessonContent(materialData);
 
           if (materialData.template) {
             setTemplate(materialData.template);
           }
         } catch (parseError) {
-          console.log('Materials are not JSON, treating as plain text:', rawMaterial);
           // If it's not JSON, treat it as plain text content
           setLessonContent({
             type: 'text',
@@ -212,25 +184,14 @@ function SharedLessonPage() {
           });
         }
       } else {
-        console.log('No lesson materials found:', sharedData.lesson);
-        console.log('Lesson data structure:', {
-          hasLesson: !!sharedData.lesson,
-          hasInteractiveContent: !!sharedData.lesson?.interactive_lesson_content,
-          hasMaterials: !!sharedData.lesson?.materials,
-          materialsLength: sharedData.lesson?.materials?.length || 0,
-          materialsContent: sharedData.lesson?.materials
-        });
-
         // Try to create a fallback display with available data
         if (sharedData.lesson_title) {
-          console.log('Creating fallback content with lesson title');
           setLessonContent({
             type: 'fallback',
             title: sharedData.lesson_title,
             content: 'This lesson is available but the content format is not supported for sharing. Please contact your tutor for assistance.'
           });
         } else if (sharedData.lesson?.generated_lessons && sharedData.lesson.generated_lessons.length > 0) {
-          console.log('Found generated lessons, creating fallback content');
           try {
             const firstGeneratedLesson = JSON.parse(sharedData.lesson.generated_lessons[0]);
             setLessonContent({
@@ -239,7 +200,6 @@ function SharedLessonPage() {
               content: firstGeneratedLesson
             });
           } catch (parseError) {
-            console.error('Error parsing generated lesson:', parseError);
             setLessonContent({
               type: 'fallback',
               title: 'Lesson Content',
@@ -247,7 +207,6 @@ function SharedLessonPage() {
             });
           }
         } else {
-          console.error('No usable lesson content found');
           setError('No lesson materials available');
         }
       }
@@ -311,6 +270,264 @@ function SharedLessonPage() {
   // Helper function to render exercise content based on content type
   const renderExerciseContent = (section: TemplateSection) => {
     const contentType = safeGetString(section, 'content_type', 'text');
+    const sectionTitle = safeGetString(section, 'title', '').toLowerCase();
+
+    // SPECIFIC DETECTION: Only target "Comprehension/Practice Questions" sections
+    const isComprehensionQuestions = contentType === 'comprehension_questions' ||
+      sectionTitle.includes('comprehension/practice questions') ||
+      sectionTitle.includes('comprehension questions') ||
+      (sectionTitle.includes('comprehension') && sectionTitle.includes('practice') && sectionTitle.includes('questions'));
+
+    // EMERGENCY OVERRIDE: Only for specific "Comprehension/Practice Questions" sections
+    if (sectionTitle.includes('comprehension/practice questions') ||
+      sectionTitle.includes('comprehension questions') ||
+      (sectionTitle.includes('comprehension') && sectionTitle.includes('practice') && sectionTitle.includes('questions'))) {
+      // Try to find ANY array data in the section
+      let emergencyQuestions: any[] = [];
+      const allKeys = Object.keys(section || {});
+
+      for (const key of allKeys) {
+        const value = (section as any)[key];
+        if (Array.isArray(value) && value.length > 0) {
+          emergencyQuestions = value;
+          break;
+        }
+      }
+
+      if (emergencyQuestions.length > 0) {
+
+        return (
+          <div className="space-y-4">
+            {emergencyQuestions.map((item: any, index: number) => {
+              const questionText = safeGetString(item, 'left', '') ||
+                safeGetString(item, 'term', '') ||
+                safeGetString(item, 'question', '') ||
+                safeGetString(item, 'text', '') ||
+                (typeof item === 'string' ? item : `Question ${index + 1}`);
+
+              const answer = safeGetString(item, 'right', '') ||
+                safeGetString(item, 'definition', '') ||
+                safeGetString(item, 'answer', '') ||
+                'Answer not available';
+
+              const questionId = `${section.id}_emergency_override_${index}`;
+
+              return (
+                <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-gray-900 dark:text-gray-100 flex-1 pr-4">
+                      {questionText}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setRevealedAnswers(prev => ({
+                          ...prev,
+                          [questionId]: !prev[questionId]
+                        }));
+                      }}
+                      className="text-xs whitespace-nowrap"
+                    >
+                      {revealedAnswers[questionId] ? 'Hide Answer' : 'Show Answer'}
+                    </Button>
+                  </div>
+
+                  {revealedAnswers[questionId] && answer && (
+                    <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded">
+                      <p className="text-sm text-green-800 dark:text-green-200">
+                        <strong>Answer:</strong> {answer}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      } else {
+        return (
+          <div className="text-center py-4 text-gray-500">
+            <p>No comprehension questions available.</p>
+          </div>
+        );
+      }
+    }
+
+    if (isComprehensionQuestions) {
+      // Handle as comprehension questions with Show Answer buttons
+      // Try multiple possible field names for questions data
+      let questions = safeGetArray(section, 'questions');
+      if (questions.length === 0) questions = safeGetArray(section, 'matching_pairs');
+      if (questions.length === 0) questions = safeGetArray(section, 'items');
+      if (questions.length === 0) questions = safeGetArray(section, 'content');
+
+      // Also try to extract from nested objects
+      if (questions.length === 0 && section.dialogue_elements) {
+        const dialogueElements = safeGetArray(section, 'dialogue_elements');
+        questions = dialogueElements.filter((element: any) =>
+          element && (element.type === 'multiple_choice' || element.question || element.text)
+        );
+      }
+
+      // Try to extract from any array field that contains question-like objects
+      if (questions.length === 0) {
+        const allKeys = Object.keys(section || {});
+        for (const key of allKeys) {
+          const value = (section as any)[key];
+          if (Array.isArray(value) && value.length > 0) {
+            // Check if this array contains question-like objects
+            const firstItem = value[0];
+            if (firstItem && typeof firstItem === 'object' &&
+              (firstItem.question || firstItem.text || firstItem.left || firstItem.term)) {
+              questions = value;
+
+              break;
+            }
+          }
+        }
+      }
+
+
+
+      if (questions.length === 0) {
+        // Last resort: try to create questions from any available data
+        const allKeys = Object.keys(section || {});
+        const potentialData = [];
+
+        for (const key of allKeys) {
+          const value = (section as any)[key];
+          if (value && (typeof value === 'string' || Array.isArray(value))) {
+            potentialData.push({ key, value, type: typeof value });
+          }
+        }
+
+        // EMERGENCY FALLBACK: If we detect this is supposed to be comprehension questions,
+        // try to extract questions from matching_pairs even if they're not in the expected format
+        if (isComprehensionQuestions && section.matching_pairs && Array.isArray(section.matching_pairs)) {
+          const emergencyQuestions = section.matching_pairs;
+
+          return (
+            <div className="space-y-4">
+              {emergencyQuestions.map((pair: any, index: number) => {
+                const questionText = safeGetString(pair, 'left', '') ||
+                  safeGetString(pair, 'term', '') ||
+                  safeGetString(pair, 'question', '') ||
+                  `Question ${index + 1}`;
+
+                const answer = safeGetString(pair, 'right', '') ||
+                  safeGetString(pair, 'definition', '') ||
+                  safeGetString(pair, 'answer', '') ||
+                  'Answer not available';
+
+                const questionId = `${section.id}_emergency_${index}`;
+
+                return (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-gray-900 dark:text-gray-100 flex-1 pr-4">
+                        {questionText}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setRevealedAnswers(prev => ({
+                            ...prev,
+                            [questionId]: !prev[questionId]
+                          }));
+                        }}
+                        className="text-xs whitespace-nowrap"
+                      >
+                        {revealedAnswers[questionId] ? 'Hide Answer' : 'Show Answer'}
+                      </Button>
+                    </div>
+
+                    {revealedAnswers[questionId] && answer && (
+                      <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded">
+                        <p className="text-sm text-green-800 dark:text-green-200">
+                          <strong>Answer:</strong> {answer}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        }
+
+        return (
+          <div className="text-center py-4 text-gray-500">
+            <p>No comprehension questions available.</p>
+            {process.env.NODE_ENV === 'development' && (
+              <details className="mt-2 text-xs">
+                <summary>Debug Info - Available Data</summary>
+                <div className="text-left bg-gray-100 p-2 rounded mt-1 overflow-auto max-h-60">
+                  <p><strong>Section Keys:</strong> {allKeys.join(', ')}</p>
+                  <p><strong>Content Type:</strong> {contentType}</p>
+                  <p><strong>Section Title:</strong> {safeGetString(section, 'title', '')}</p>
+                  <p><strong>Is Comprehension Questions:</strong> {isComprehensionQuestions ? 'Yes' : 'No'}</p>
+                  <p><strong>Has matching_pairs:</strong> {section.matching_pairs ? 'Yes' : 'No'}</p>
+                  <pre className="mt-2 text-xs">{JSON.stringify(section, null, 2)}</pre>
+                </div>
+              </details>
+            )}
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-4">
+          {questions.map((question: any, index: number) => {
+            // Handle both question objects and matching pair objects
+            const questionText = safeGetString(question, 'question', '') ||
+              safeGetString(question, 'text', '') ||
+              safeGetString(question, 'left', '') ||
+              safeGetString(question, 'term', '') ||
+              'Question not available';
+
+            const answer = safeGetString(question, 'answer', '') ||
+              safeGetString(question, 'correct_answer', '') ||
+              safeGetString(question, 'right', '') ||
+              safeGetString(question, 'definition', '');
+
+            const questionId = `${section.id}_question_${index}`;
+
+            return (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium text-gray-900 dark:text-gray-100 flex-1 pr-4">
+                    {questionText}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRevealedAnswers(prev => ({
+                        ...prev,
+                        [questionId]: !prev[questionId]
+                      }));
+                    }}
+                    className="text-xs whitespace-nowrap"
+                  >
+                    {revealedAnswers[questionId] ? 'Hide Answer' : 'Show Answer'}
+                  </Button>
+                </div>
+
+                {revealedAnswers[questionId] && answer && (
+                  <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded">
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                      <strong>Answer:</strong> {answer}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
 
     switch (contentType) {
       case 'list': {
@@ -324,20 +541,101 @@ function SharedLessonPage() {
         }
         return (
           <div className="space-y-3">
-            {items.map((item: string, index: number) => (
-              <div
-                key={index}
-                className="p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20"
-              >
-                <span className="font-medium">{safeStringify(item)}</span>
-              </div>
-            ))}
+            {items.map((item: string, index: number) => {
+              const itemText = safeStringify(item);
+
+              // Process markdown formatting for expressions and other content
+              const processedContent = itemText
+                .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>')
+                .replace(/\*([^*]+)\*/g, '<em class="italic text-gray-600 dark:text-gray-400">$1</em>');
+
+              return (
+                <div
+                  key={index}
+                  className="p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20"
+                >
+                  <span
+                    className="font-medium"
+                    dangerouslySetInnerHTML={{ __html: processedContent }}
+                  />
+                </div>
+              );
+            })}
           </div>
         );
       }
 
       case 'text': {
         const textContent = safeGetString(section, 'content', 'Content will be displayed here.');
+
+        // AGGRESSIVE GRAMMAR DETECTION: Format ANY content that contains grammar patterns (exact same as tutor's view)
+        // This ensures NO asterisks or raw markdown EVER appears in grammar explanations
+        if (textContent.includes('**') || textContent.includes('* ') ||
+          textContent.includes('Imperative Verbs') || textContent.includes('Modal Verbs') ||
+          textContent.includes('Conditional Sentences') || textContent.includes('Passive voice') ||
+          textContent.includes('emergency situations') || textContent.includes('grammatical structures')) {
+
+          console.log('🎯 FORMATTING GRAMMAR CONTENT - No asterisks allowed!');
+
+          // Process grammar content with professional formatting
+          const sections = textContent.split('\n\n').filter(s => s.trim());
+
+          return (
+            <div className="space-y-8 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900 p-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              {sections.map((section, sectionIndex) => {
+                const lines = section.split('\n').filter(l => l.trim());
+
+                return (
+                  <div key={sectionIndex} className="space-y-6">
+                    {lines.map((line, lineIndex) => {
+                      const trimmedLine = line.trim();
+
+                      // Handle grammar rules like "**Imperative Verbs:** These are used..."
+                      if (trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/)) {
+                        const match = trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/);
+                        if (match) {
+                          const [, grammarType, explanation] = match;
+                          return (
+                            <div key={lineIndex} className="bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 p-6 rounded-lg border border-blue-300 dark:border-blue-700 shadow-sm">
+                              <div className="flex flex-col space-y-4">
+                                <h4 className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                                  {grammarType}
+                                </h4>
+                                <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base">
+                                  {explanation}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                      }
+
+                      // Handle regular paragraphs with enhanced formatting
+                      else if (trimmedLine.length > 0) {
+                        const processedContent = trimmedLine
+                          .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-slate-100">$1</strong>')
+                          .replace(/\*([^*]+)\*/g, '<em class="italic text-slate-600 dark:text-slate-400">$1</em>')
+                          .replace(/'([^']+)'/g, '<span class="font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-1 rounded">\'$1\'</span>');
+
+                        return (
+                          <p
+                            key={lineIndex}
+                            className="text-slate-700 dark:text-slate-300 leading-relaxed text-base mb-6"
+                            dangerouslySetInnerHTML={{ __html: processedContent }}
+                          />
+                        );
+                      }
+
+                      return null;
+                    }).filter(Boolean)}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        }
+
+        // Default text rendering for non-grammar content
         return (
           <div className="prose max-w-none">
             <div className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -352,11 +650,104 @@ function SharedLessonPage() {
         if (!explanationContent) {
           explanationContent = 'Grammar explanation content will be displayed here.';
         }
-        return (
-          <div className="prose max-w-none">
-            <div className="whitespace-pre-wrap text-sm leading-relaxed">
-              {explanationContent}
+
+        // AGGRESSIVE GRAMMAR DETECTION: Format ANY content that contains grammar patterns (exact same as tutor's view)
+        // This ensures NO asterisks or raw markdown EVER appears in grammar explanations
+        if (explanationContent.includes('**') || explanationContent.includes('* ') ||
+          explanationContent.includes('Imperative Verbs') || explanationContent.includes('Modal Verbs') ||
+          explanationContent.includes('Conditional Sentences') || explanationContent.includes('Passive voice') ||
+          explanationContent.includes('emergency situations') || explanationContent.includes('grammatical structures')) {
+
+          console.log('🎯 FORMATTING GRAMMAR CONTENT - No asterisks allowed!');
+
+          // Process grammar content with professional formatting
+          const sections = explanationContent.split('\n\n').filter(s => s.trim());
+
+          return (
+            <div className="space-y-8 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900 p-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              {sections.map((section, sectionIndex) => {
+                const lines = section.split('\n').filter(l => l.trim());
+
+                return (
+                  <div key={sectionIndex} className="space-y-6">
+                    {lines.map((line, lineIndex) => {
+                      const trimmedLine = line.trim();
+
+                      // Handle grammar rules like "**Imperative Verbs:** These are used..."
+                      if (trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/)) {
+                        const match = trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/);
+                        if (match) {
+                          const [, grammarType, explanation] = match;
+                          return (
+                            <div key={lineIndex} className="bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 p-6 rounded-lg border border-blue-300 dark:border-blue-700 shadow-sm">
+                              <div className="flex flex-col space-y-4">
+                                <h4 className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                                  {grammarType}
+                                </h4>
+                                <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base">
+                                  {explanation}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                      }
+
+                      // Handle regular paragraphs with enhanced formatting
+                      else if (trimmedLine.length > 0) {
+                        const processedContent = trimmedLine
+                          .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-slate-100">$1</strong>')
+                          .replace(/\*([^*]+)\*/g, '<em class="italic text-slate-600 dark:text-slate-400">$1</em>')
+                          .replace(/'([^']+)'/g, '<span class="font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-1 rounded">\'$1\'</span>');
+
+                        return (
+                          <p
+                            key={lineIndex}
+                            className="text-slate-700 dark:text-slate-300 leading-relaxed text-base mb-6"
+                            dangerouslySetInnerHTML={{ __html: processedContent }}
+                          />
+                        );
+                      }
+
+                      return null;
+                    }).filter(Boolean)}
+                  </div>
+                );
+              })}
             </div>
+          );
+        }
+
+        // Default grammar explanation rendering for content without special patterns
+        const processGrammarContent = (content: string) => {
+          const cleanedContent = content
+            .replace(/^\s+|\s+$/g, '')
+            .replace(/\r\n/g, '\n')
+            .replace(/\n{3,}/g, '\n\n');
+
+          const paragraphs = cleanedContent.split('\n\n').filter(p => p.trim());
+
+          return paragraphs.map((paragraph, index) => {
+            const processedParagraph = paragraph
+              .replace(/\*\*([^*\n]+)\*\*/g, '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>')
+              .replace(/\*([^*\n]+)\*/g, '<em class="italic text-gray-600 dark:text-gray-400">$1</em>')
+              .replace(/\n/g, '<br>');
+
+            return (
+              <div
+                key={index}
+                className="mb-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300"
+                dangerouslySetInnerHTML={{
+                  __html: processedParagraph
+                }}
+              />
+            );
+          });
+        };
+
+        return (
+          <div className="space-y-2">
+            {processGrammarContent(explanationContent)}
           </div>
         );
       }
@@ -772,7 +1163,7 @@ function SharedLessonPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <MessageSquare className="w-5 h-5 mr-2 text-cyber-400" />
-                  {safeGetString(section, 'title', 'Comprehension Questions')}
+                  {safeGetString(section, 'title', 'Comprehension/Practice Questions')}
                 </CardTitle>
                 {section.subtitle && (
                   <p className="text-sm text-muted-foreground">{section.subtitle}</p>
@@ -799,7 +1190,7 @@ function SharedLessonPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <MessageSquare className="w-5 h-5 mr-2 text-cyber-400" />
-                {safeGetString(section, 'title', 'Comprehension Questions')}
+                {safeGetString(section, 'title', 'Comprehension/Practice Questions')}
               </CardTitle>
               {section.subtitle && (
                 <p className="text-sm text-muted-foreground">{section.subtitle}</p>
@@ -813,37 +1204,40 @@ function SharedLessonPage() {
               )}
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {questions.map((question: any, index: number) => {
                   const questionText = safeGetString(question, 'question', '') || safeGetString(question, 'text', 'Question not available');
-                  const options = safeGetArray(question, 'options');
+                  const answer = safeGetString(question, 'answer', '') || safeGetString(question, 'correct_answer', '');
+                  const questionId = `${section.id}_question_${index}`;
 
                   return (
-                    <div key={index} className="border border-cyber-400/20 rounded-lg p-4 bg-gradient-to-r from-yellow-50/50 to-amber-50/50 dark:from-yellow-900/20 dark:to-amber-900/20">
-                      <div className="flex items-start gap-3 mb-3">
-                        <span className="w-6 h-6 bg-cyber-400 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-                          {index + 1}
-                        </span>
-                        <p className="font-medium text-gray-900">{questionText}</p>
+                    <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-gray-900 dark:text-gray-100 flex-1 pr-4">
+                          {questionText}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setRevealedAnswers(prev => ({
+                              ...prev,
+                              [questionId]: !prev[questionId]
+                            }));
+                          }}
+                          className="text-xs whitespace-nowrap"
+                        >
+                          {revealedAnswers[questionId] ? 'Hide Answer' : 'Show Answer'}
+                        </Button>
                       </div>
 
-                      {options.length > 0 && (
-                        <div className="space-y-2 ml-9">
-                          {options.map((option: any, optIndex: number) => (
-                            <div key={optIndex} className="flex items-center space-x-2 p-2 rounded border border-gray-200 hover:bg-gray-50 cursor-pointer">
-                              <div className="w-4 h-4 border border-gray-300 rounded-full flex items-center justify-center">
-                                <span className="text-xs font-bold text-gray-500">{String.fromCharCode(65 + optIndex)}</span>
-                              </div>
-                              <span className="text-sm">{safeStringify(option)}</span>
-                            </div>
-                          ))}
+                      {revealedAnswers[questionId] && answer && (
+                        <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded">
+                          <p className="text-sm text-green-800 dark:text-green-200">
+                            <strong>Answer:</strong> {answer}
+                          </p>
                         </div>
                       )}
-
-                      {/* Student instruction */}
-                      <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-sm ml-9">
-                        <p className="text-blue-700 font-medium">📝 Choose the best answer and discuss with your tutor.</p>
-                      </div>
                     </div>
                   );
                 })}
@@ -1008,13 +1402,13 @@ function SharedLessonPage() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <User className="w-4 h-4" />
-                      <span>Student: {sharedLesson.student_name}</span>
+                      <span>Student: <strong className="font-bold text-gray-900 dark:text-gray-100">{sharedLesson.student_name || sharedLesson.lesson?.student?.name || 'Student'}</strong></span>
                     </div>
                     {sharedLesson.lesson?.student && (
                       <>
                         <div className="flex items-center gap-1">
                           <GraduationCap className="w-4 h-4" />
-                          <span>Level: {sharedLesson.lesson.student.level}</span>
+                          <span>Level: <strong className="font-bold text-gray-900 dark:text-gray-100">{sharedLesson.lesson.student.level}</strong></span>
                         </div>
                         <Badge variant="outline">
                           {sharedLesson.lesson.student.target_language}
@@ -1037,30 +1431,7 @@ function SharedLessonPage() {
           </Card>
         </div>
 
-        {/* Debug Info */}
-        {process.env.NODE_ENV === 'development' && (
-          <Card className="mb-6 bg-yellow-50 border-yellow-200">
-            <CardHeader>
-              <CardTitle className="text-yellow-800">Debug Info</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xs space-y-2">
-                <div><strong>Has template:</strong> {template ? 'Yes' : 'No'}</div>
-                <div><strong>Template sections:</strong> {template?.template_json?.sections?.length || 0}</div>
-                <div><strong>Has lessonContent:</strong> {lessonContent ? 'Yes' : 'No'}</div>
-                <div><strong>LessonContent type:</strong> {typeof lessonContent}</div>
-                {template && (
-                  <details>
-                    <summary>Template Structure</summary>
-                    <pre className="text-xs bg-white p-2 rounded mt-2 overflow-auto max-h-40">
-                      {JSON.stringify(template, null, 2)}
-                    </pre>
-                  </details>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
 
         {/* Lesson Content */}
         <div id="shared-lesson-content">

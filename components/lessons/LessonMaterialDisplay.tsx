@@ -638,6 +638,8 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     wordRect: null
   });
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   // Initialize dialogue avatars hook
   const { getCharacterInfo, preloadAvatars } = useDialogueAvatars();
@@ -1150,48 +1152,109 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
   };
 
   const handleShareLesson = async () => {
-    if (!lesson) return;
+    if (!lesson) {
+      toast.error('No lesson data available to share.');
+      return;
+    }
+
+    if (!user) {
+      toast.error('You must be logged in to share lessons.');
+      return;
+    }
+
+    setIsSharing(true);
 
     try {
-      // Create a shareable lesson record in the database
+      console.log('Sharing lesson:', lesson.id);
+      console.log('Current user:', user);
+      
+      // Check if user is authenticated with Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error('Authentication error:', sessionError);
+        toast.error('Authentication required. Please log in again.');
+        setIsSharing(false);
+        return;
+      }
+
+      console.log('User session verified:', session.user.id);
+      
+      // Generate a unique share token
+      const shareToken = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create a shareable lesson record in the database (using initial schema)
       const shareableData = {
         lesson_id: lesson.id,
-        student_name: lesson.student?.name || 'Student',
-        lesson_title: (lesson.materials && lesson.materials.length > 0 ? lesson.materials[0] : null) || 'Interactive Lesson',
-        shared_at: new Date().toISOString(),
+        share_token: shareToken,
+        student_name: lesson.student.name,
+        lesson_title: template?.name || 'Interactive Lesson',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
         is_active: true
       };
 
-      const { data: shareRecord, error } = await supabaseRequest(async () =>
-        await supabase
-          .from('shared_lessons')
-          .insert(shareableData)
-          .select()
-          .single()
-      );
+      console.log('Attempting to insert shareableData:', shareableData);
 
-      if (error) throw error;
-      if (!shareRecord) throw new Error('Failed to create shareable lesson');
+      const { data: shareRecord, error } = await supabase
+        .from('shared_lessons')
+        .insert(shareableData)
+        .select()
+        .single();
 
-      // Generate shareable URL
-      const shareUrl = `${window.location.origin}/shared-lesson/${(shareRecord as any).id}`;
+      console.log('Supabase response:', { shareRecord, error });
 
-      // Copy to clipboard
-      await navigator.clipboard.writeText(shareUrl);
-
-      toast.success('Lesson link copied to clipboard! Share this with your student.', {
-        description: 'The link will expire in 7 days for security.',
-        action: {
-          label: 'Open Link',
-          onClick: () => window.open(shareUrl, '_blank')
+      if (error) {
+        console.error('Supabase error details:', error);
+        
+        // Check for specific RLS policy errors
+        if (error.code === '42501' || error.message?.includes('policy')) {
+          throw new Error('Permission denied. Make sure you own this lesson.');
+        } else if (error.code === '23503') {
+          throw new Error('Lesson not found or invalid lesson ID.');
+        } else {
+          throw new Error(`Database error: ${error.message}`);
         }
+      }
+      
+      if (!shareRecord) {
+        throw new Error('No record returned from database');
+      }
+
+      // Generate shareable URL using the share_token
+      const generatedShareUrl = `${window.location.origin}/shared-lesson/${shareRecord.share_token}`;
+      console.log('Generated share URL:', generatedShareUrl);
+
+      // Store the share URL in state to show the buttons
+      setShareUrl(generatedShareUrl);
+
+      // Copy to clipboard automatically
+      await navigator.clipboard.writeText(generatedShareUrl);
+
+      toast.success('Lesson link created and copied to clipboard!', {
+        description: 'Use the buttons below to open or copy the link again. Link expires in 7 days.',
       });
 
     } catch (error: any) {
       console.error('Error sharing lesson:', error);
-      toast.error('Failed to create shareable link. Please try again.');
+      toast.error(`Failed to create shareable link: ${error.message || 'Please try again.'}`);
+    } finally {
+      setIsSharing(false);
     }
+  };
+
+  const handleCopyLink = async () => {
+    if (!shareUrl) return;
+    
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Link copied to clipboard!');
+    } catch (error) {
+      toast.error('Failed to copy link to clipboard');
+    }
+  };
+
+  const handleOpenLink = () => {
+    if (!shareUrl) return;
+    window.open(shareUrl, '_blank');
   };
 
   const renderTemplateSection = (section: TemplateSection, lessonIndex: number = 0) => {
@@ -1335,15 +1398,27 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
         return (
           <div className="space-y-3">
-            {items.map((item: string, index: number) => (
-              <div
-                key={index}
-                className="p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20"
-                onDoubleClick={handleTextDoubleClick}
-              >
-                <span className="font-medium">{safeStringify(item)}</span>
-              </div>
-            ))}
+            {items.map((item: string, index: number) => {
+              const itemText = safeStringify(item);
+              
+              // Process markdown formatting for expressions and other content
+              const processedContent = itemText
+                .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>')
+                .replace(/\*([^*]+)\*/g, '<em class="italic text-gray-600 dark:text-gray-400">$1</em>');
+
+              return (
+                <div
+                  key={index}
+                  className="p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20"
+                  onDoubleClick={handleTextDoubleClick}
+                >
+                  <span 
+                    className="font-medium"
+                    dangerouslySetInnerHTML={{ __html: processedContent }}
+                  />
+                </div>
+              );
+            })}
           </div>
         );
       }
@@ -2185,7 +2260,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
 
         <div id="lesson-content-container" className="space-y-6 max-w-4xl mx-auto" data-lesson-content>
 
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+          {/* <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 p-4 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg">
             <div className="flex items-start space-x-2 flex-1">
               <CheckCircle2 className="w-5 h-5 text-green-600 mt-1" />
               <div>
@@ -2197,28 +2272,65 @@ Apply these concepts in academic writing, professional presentations, and sophis
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {sections.map((section, index) =>
             renderTemplateSection(section, 0)
           )}
 
           <div className="flex justify-center pt-8 space-x-4">
-            <Button
-              size="lg"
-              className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-            >
-              <CheckCircle2 className="w-5 h-5 mr-2" />
-              Complete Lesson
-            </Button>
-            <Button
-              size="lg"
-              className="px-8 bg-gradient-to-r from-blue-400 to-indigo-400 hover:from-blue-500 hover:to-indigo-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-              onClick={handleShareLesson}
-            >
-              <Share2 className="w-5 h-5 mr-2" />
-              Share with Student
-            </Button>
+            {!shareUrl ? (
+              <Button
+                size="lg"
+                className="px-8 bg-gradient-to-r from-blue-400 to-indigo-400 hover:from-blue-500 hover:to-indigo-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                onClick={handleShareLesson}
+                disabled={isSharing}
+              >
+                {isSharing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Creating Link...
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-5 h-5 mr-2" />
+                    Share with Student
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div className="flex flex-col items-center space-y-3">
+                <div className="flex space-x-3">
+                  <Button
+                    size="lg"
+                    className="px-6 bg-gradient-to-r from-green-400 to-emerald-400 hover:from-green-500 hover:to-emerald-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                    onClick={handleOpenLink}
+                  >
+                    <ExternalLink className="w-5 h-5 mr-2" />
+                    Open Link
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="px-6 bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-500 hover:to-pink-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                    onClick={handleCopyLink}
+                  >
+                    <Copy className="w-5 h-5 mr-2" />
+                    Copy Link
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground text-center">
+                  Share this link with your student. Link expires in 7 days.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShareUrl(null)}
+                  className="text-xs"
+                >
+                  Create New Link
+                </Button>
+              </div>
+            )}
             <Button
               size="lg"
               className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
@@ -2352,14 +2464,58 @@ Apply these concepts in academic writing, professional presentations, and sophis
           ))}
 
           <div className="flex justify-center pt-4 space-x-4">
-            <Button
-              size="lg"
-              className="px-8 bg-gradient-to-r from-blue-400 to-indigo-400 hover:from-blue-500 hover:to-indigo-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-              onClick={handleShareLesson}
-            >
-              <Share2 className="w-5 h-5 mr-2" />
-              Share with Student
-            </Button>
+            {!shareUrl ? (
+              <Button
+                size="lg"
+                className="px-8 bg-gradient-to-r from-blue-400 to-indigo-400 hover:from-blue-500 hover:to-indigo-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                onClick={handleShareLesson}
+                disabled={isSharing}
+              >
+                {isSharing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Creating Link...
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-5 h-5 mr-2" />
+                    Share with Student
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div className="flex flex-col items-center space-y-3">
+                <div className="flex space-x-3">
+                  <Button
+                    size="lg"
+                    className="px-6 bg-gradient-to-r from-green-400 to-emerald-400 hover:from-green-500 hover:to-emerald-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                    onClick={handleOpenLink}
+                  >
+                    <ExternalLink className="w-5 h-5 mr-2" />
+                    Open Link
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="px-6 bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-500 hover:to-pink-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                    onClick={handleCopyLink}
+                  >
+                    <Copy className="w-5 h-5 mr-2" />
+                    Copy Link
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground text-center">
+                  Share this link with your student. Link expires in 7 days.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShareUrl(null)}
+                  className="text-xs"
+                >
+                  Create New Link
+                </Button>
+              </div>
+            )}
             <Button
               size="lg"
               className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"

@@ -688,7 +688,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
 
-          <TabsList className="sticky top-0 z-40 grid w-full grid-cols-4 glass-effect border-cyber-400/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <TabsList className="sticky top-16 z-40 grid w-full grid-cols-4 glass-effect border-cyber-400/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
             <TabsTrigger value="ai-architect" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <Brain className="h-4 w-4" />
               <span className="hidden sm:inline">AI Lesson Architect</span>
