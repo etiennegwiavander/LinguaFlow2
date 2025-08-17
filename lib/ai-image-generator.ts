@@ -736,7 +736,7 @@ export function useLessonBanner(options: ImageGenerationOptions) {
     return () => {
       isMounted = false;
     };
-  }, [options.title, options.subject, options.level, options.style, options]);
+  }, [options.title, options.subject, options.level, options.style]);
 
   return { image, loading, error };
 }

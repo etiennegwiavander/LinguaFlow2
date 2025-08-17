@@ -1365,6 +1365,144 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           </Card>
         );
 
+      case 'objectives':
+        const objectiveItems = safeGetArray(section, 'objectives') || safeGetArray(section, 'items');
+
+        return (
+          <Card key={sectionId} className={`mb-6 floating-card glass-effect border-blue-400/20 ${getBgColor(section.background_color_var)}`}>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Target className="w-5 h-5 mr-2 text-blue-500" />
+                {safeGetString(section, 'title', 'Learning Objectives')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {objectiveItems.length > 0 ? (
+                <ul className="space-y-2">
+                  {objectiveItems.map((item, index) => (
+                    <li key={index} className="flex items-start">
+                      <Target className="w-4 h-4 mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
+                      <span onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="prose max-w-none">
+                  <div onDoubleClick={handleTextDoubleClick}>
+                    {generateFallbackContent(section, lesson?.student?.level || 'intermediate')}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+
+      case 'activities':
+        const activityItems = safeGetArray(section, 'activities') || safeGetArray(section, 'items');
+        
+        // Debug logging to see what's in the section
+        console.log('🔍 Activities section debug:', {
+          sectionId,
+          sectionKeys: Object.keys(section),
+          activitiesField: (section as any).activities,
+          itemsField: (section as any).items,
+          activityItems,
+          fullSection: section
+        });
+
+        return (
+          <Card key={sectionId} className={`mb-6 floating-card glass-effect border-green-400/20 ${getBgColor(section.background_color_var)}`}>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Users className="w-5 h-5 mr-2 text-green-500" />
+                {safeGetString(section, 'title', 'Activities')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {activityItems.length > 0 ? (
+                <ul className="space-y-2">
+                  {activityItems.map((item, index) => (
+                    <li key={index} className="flex items-start">
+                      <ArrowRight className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
+                      <span onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="prose max-w-none">
+                  <div onDoubleClick={handleTextDoubleClick}>
+                    {generateFallbackContent(section, lesson?.student?.level || 'intermediate')}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+
+      case 'materials':
+        const materialItems = safeGetArray(section, 'materials') || safeGetArray(section, 'items');
+
+        return (
+          <Card key={sectionId} className={`mb-6 floating-card glass-effect border-purple-400/20 ${getBgColor(section.background_color_var)}`}>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BookOpen className="w-5 h-5 mr-2 text-purple-500" />
+                {safeGetString(section, 'title', 'Materials')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {materialItems.length > 0 ? (
+                <ul className="space-y-2">
+                  {materialItems.map((item, index) => (
+                    <li key={index} className="flex items-start">
+                      <PenTool className="w-4 h-4 mr-2 mt-0.5 text-purple-500 flex-shrink-0" />
+                      <span onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="prose max-w-none">
+                  <div onDoubleClick={handleTextDoubleClick}>
+                    {generateFallbackContent(section, lesson?.student?.level || 'intermediate')}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+
+      case 'assessment':
+        const assessmentItems = safeGetArray(section, 'assessment') || safeGetArray(section, 'items');
+
+        return (
+          <Card key={sectionId} className={`mb-6 floating-card glass-effect border-orange-400/20 ${getBgColor(section.background_color_var)}`}>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CheckCircle2 className="w-5 h-5 mr-2 text-orange-500" />
+                {safeGetString(section, 'title', 'Assessment')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {assessmentItems.length > 0 ? (
+                <ul className="space-y-2">
+                  {assessmentItems.map((item, index) => (
+                    <li key={index} className="flex items-start">
+                      <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-orange-500 flex-shrink-0" />
+                      <span onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="prose max-w-none">
+                  <div onDoubleClick={handleTextDoubleClick}>
+                    {generateFallbackContent(section, lesson?.student?.level || 'intermediate')}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+
       default:
         console.warn(`Unknown section type: ${sectionType}`);
         return (

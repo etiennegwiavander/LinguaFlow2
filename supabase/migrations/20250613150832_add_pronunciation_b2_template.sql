@@ -1,5 +1,5 @@
 -- Add Pronunciation B2 template structure
--- Based on Engoo lesson format: Pronunciation - Minimal Pairs /p/ /b/
+-- Based on Engoo lesson format: Pronunciation - Minimal Pairs
 -- This template provides the structure for generating personalized B2 pronunciation lessons (suitable for upper-intermediate level)
 
 INSERT INTO lesson_templates (
@@ -9,16 +9,26 @@ INSERT INTO lesson_templates (
   template_json,
   is_active
 ) VALUES (
-  'Pronunciation B2',
+  'B2 Pronunciation Lesson',
   'Pronunciation',
   'b2',
   '{
-    "lesson_structure": [
+    "name": "B2 Pronunciation Lesson",
+    "category": "Pronunciation",
+    "level": "b2",
+    "colors": {
+      "primary_bg": "bg-blue-100",
+      "secondary_bg": "bg-indigo-100",
+      "text_color": "text-gray-900",
+      "accent_color": "text-blue-700",
+      "border_color": "border-gray-400"
+    },
+    "sections": [
       {
         "id": "header",
         "type": "title",
-        "title": "Pronunciation B2",
-        "subtitle": "Advanced Articulation Refinement & Professional Accuracy"
+        "title": "Pronunciation Practice: [Sound 1] and [Sound 2]",
+        "subtitle": "Focus on minimal pairs and advanced pronunciation features."
       },
       {
         "id": "introduction_overview",
@@ -29,50 +39,58 @@ INSERT INTO lesson_templates (
         "ai_placeholder": "introduction_overview"
       },
       {
-        "id": "objectives",
-        "type": "objectives",
-        "objectives": [
-          "Achieve precise articulation of subtle phonetic distinctions that impact professional and academic communication",
-          "Master advanced voicing contrasts and aspiration patterns in complex phonetic environments",
-          "Develop sophisticated phonetic awareness for accent reduction and pronunciation refinement",
-          "Apply advanced pronunciation skills in formal presentations, debates, and professional interactions",
-          "Demonstrate near-native pronunciation accuracy in spontaneous speech and complex linguistic contexts"
-        ]
+        "id": "pronunciation_tips",
+        "type": "exercise",
+        "title": "Pronunciation Tips",
+        "instruction": "Learn and review important tips for pronouncing the target sounds clearly.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "ai_placeholder": "pronunciation_tips"
       },
       {
-        "id": "activities",
-        "type": "activities",
-        "activities": [
-          "Advanced minimal pair analysis with subtle phonetic distinctions and complex voicing patterns",
-          "Sophisticated articulation refinement using advanced phonetic techniques and precision training",
-          "Professional communication practice integrating pronunciation accuracy with complex content delivery",
-          "Advanced phonetic transcription and analysis activities for deep pronunciation understanding",
-          "Accent modification exercises focusing on specific regional variations and professional speech patterns",
-          "Spontaneous speech evaluation with real-time pronunciation feedback and advanced correction techniques"
-        ]
+        "id": "key_vocabulary",
+        "type": "exercise",
+        "title": "Vocabulary Practice - Minimal Pairs",
+        "instruction": "Practice pronunciation by reading these words containing the target sounds.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "vocabulary_matching",
+        "ai_placeholder": "key_vocabulary"
       },
       {
-        "id": "materials",
-        "type": "materials",
-        "materials": [
-          "Advanced phonetic analysis tools including detailed spectrograms and acoustic measurement software",
-          "Professional-quality audio recordings featuring various English accents and formal speech contexts",
-          "Sophisticated pronunciation reference materials with detailed phonetic descriptions and articulatory guides",
-          "Advanced recording and analysis equipment for precise pronunciation measurement and feedback",
-          "Professional communication scenarios including presentations, interviews, and academic discussions",
-          "Comprehensive phonetic training resources with advanced exercises and accent modification techniques"
-        ]
+        "id": "example_sentences",
+        "type": "exercise",
+        "title": "Sentence Practice",
+        "instruction": "Practice pronunciation with your tutor by reading the following sentences.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "ai_placeholder": "example_sentences"
       },
       {
-        "id": "assessment",
-        "type": "assessment",
-        "assessment": [
-          "Comprehensive phonetic accuracy assessment using advanced acoustic analysis and professional evaluation criteria",
-          "Professional communication evaluation through formal presentations and complex speaking tasks",
-          "Advanced pronunciation portfolio including self-analysis, peer feedback, and expert assessment",
-          "Spontaneous speech assessment with focus on pronunciation maintenance under cognitive load",
-          "Accent consistency evaluation across various communication contexts and professional scenarios"
-        ]
+        "id": "find_the_sounds",
+        "type": "exercise",
+        "title": "Find the Sounds",
+        "instruction": "Identify the target sound in each sentence. Multiple answers may be correct.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "matching",
+        "ai_placeholder": "find_the_sounds"
+      },
+      {
+        "id": "tongue_twister",
+        "type": "exercise",
+        "title": "Tongue Twister Practice",
+        "instruction": "Practice pronunciation by reading these tongue twisters slowly, then faster.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "text",
+        "ai_placeholder": "tongue_twister"
+      },
+      {
+        "id": "discussion_prompts",
+        "type": "exercise",
+        "title": "Discussion Prompts",
+        "instruction": "Discuss challenges and strategies related to mastering these sounds.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "ai_placeholder": "discussion_prompts"
       },
       {
         "id": "wrap_up_reflection",
@@ -82,28 +100,27 @@ INSERT INTO lesson_templates (
         "content_type": "text",
         "ai_placeholder": "wrap_up_reflection"
       }
-    ],
-    "description": "B2-level pronunciation template following Engoo minimal pairs lesson structure. Focuses on subtle sound distinctions, advanced articulation refinement, and near-native pronunciation accuracy. AI will personalize content with sophisticated phonetic challenges and professional communication contexts suitable for upper-intermediate students."
+    ]
   }'::jsonb,
   true
 );
 
 -- Add comment explaining the B2 pronunciation template structure
-COMMENT ON COLUMN lesson_templates.template_json IS 'JSONB template structure - B2 pronunciation includes header, advanced objectives, sophisticated activities, professional materials, expert assessment, and wrap-up sections';
+COMMENT ON COLUMN lesson_templates.template_json IS 'JSONB template structure - B2 pronunciation includes header, pronunciation tips, vocabulary practice with minimal pairs, sentence practice, find the sounds exercise, tongue twister practice, discussion prompts, and wrap-up sections';
 
 -- Verify the insertion
-DO $$
+DO $
 BEGIN
   IF EXISTS (
     SELECT 1 FROM lesson_templates 
-    WHERE name = 'Pronunciation B2' 
+    WHERE name = 'B2 Pronunciation Lesson' 
     AND level = 'b2' 
     AND category = 'Pronunciation'
     AND template_json IS NOT NULL 
-    AND template_json ? 'lesson_structure'
+    AND template_json ? 'sections'
   ) THEN
-    RAISE NOTICE 'SUCCESS: Pronunciation B2 template created with complete structure including header and wrap-up sections';
+    RAISE NOTICE 'SUCCESS: B2 Pronunciation Lesson template created with complete structure including header and wrap-up sections';
   ELSE
-    RAISE NOTICE 'WARNING: Pronunciation B2 template may not have been created properly';
+    RAISE NOTICE 'WARNING: B2 Pronunciation Lesson template may not have been created properly';
   END IF;
-END $$;
+END $;

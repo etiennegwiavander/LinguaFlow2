@@ -1,5 +1,5 @@
 -- Add Pronunciation A2 template structure
--- Based on Engoo lesson format: Pronunciation - Vowels /ʌ/ /ɑ/
+-- Based on Engoo lesson format: Pronunciation - Basic Sound Contrasts
 -- This template provides the structure for generating personalized A2 pronunciation lessons (simplified for elementary level)
 
 INSERT INTO lesson_templates (
@@ -9,16 +9,26 @@ INSERT INTO lesson_templates (
   template_json,
   is_active
 ) VALUES (
-  'Pronunciation A2',
+  'A2 Pronunciation Lesson',
   'Pronunciation',
   'a2',
   '{
-    "lesson_structure": [
+    "name": "A2 Pronunciation Lesson",
+    "category": "Pronunciation",
+    "level": "a2",
+    "colors": {
+      "primary_bg": "bg-blue-100",
+      "secondary_bg": "bg-cyan-100",
+      "text_color": "text-gray-900",
+      "accent_color": "text-blue-600",
+      "border_color": "border-gray-400"
+    },
+    "sections": [
       {
         "id": "header",
         "type": "title",
-        "title": "Pronunciation A2",
-        "subtitle": "Basic Sound Recognition & Clear Speech Development"
+        "title": "Pronunciation Practice: [Sound 1] and [Sound 2]",
+        "subtitle": "Building clear pronunciation of two basic contrasting sounds."
       },
       {
         "id": "introduction_overview",
@@ -29,50 +39,76 @@ INSERT INTO lesson_templates (
         "ai_placeholder": "introduction_overview"
       },
       {
-        "id": "objectives",
-        "type": "objectives",
-        "objectives": [
-          "Recognize and identify basic vowel sounds in simple, common words",
-          "Practice correct mouth position and tongue placement for target sounds",
-          "Distinguish between similar sounds using easy vocabulary and clear examples",
-          "Build confidence in pronouncing common A2-level words correctly",
-          "Apply correct pronunciation in simple sentences and basic conversations"
-        ]
+        "id": "pronunciation_tips_sound1",
+        "type": "exercise",
+        "title": "Simple Tips: Sound 1",
+        "instruction": "Follow these easy steps to pronounce Sound 1.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "ai_placeholder": "pronunciation_tips_sound1"
       },
       {
-        "id": "activities",
-        "type": "activities",
-        "activities": [
-          "Sound recognition exercise with simple word pairs and clear audio examples",
-          "Mouth position practice using mirrors and simple visual guides for tongue and lip placement",
-          "Easy listening and repeat activities with common A2 vocabulary and slow, clear pronunciation",
-          "Simple minimal pair practice with basic words that A2 students know well",
-          "Basic sentence practice using target sounds in simple, everyday expressions",
-          "Easy pronunciation games and activities with familiar vocabulary and clear sound patterns"
-        ]
+        "id": "pronunciation_tips_sound2",
+        "type": "exercise",
+        "title": "Simple Tips: Sound 2",
+        "instruction": "Follow these easy steps to pronounce Sound 2.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "ai_placeholder": "pronunciation_tips_sound2"
       },
       {
-        "id": "materials",
-        "type": "materials",
-        "materials": [
-          "Simple pronunciation charts with clear pictures showing mouth positions and tongue placement",
-          "Slow, clear audio recordings with A2-level vocabulary focusing on target sounds",
-          "Basic mirrors for students to see their mouth position during pronunciation practice",
-          "Easy word cards with simple vocabulary containing target sounds and clear phonetic symbols",
-          "Simple visual guides showing step-by-step mouth movements for correct sound production",
-          "Basic recording tools for students to practice and compare their pronunciation with examples"
-        ]
+        "id": "key_vocabulary_sound1",
+        "type": "exercise",
+        "title": "Word List Practice: Sound 1",
+        "instruction": "Practice saying these 6 to 8 common words with Sound 1.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "vocabulary_matching",
+        "ai_placeholder": "word_list_sound1"
       },
       {
-        "id": "assessment",
-        "type": "assessment",
-        "assessment": [
-          "Simple sound recognition test using familiar A2 vocabulary and clear audio",
-          "Basic pronunciation check through individual practice with common words and simple sentences",
-          "Easy listening discrimination test with simple word pairs and slow, clear speech",
-          "Simple recording assessment where students pronounce basic words and short phrases",
-          "Basic peer practice evaluation using simple pronunciation exercises and familiar vocabulary"
-        ]
+        "id": "key_vocabulary_sound2",
+        "type": "exercise",
+        "title": "Word List Practice: Sound 2",
+        "instruction": "Practice saying these 6 to 8 common words with Sound 2.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "vocabulary_matching",
+        "ai_placeholder": "word_list_sound2"
+      },
+      {
+        "id": "example_sentences",
+        "type": "exercise",
+        "title": "Simple Sentence Practice",
+        "instruction": "Read and repeat short, clear sentences featuring both sounds.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "ai_placeholder": "example_sentences"
+      },
+      {
+        "id": "example_paragraph",
+        "type": "exercise",
+        "title": "Short Paragraph Practice",
+        "instruction": "Practice reading a simple paragraph using words with these sounds.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "text",
+        "ai_placeholder": "example_paragraph"
+      },
+      {
+        "id": "find_the_sounds",
+        "type": "exercise",
+        "title": "Sound Identification",
+        "instruction": "Choose which words contain Sound 1 or Sound 2. There may be multiple answers.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "matching",
+        "ai_placeholder": "find_the_sounds"
+      },
+      {
+        "id": "discussion_questions_prompts",
+        "type": "exercise",
+        "title": "Talk About It",
+        "instruction": "Discuss how these sounds feel to pronounce and easy ways to remember them.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "ai_placeholder": "discussion_prompts"
       },
       {
         "id": "wrap_up_reflection",
@@ -82,28 +118,27 @@ INSERT INTO lesson_templates (
         "content_type": "text",
         "ai_placeholder": "wrap_up_reflection"
       }
-    ],
-    "description": "A2-level pronunciation template following Engoo vowel sound lesson structure. Focuses on basic sound recognition, simple pronunciation practice, and clear speech development. AI will personalize content with common A2 vocabulary and simple sound patterns suitable for elementary students."
+    ]
   }'::jsonb,
   true
 );
 
 -- Add comment explaining the A2 pronunciation template structure
-COMMENT ON COLUMN lesson_templates.template_json IS 'JSONB template structure - A2 pronunciation includes header, basic sound objectives, simple activities, clear materials, easy assessment, and wrap-up sections';
+COMMENT ON COLUMN lesson_templates.template_json IS 'JSONB template structure - A2 pronunciation includes header, simple pronunciation tips for each sound, word list practice, simple sentence practice, short paragraph practice, sound identification exercise, discussion prompts, and wrap-up sections';
 
 -- Verify the insertion
-DO $$
+DO $
 BEGIN
   IF EXISTS (
     SELECT 1 FROM lesson_templates 
-    WHERE name = 'Pronunciation A2' 
+    WHERE name = 'A2 Pronunciation Lesson' 
     AND level = 'a2' 
     AND category = 'Pronunciation'
     AND template_json IS NOT NULL 
-    AND template_json ? 'lesson_structure'
+    AND template_json ? 'sections'
   ) THEN
-    RAISE NOTICE 'SUCCESS: Pronunciation A2 template created with complete structure including header and wrap-up sections';
+    RAISE NOTICE 'SUCCESS: A2 Pronunciation Lesson template created with complete structure including header and wrap-up sections';
   ELSE
-    RAISE NOTICE 'WARNING: Pronunciation A2 template may not have been created properly';
+    RAISE NOTICE 'WARNING: A2 Pronunciation Lesson template may not have been created properly';
   END IF;
-END $$;
+END $;
