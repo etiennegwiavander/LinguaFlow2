@@ -39,15 +39,6 @@ INSERT INTO lesson_templates (
         "ai_placeholder": "introduction_overview"
       },
       {
-        "id": "pronunciation_tips_sound1",
-        "type": "exercise",
-        "title": "Pronunciation Tips: Sound 1",
-        "instruction": "Review tips for producing Sound 1.",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "list",
-        "ai_placeholder": "pronunciation_tips_sound1"
-      },
-      {
         "id": "pronunciation_tips_sound2",
         "type": "exercise",
         "title": "Pronunciation Tips: Sound 2",
@@ -100,15 +91,6 @@ INSERT INTO lesson_templates (
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "matching",
         "ai_placeholder": "find_the_sounds"
-      },
-      {
-        "id": "discussion_questions_prompts",
-        "type": "exercise",
-        "title": "Discussion Prompts",
-        "instruction": "Discuss your experience with these sounds and any challenges.",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "list",
-        "ai_placeholder": "discussion_prompts"
       },
       {
         "id": "wrap_up_reflection",

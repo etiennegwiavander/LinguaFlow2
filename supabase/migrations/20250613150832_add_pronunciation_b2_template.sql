@@ -39,15 +39,6 @@ INSERT INTO lesson_templates (
         "ai_placeholder": "introduction_overview"
       },
       {
-        "id": "pronunciation_tips",
-        "type": "exercise",
-        "title": "Pronunciation Tips",
-        "instruction": "Learn and review important tips for pronouncing the target sounds clearly.",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "list",
-        "ai_placeholder": "pronunciation_tips"
-      },
-      {
         "id": "key_vocabulary",
         "type": "exercise",
         "title": "Vocabulary Practice - Minimal Pairs",
@@ -82,15 +73,6 @@ INSERT INTO lesson_templates (
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "text",
         "ai_placeholder": "tongue_twister"
-      },
-      {
-        "id": "discussion_prompts",
-        "type": "exercise",
-        "title": "Discussion Prompts",
-        "instruction": "Discuss challenges and strategies related to mastering these sounds.",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "list",
-        "ai_placeholder": "discussion_prompts"
       },
       {
         "id": "wrap_up_reflection",

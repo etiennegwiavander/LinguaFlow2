@@ -40,6 +40,7 @@ import {
   CheckCircle
 } from "lucide-react";
 import { ProgressContext, ProgressProvider } from "@/lib/progress-context";
+import { supabase } from "@/lib/supabase";
 
 interface SubTopicSelectionDialogProps {
   open: boolean;
@@ -72,6 +73,52 @@ const categoryColors = {
   'English for Travel': 'bg-teal-100 text-teal-800 border-teal-200',
 };
 
+// Intelligent category selection based on sub-topic content
+const getIntelligentCategory = (subTopic: SubTopic, availableCategories: string[]): string => {
+  const title = subTopic.title.toLowerCase();
+  const description = (subTopic.description || '').toLowerCase();
+  const content = `${title} ${description}`;
+
+  // Define keywords for each category
+  const categoryKeywords = {
+    'Grammar': ['grammar', 'tense', 'verb', 'noun', 'adjective', 'adverb', 'sentence', 'structure', 'syntax', 'clause', 'phrase', 'modal', 'conditional', 'passive', 'active'],
+    'Conversation': ['conversation', 'speaking', 'dialogue', 'discussion', 'talk', 'chat', 'communicate', 'interaction', 'social', 'interview', 'debate'],
+    'Business English': ['business', 'professional', 'meeting', 'presentation', 'email', 'corporate', 'workplace', 'office', 'negotiation', 'management', 'leadership'],
+    'English for Kids': ['kids', 'children', 'child', 'young', 'elementary', 'basic', 'simple', 'fun', 'game', 'story', 'cartoon'],
+    'Vocabulary': ['vocabulary', 'words', 'meaning', 'definition', 'synonym', 'antonym', 'lexical', 'terminology', 'expressions', 'idioms', 'phrases'],
+    'Pronunciation': ['pronunciation', 'phonetic', 'sound', 'accent', 'intonation', 'stress', 'rhythm', 'articulation', 'minimal pairs', 'phonics'],
+    'Picture Description': ['picture', 'image', 'describe', 'visual', 'photo', 'illustration', 'scene', 'observation', 'detail'],
+    'English for Travel': ['travel', 'trip', 'journey', 'vacation', 'hotel', 'airport', 'restaurant', 'tourist', 'destination', 'culture', 'customs']
+  };
+
+  // Score each available category based on keyword matches
+  let bestCategory = availableCategories[0] || 'General';
+  let bestScore = 0;
+
+  for (const category of availableCategories) {
+    const keywords = categoryKeywords[category as keyof typeof categoryKeywords] || [];
+    let score = 0;
+
+    for (const keyword of keywords) {
+      if (content.includes(keyword)) {
+        score += 1;
+        // Give extra weight to title matches
+        if (title.includes(keyword)) {
+          score += 1;
+        }
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestCategory = category;
+    }
+  }
+
+  console.log(`🎯 Intelligent category selection for "${subTopic.title}": ${bestCategory} (score: ${bestScore})`);
+  return bestCategory;
+};
+
 function SubTopicSelectionDialogContent({
   open,
   onOpenChange,
@@ -83,14 +130,61 @@ function SubTopicSelectionDialogContent({
   const [editedSubTopics, setEditedSubTopics] = useState<SubTopic[]>([]);
   const [progressValue, setProgressValue] = useState(0);
   const [isCompletingLesson, setIsCompletingLesson] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const { completedSubTopics, isSubTopicCompleted, markSubTopicComplete } = useContext(ProgressContext);
 
   // Track completed sub-topics (debug logs removed to prevent console spam)
 
-  // Update edited sub-topics when props change
+  // Fetch available categories from active templates
   useEffect(() => {
-    setEditedSubTopics(subTopics);
-  }, [subTopics]);
+    const fetchAvailableCategories = async () => {
+      try {
+        const { data: templates, error } = await supabase
+          .from('lesson_templates')
+          .select('category')
+          .eq('is_active', true);
+
+        if (error) {
+          console.error('Error fetching templates:', error);
+          // Fallback to default categories
+          setAvailableCategories([
+            'Grammar', 'Conversation', 'Business English', 'English for Kids',
+            'Vocabulary', 'Pronunciation', 'Picture Description', 'English for Travel'
+          ]);
+          return;
+        }
+
+        // Extract unique categories from active templates
+        const uniqueCategories = [...new Set(templates.map(t => t.category))].sort();
+        setAvailableCategories(uniqueCategories);
+        console.log('📋 Available categories from active templates:', uniqueCategories);
+      } catch (error) {
+        console.error('Error fetching available categories:', error);
+        // Fallback to default categories
+        setAvailableCategories([
+          'Grammar', 'Conversation', 'Business English', 'English for Kids',
+          'Vocabulary', 'Pronunciation', 'Picture Description', 'English for Travel'
+        ]);
+      }
+    };
+
+    fetchAvailableCategories();
+  }, []);
+
+  // Update edited sub-topics when props change and auto-select categories
+  useEffect(() => {
+    const updatedSubTopics = subTopics.map(subTopic => {
+      // If the sub-topic doesn't have a category or has an invalid category,
+      // try to intelligently assign one based on the title/description
+      if (!subTopic.category || !availableCategories.includes(subTopic.category)) {
+        const intelligentCategory = getIntelligentCategory(subTopic, availableCategories);
+        return { ...subTopic, category: intelligentCategory };
+      }
+      return subTopic;
+    });
+    
+    setEditedSubTopics(updatedSubTopics);
+  }, [subTopics, availableCategories]);
 
   // Progress bar animation effect
   useEffect(() => {
@@ -255,14 +349,9 @@ function SubTopicSelectionDialogContent({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Grammar">Grammar</SelectItem>
-                          <SelectItem value="Conversation">Conversation</SelectItem>
-                          <SelectItem value="Business English">Business English</SelectItem>
-                          <SelectItem value="English for Kids">English for Kids</SelectItem>
-                          <SelectItem value="Vocabulary">Vocabulary</SelectItem>
-                          <SelectItem value="Pronunciation">Pronunciation</SelectItem>
-                          <SelectItem value="Picture Description">Picture Description</SelectItem>
-                          <SelectItem value="English for Travel">English for Travel</SelectItem>
+                          {availableCategories.map(category => (
+                            <SelectItem key={category} value={category}>{category}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
