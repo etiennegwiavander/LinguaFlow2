@@ -155,7 +155,8 @@ function SubTopicSelectionDialogContent({
         }
 
         // Extract unique categories from active templates
-        const uniqueCategories = [...new Set(templates.map(t => t.category))].sort();
+        const categorySet = new Set(templates.map(t => t.category));
+        const uniqueCategories = Array.from(categorySet).sort();
         setAvailableCategories(uniqueCategories);
         console.log('📋 Available categories from active templates:', uniqueCategories);
       } catch (error) {
