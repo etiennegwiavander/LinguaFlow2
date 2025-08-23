@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { NavItem } from "@/types";
 import { navItems } from "@/lib/sample-data";
 import { useAuth } from "@/lib/auth-context";
+import { useSidebar } from "@/lib/sidebar-context";
 import { supabase } from "@/lib/supabase";
 import * as Icons from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,26 +25,9 @@ interface SidebarProps {
 
 export default function Sidebar({ className, onToggle }: SidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const { sidebarCollapsed, setSidebarCollapsed, isMobile } = useSidebar();
   const [isAdmin, setIsAdmin] = useState(false);
   const { user } = useAuth();
-
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (mobile) {
-        setCollapsed(true);
-      } else {
-        setCollapsed(false);
-      }
-    };
-    
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -64,8 +48,8 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
   }, [user]);
 
   const toggleSidebar = () => {
-    const newCollapsed = !collapsed;
-    setCollapsed(newCollapsed);
+    const newCollapsed = !sidebarCollapsed;
+    setSidebarCollapsed(newCollapsed);
     onToggle?.(newCollapsed);
   };
 
@@ -94,8 +78,8 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
     <aside 
       className={cn(
         "fixed left-0 top-0 z-40 h-screen glass-nav backdrop-blur-xl border-r border-cyber-400/20 shadow-cyber transition-all duration-300 ease-in-out",
-        collapsed ? "w-[70px]" : "w-[250px]",
-        isMobile && collapsed ? "-translate-x-full" : "translate-x-0",
+        sidebarCollapsed ? "w-[70px]" : "w-[250px]",
+        isMobile && sidebarCollapsed ? "-translate-x-full" : "translate-x-0",
         className
       )}
     >
@@ -111,7 +95,7 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
               />
               <div className="absolute inset-0 bg-cyber-400 opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-300"></div>
             </div>
-            {!collapsed && (
+            {!sidebarCollapsed && (
               <span className="font-bold text-base sm:text-lg gradient-text">LinguaFlow</span>
             )}
           </Link>
@@ -131,7 +115,7 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
                       className={cn(
                         "nav-item group relative overflow-hidden",
                         active ? "nav-item-active" : "nav-item-inactive",
-                        collapsed ? "justify-center" : "justify-start"
+                        sidebarCollapsed ? "justify-center" : "justify-start"
                       )}
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
@@ -143,11 +127,11 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
                       )}
                       <div className="relative z-10 flex items-center">
                         <IconComponent name={item.icon} />
-                        {!collapsed && <span className="ml-3 font-medium">{item.title}</span>}
+                        {!sidebarCollapsed && <span className="ml-3 font-medium">{item.title}</span>}
                       </div>
                     </Link>
                   </TooltipTrigger>
-                  {collapsed && (
+                  {sidebarCollapsed && (
                     <TooltipContent side="right" className="font-medium glass-effect border-cyber-400/30">
                       {item.title}
                     </TooltipContent>
@@ -165,11 +149,11 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
             size="sm"
             className={cn(
               "w-full flex items-center justify-center btn-ghost-cyber transition-all duration-300",
-              collapsed && "p-0 h-8 w-8 sm:h-9 sm:w-9"
+              sidebarCollapsed && "p-0 h-8 w-8 sm:h-9 sm:w-9"
             )}
             onClick={toggleSidebar}
           >
-            {collapsed ? (
+            {sidebarCollapsed ? (
               <Icons.ChevronRight className="h-4 w-4" />
             ) : (
               <>

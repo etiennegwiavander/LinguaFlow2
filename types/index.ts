@@ -72,3 +72,33 @@ export interface NavItem {
   icon: string;
   requiresAdmin?: boolean;
 }
+
+export interface DiscussionTopic {
+  id: string;
+  student_id: string;
+  tutor_id: string;
+  title: string;
+  description?: string;
+  category: string;
+  level: string;
+  is_custom: boolean;
+  created_at: string;
+  updated_at: string;
+  questions?: Question[];
+}
+
+export interface Question {
+  id: string;
+  topic_id: string;
+  question_text: string;
+  question_order: number;
+  difficulty_level: string;
+  created_at: string;
+}
+
+export interface FlashcardSession {
+  topicId: string;
+  questions: Question[];
+  currentIndex: number;
+  startedAt: Date;
+}

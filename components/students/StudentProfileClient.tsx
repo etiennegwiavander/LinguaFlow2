@@ -67,6 +67,7 @@ import StudentForm from "@/components/students/StudentForm";
 import LessonMaterialDisplay from "@/components/lessons/LessonMaterialDisplay";
 import SubTopicSelectionDialog from "@/components/students/SubTopicSelectionDialog";
 import EditImprovementAreasDialog from "@/components/students/EditImprovementAreasDialog";
+import DiscussionTopicsTab from "@/components/students/DiscussionTopicsTab";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { ProgressContext } from "@/lib/progress-context";
@@ -688,7 +689,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
 
-          <TabsList className="sticky top-16 z-40 grid w-full grid-cols-4 glass-effect border-cyber-400/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+          <TabsList className="sticky top-16 z-40 grid w-full grid-cols-5 glass-effect border-cyber-400/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
             <TabsTrigger value="ai-architect" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <Brain className="h-4 w-4" />
               <span className="hidden sm:inline">AI Lesson Architect</span>
@@ -698,6 +699,11 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Lesson Material</span>
               <span className="sm:hidden">Material</span>
+            </TabsTrigger>
+            <TabsTrigger value="discussion-topics" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Discussion Topics</span>
+              <span className="sm:hidden">Topics</span>
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <History className="h-4 w-4" />
@@ -1251,6 +1257,11 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                 })()}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Discussion Topics Tab */}
+          <TabsContent value="discussion-topics" className="space-y-6 animate-scale-in">
+            <DiscussionTopicsTab student={student} />
           </TabsContent>
 
           {/* Lesson History Tab */}

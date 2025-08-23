@@ -199,6 +199,10 @@ const config: Config = {
           '0%': { transform: 'scale(0.9)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
+        'shimmer': {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -209,6 +213,7 @@ const config: Config = {
         'slide-up': 'slide-up 0.6s ease-out',
         'slide-down': 'slide-down 0.6s ease-out',
         'scale-in': 'scale-in 0.5s ease-out',
+        'shimmer': 'shimmer 1.5s infinite',
       },
       fontFamily: {
         'cyber': ['Inter', 'system-ui', 'sans-serif'],

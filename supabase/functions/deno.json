@@ -1,11 +1,10 @@
 {
+  "imports": {
+    "@std/http": "jsr:@std/http@^0.224.0"
+  },
   "compilerOptions": {
     "allowJs": true,
     "lib": ["deno.window"],
     "strict": true
-  },
-  "imports": {
-    "@std/http": "jsr:@std/http@0.224.0",
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@2"
   }
 }
