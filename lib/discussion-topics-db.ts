@@ -92,8 +92,8 @@ export async function getPredefinedTopicsByLevel(
       category: 'lifestyle',
       level: level,
       is_custom: false,
-      student_id: null,
-      tutor_id: null,
+      student_id: string | null,
+      tutor_id: string | null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     },
