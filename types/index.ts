@@ -75,8 +75,8 @@ export interface NavItem {
 
 export interface DiscussionTopic {
   id: string;
-  student_id: string;
-  tutor_id: string;
+  student_id: string | null;
+  tutor_id: string | null;
   title: string;
   description?: string;
   category: string;

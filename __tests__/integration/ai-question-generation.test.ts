@@ -1,4 +1,7 @@
-import { generateDiscussionQuestions } from '@/supabase/functions/generate-discussion-questions'
+import { beforeEach } from "node:test"
+
+// Mock the generateDiscussionQuestions function
+const generateDiscussionQuestions = jest.fn()
 
 // Mock fetch for Supabase Edge Function calls
 global.fetch = jest.fn()

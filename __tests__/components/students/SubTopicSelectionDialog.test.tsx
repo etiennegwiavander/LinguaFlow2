@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SubTopicSelectionDialog } from '@/components/students/SubTopicSelectionDialog'
+import { beforeEach } from 'node:test'
 
 const mockTopic = {
   id: 'topic-1',
@@ -10,8 +11,9 @@ const mockTopic = {
 }
 
 // Mock the Supabase function
+const mockGenerateDiscussionQuestions = jest.fn()
 jest.mock('@/supabase/functions/generate-discussion-questions', () => ({
-  generateDiscussionQuestions: jest.fn()
+  generateDiscussionQuestions: mockGenerateDiscussionQuestions
 }))
 
 describe('SubTopicSelectionDialog', () => {
@@ -122,8 +124,7 @@ describe('SubTopicSelectionDialog', () => {
   })
 
   it('shows error message on generation failure', async () => {
-    const { generateDiscussionQuestions } = require('@/supabase/functions/generate-discussion-questions')
-    generateDiscussionQuestions.mockRejectedValue(new Error('Generation failed'))
+    mockGenerateDiscussionQuestions.mockRejectedValue(new Error('Generation failed'))
     
     render(<SubTopicSelectionDialog {...defaultProps} />)
     

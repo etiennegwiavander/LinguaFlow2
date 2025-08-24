@@ -83,6 +83,19 @@ const nextConfig = {
     // More comprehensive exclusion of supabase/functions from all processing
     const supabaseFunctionsPath = path.resolve(__dirname, 'supabase/functions');
     
+    // Add a more aggressive ignore plugin for supabase functions
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        checkResource(resource, context) {
+          // Completely ignore any imports from supabase/functions directory
+          if (context && context.includes('supabase/functions')) {
+            return true;
+          }
+          return false;
+        }
+      })
+    );
+    
     // Exclude from all module rules
     config.module.rules.forEach(rule => {
       if (rule.test && (
@@ -113,11 +126,18 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  // Add experimental feature to exclude directories
+  // Explicitly exclude supabase functions from the build
+  pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
+  // Add custom webpack configuration to completely ignore supabase/functions
   experimental: {
     // This helps with build performance and avoids processing unnecessary files
     optimizePackageImports: ['lucide-react'],
+    // Exclude directories from compilation
+    outputFileTracingExcludes: {
+      '*': ['./supabase/functions/**/*'],
+    },
   },
+
   // Disable SWC minification which might be causing the syntax errors
   swcMinify: false,
   // Add compiler options to help with build stability
