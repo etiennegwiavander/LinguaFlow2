@@ -1,5 +1,6 @@
 # LinguaFlow
 
+**Test**: https://linguaflow.online/
 
 LinguaFlow is a comprehensive web application designed to empower private language tutors by automating lesson preparation, streamlining student management, and enhancing the overall teaching experience. It leverages AI to provide hyper-personalized content and efficient tools, allowing tutors to focus more on teaching and less on administrative tasks.
 
@@ -134,4 +135,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-**LinguaFlow** - *Empowering Tutors, Personalizing Learning.*
+**LinguaFlow** - *Hyper-personalized and multilingual Lesson architect.*
+
+
