@@ -1,6 +1,5 @@
 # LinguaFlow
 
-![LinguaFlow Banner](https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2)
 
 LinguaFlow is a comprehensive web application designed to empower private language tutors by automating lesson preparation, streamlining student management, and enhancing the overall teaching experience. It leverages AI to provide hyper-personalized content and efficient tools, allowing tutors to focus more on teaching and less on administrative tasks.
 
