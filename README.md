@@ -1,64 +1,138 @@
-# Lingua Flow
+# LinguaFlow
 
+![LinguaFlow Banner](https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2)
 
+LinguaFlow is a comprehensive web application designed to empower private language tutors by automating lesson preparation, streamlining student management, and enhancing the overall teaching experience. It leverages AI to provide hyper-personalized content and efficient tools, allowing tutors to focus more on teaching and less on administrative tasks.
 
-# LinguaFlow is a comprehensive web application built with Next.js and Supabase, designed to empower private language tutors by automating lesson preparation, streamlining student management, and enhancing the overall teaching experience.
+## ✨ Features
 
-Here's a detailed breakdown of its capabilities:
+### 1. Core Application Structure & Technologies
 
-# 1. Core Application Structure & Technologies
-Frontend Framework: Built with Next.js (version 13.5.1), leveraging React for UI development.
-Backend & Database: Utilizes Supabase as its primary backend, providing a PostgreSQL database, authentication services, and Edge Functions for serverless logic.
-Styling: Employs Tailwind CSS for utility-first styling, with custom themes and components defined in tailwind.config.ts and app/globals.css.
-UI Components: Uses a rich set of pre-built UI components from Shadcn UI (components/ui/*), ensuring a consistent and modern look and feel.
-Form Management: Integrates react-hook-form with zod for robust form validation and submission.
-Icons: Uses lucide-react for a wide range of vector icons.
-Notifications: Implements sonner for user-friendly toast notifications.
+*   **Frontend Framework:** Built with **Next.js** (v13.5.1) and React for a modern, performant user interface.
+*   **Backend & Database:** Powered by **Supabase**, providing a robust PostgreSQL database, secure authentication services, and scalable Edge Functions for serverless logic.
+*   **Styling:** Utilizes **Tailwind CSS** for a utility-first approach, ensuring a highly customizable and responsive design. Custom themes and components are defined in `tailwind.config.ts` and `app/globals.css`.
+*   **UI Components:** Integrates **Shadcn UI** (`components/ui/*`) for a consistent, accessible, and aesthetically pleasing user experience.
+*   **Form Management:** Employs `react-hook-form` with `zod` for efficient form handling and robust data validation.
+*   **Icons:** Uses `lucide-react` for a comprehensive set of vector icons across the application.
+*   **Notifications:** Implements `sonner` for user-friendly and non-intrusive toast notifications.
 
-# 2. User Authentication & Management
-Authentication System: Managed by lib/auth-context.tsx, which provides AuthProvider and useAuth hooks. It handles user sign-up, sign-in, and sign-out processes securely through Supabase.
-Session Management: Includes proactive session refreshing and token management (lib/supabase.ts, docs/JWT_EXPIRATION_PREVENTION.md) to prevent JWT expiration errors, ensuring a smooth, uninterrupted user experience.
-User Roles: Supports different user roles, primarily "tutor" and "admin," with specific functionalities and access controls.
-Account Recovery & Deletion: Provides flows for account recovery (app/auth/recover-account/page.tsx) and scheduled account deletion (app/auth/deletion-scheduled/page.tsx), including email notifications and a recovery window.
+### 2. User Authentication & Management
 
-# 3. Student Management
-Student Profiles: Tutors can create, view, edit, and delete detailed student profiles (app/students/page.tsx, app/students/[id]/page.tsx).
-Comprehensive Student Data: Student profiles (components/students/StudentForm.tsx) capture extensive information, including:
-Name, target language, native language, proficiency level (A1-C2), and age group.
-Specific learning goals and detailed weaknesses (grammar, vocabulary, pronunciation, conversational fluency barriers).
-Preferred learning styles and additional notes.
-Profile Customization: Tutors can upload avatar images for students.
+*   **Secure Authentication:** Features a complete authentication system (`lib/auth-context.tsx`) handling user sign-up, sign-in, and sign-out processes via Supabase.
+*   **Seamless Sessions:** Includes proactive session refreshing and advanced token management (`lib/supabase.ts`, `docs/JWT_EXPIRATION_PREVENTION.md`) to prevent JWT expiration issues, ensuring a smooth and uninterrupted user experience.
+*   **Role-Based Access:** Supports distinct user roles (tutor and admin) with tailored functionalities and access controls.
+*   **Account Lifecycle:** Provides comprehensive flows for account recovery (`app/auth/recover-account/page.tsx`) and scheduled account deletion (`app/auth/deletion-scheduled/page.tsx`), complete with email notifications and a recovery window.
 
-# 4. Lesson Planning & AI Generation (Core Feature)
-AI Lesson Architect: The central hub for lesson creation (app/students/[id]/page.tsx - AI Lesson Architect tab).
-Personalized Lesson Generation: Leverages AI (likely through Supabase Edge Functions, inferred from test-lesson-generation.js and supabase/migrations/*_lessons.sql) to generate highly personalized lesson plans.
-Structured Templates: Utilizes pre-defined lesson templates (supabase/migrations/*_lesson_templates.sql) for various categories (Grammar, Conversation, Business English, English for Kids, Vocabulary, Pronunciation, Picture Description, English for Travel) and proficiency levels. These templates guide the AI in structuring the lesson content.
-Interactive Material: Generates interactive lesson content (components/students/SubTopicSelectionDialog.tsx) based on selected sub-topics, which are derived from the student's profile and learning needs.
-Content Types: Lessons can include various interactive elements like vocabulary sections (components/lessons/EnhancedVocabularySection.tsx), dialogues, exercises, and more.
-Lesson History: Tracks generated lessons and their associated interactive materials.
-Lesson Banners: Dynamically generates or fetches visually appealing banner images for lessons (components/lessons/LessonBannerImage.tsx), using AI (DALL-E/Gemini) or curated educational images as fallbacks.
+### 3. Student Management
 
-# 5. Calendar Integration
-Google Calendar Sync: Allows tutors to connect their Google Calendar (app/calendar/page.tsx) to sync upcoming lessons and events.
-Automated Syncing: The system can automatically sync events and manage webhook subscriptions (lib/google-calendar.ts, lib/google-calendar-improved.ts, supabase/migrations/*_google_tokens.sql, supabase/migrations/*_calendar_events.sql, supabase/migrations/*_webhook_renewal.sql).
-Dashboard Integration: Upcoming calendar events are displayed on the tutor's dashboard (app/dashboard/page.tsx).
-# 6. Discussion Topics (New Feature)
-Dedicated Tab: A new "Discussion Topics" tab within the student profile (components/students/DiscussionTopicsTab.tsx) provides a structured way to practice conversational skills.
-Topic Management: Tutors can view a list of pre-generated discussion topics (filtered by student level) or create custom topics (components/students/TopicsList.tsx, components/students/CustomTopicInput.tsx).
-AI-Powered Question Generation: When a topic is selected, the system generates a set of personalized discussion questions (at least 20) using AI, tailored to the student's profile, level, goals, and weaknesses (lib/discussion-questions-db.ts, lib/discussion-topics-db.ts, app/api/supabase/functions/generate-topic-description/route.ts).
-Gamified Flashcard Interface: Questions are presented in an interactive flashcard format (components/students/FlashcardInterface.tsx, components/students/QuestionCard.tsx), with smooth animations and navigation controls (components/students/NavigationControls.tsx).
-Performance & Caching: Implements client-side caching (lib/discussion-cache.ts) and performance optimizations (lib/performance-monitor.ts) for a responsive experience.
+*   **Detailed Student Profiles:** Tutors can easily create, view, edit, and delete comprehensive student profiles (`app/students/page.tsx`, `app/students/[id]/page.tsx`).
+*   **Rich Student Data:** Student profiles (`components/students/StudentForm.tsx`) capture essential information:
+    *   Personal details: Name, target language, native language, proficiency level (A1-C2), and age group.
+    *   Learning specifics: Detailed learning goals and identified weaknesses (grammar, vocabulary, pronunciation, conversational fluency barriers).
+    *   Preferences: Preferred learning styles and additional notes.
+*   **Profile Customization:** Supports uploading avatar images for students to personalize their profiles.
 
-# 7. Utilities & Enhancements
-Export Functionality: Tutors can export lesson materials to PDF and Word formats (lib/export-utils.ts, lib/improved-export-utils.ts).
-In-Lesson Translation: A floating toggle (components/lessons/FloatingTranslationToggle.tsx) allows for instant translation of words within lesson content (components/lessons/WordTranslationPopup.tsx).
-Dialogue Avatars: Enhances dialogue sections with visual character avatars (components/lessons/DialogueAvatar.tsx), using tutor profile images or AI-generated avatars based on character roles.
-Progress Tracking: Tracks student progress within interactive lessons (lib/progress-context.tsx).
-Error Handling & Loading States: Implements robust error boundaries (components/students/ErrorBoundary.tsx), specific error fallbacks (components/students/ErrorFallbacks.tsx), and various loading/skeleton states (components/students/LoadingStates.tsx, components/students/SkeletonLoaders.tsx) for a resilient user experience.
+### 4. Lesson Planning & AI Generation (Core Feature)
 
-# 8. Admin Portal
-Dashboard: Provides an overview of system statistics (total tutors, students, lessons, system health) (app/admin-portal/dashboard/page.tsx).
-User Management: Allows administrators to manage tutor accounts, including status changes, admin privilege toggling, password resets, and deletion (app/admin-portal/tutors/page.tsx).
-System Monitoring: Displays simulated system logs (app/admin-portal/logs/page.tsx) and allows configuration of system-wide settings (app/admin-portal/settings/page.tsx).
+*   **AI Lesson Architect:** A central hub for creating and customizing lessons (`app/students/[id]/page.tsx` - AI Lesson Architect tab).
+*   **Hyper-Personalized Lessons:** Leverages AI (via Supabase Edge Functions) to generate highly personalized lesson plans tailored to each student's unique profile and learning needs.
+*   **Structured Templates:** Utilizes a library of pre-defined lesson templates (`supabase/migrations/*_lesson_templates.sql`) across various categories (e.g., Grammar, Conversation, Business English, English for Kids, Vocabulary, Pronunciation, Picture Description, English for Travel) and proficiency levels.
+*   **Interactive Materials:** Generates interactive lesson content (`components/students/SubTopicSelectionDialog.tsx`) based on selected sub-topics, designed for engaging learning experiences.
+*   **Diverse Content Types:** Lessons can incorporate various interactive elements, including enhanced vocabulary sections (`components/lessons/EnhancedVocabularySection.tsx`), dynamic dialogues, interactive exercises, and more.
+*   **Lesson History:** Maintains a record of all generated lessons and their associated interactive materials.
+*   **Dynamic Lesson Banners:** Automatically generates or fetches visually appealing banner images for lessons (`components/lessons/LessonBannerImage.tsx`), utilizing AI (DALL-E/Gemini) or curated educational images as intelligent fallbacks.
 
-In essence, LinguaFlow is a sophisticated platform that leverages AI to automate and personalize the language tutoring process, providing tutors with powerful tools for content creation, student management, and scheduling, all within a user-friendly and performant interface.
+### 5. Calendar Integration
+
+*   **Google Calendar Sync:** Enables tutors to seamlessly connect their Google Calendar (`app/calendar/page.tsx`) to synchronize upcoming lessons and events.
+*   **Automated Synchronization:** The system automates event syncing and manages Google Calendar webhook subscriptions (`lib/google-calendar.ts`, `lib/google-calendar-improved.ts`, `supabase/migrations/*_google_tokens.sql`, `supabase/migrations/*_calendar_events.sql`, `supabase/migrations/*_webhook_renewal.sql`).
+*   **Dashboard Integration:** Displays upcoming calendar events directly on the tutor's dashboard (`app/dashboard/page.tsx`) for quick overview.
+
+### 6. Discussion Topics (New Feature)
+
+*   **Dedicated Conversation Tab:** A new "Discussion Topics" tab within the student profile (`components/students/DiscussionTopicsTab.tsx`) provides a structured environment for practicing conversational skills.
+*   **Flexible Topic Management:** Tutors can choose from a list of pre-generated discussion topics (intelligently filtered by student level) or create their own custom topics (`components/students/TopicsList.tsx`, `components/students/CustomTopicInput.tsx`).
+*   **AI-Powered Question Generation:** Upon topic selection, the AI generates a set of personalized discussion questions (minimum 20) tailored to the student's profile, proficiency level, learning goals, and identified weaknesses (`lib/discussion-questions-db.ts`, `lib/discussion-topics-db.ts`, `app/api/supabase/functions/generate-topic-description/route.ts`).
+*   **Gamified Flashcard Interface:** Questions are presented in an interactive flashcard format (`components/students/FlashcardInterface.tsx`, `components/students/QuestionCard.tsx`), featuring smooth animations and intuitive navigation controls (`components/students/NavigationControls.tsx`).
+*   **Optimized Performance:** Utilizes client-side caching (`lib/discussion-cache.ts`) and advanced performance optimizations (`lib/performance-monitor.ts`) to ensure a highly responsive and fluid user experience.
+
+### 7. Utilities & Enhancements
+
+*   **Material Export:** Tutors can easily export generated lesson materials to both PDF and Microsoft Word formats (`lib/export-utils.ts`, `lib/improved-export-utils.ts`).
+*   **In-Lesson Translation:** A floating toggle (`components/lessons/FloatingTranslationToggle.tsx`) provides instant translation of words directly within the lesson content (`components/lessons/WordTranslationPopup.tsx`).
+*   **Dynamic Dialogue Avatars:** Enhances dialogue sections with visual character avatars (`components/lessons/DialogueAvatar.tsx`), intelligently using tutor profile images or AI-generated avatars based on character roles.
+*   **Progress Tracking:** Implements a system to track student progress within interactive lessons (`lib/progress-context.tsx`).
+*   **Robust Error Handling:** Features comprehensive error boundaries (`components/students/ErrorBoundary.tsx`), specific error fallbacks (`components/students/ErrorFallbacks.tsx`), and various loading/skeleton states (`components/students/LoadingStates.tsx`, `components/students/SkeletonLoaders.tsx`) for a resilient and user-friendly experience.
+
+### 8. Admin Portal
+
+*   **System Dashboard:** Provides administrators with an overview of key system statistics, including total tutors, students, lessons, and overall system health (`app/admin-portal/dashboard/page.tsx`).
+*   **User Management:** Enables administrators to manage tutor accounts, perform actions such as changing status, toggling admin privileges, resetting passwords, and initiating account deletions (`app/admin-portal/tutors/page.tsx`).
+*   **Monitoring & Configuration:** Displays simulated system logs (`app/admin-portal/logs/page.tsx`) and allows for configuration of system-wide settings (`app/admin-portal/settings/page.tsx`).
+
+## 🚀 Getting Started
+
+To get a local copy up and running, follow these simple steps.
+
+### Prerequisites
+
+*   Node.js (v18 or later)
+*   npm (or yarn/pnpm)
+*   Git
+*   A Supabase project (with database and API keys configured)
+*   Google API credentials for Calendar integration (optional, but recommended for full functionality)
+*   OpenAI or Gemini API keys for AI image generation (optional, fallback images will be used otherwise)
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository_url>
+    cd linguaflow
+    ```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+3.  **Set up Supabase environment variables:**
+    Create a `.env.local` file in the root directory and add your Supabase and API keys:
+    ```
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+    # Optional: AI Image Generation
+    OPENAI_API_KEY=your_openai_api_key_for_dalle
+    GEMINI_API_KEY=your_gemini_api_key
+
+    # Optional: Google Calendar Integration
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
+    GOOGLE_CLIENT_SECRET=your_google_client_secret
+    ```
+4.  **Run Supabase migrations (if setting up a new project):**
+    Navigate to your Supabase project's `supabase` directory and run:
+    ```bash
+    supabase migration up
+    ```
+    *(Note: Ensure your local Supabase CLI is configured and connected to your project.)*
+5.  **Start the development server:**
+    ```bash
+    npm run dev
+    ```
+    The application will be accessible at `http://localhost:3000`.
+
+## 🌐 Deployment
+
+This application is designed for deployment on platforms like **Netlify** or **Vercel** due to its Next.js framework. Supabase Edge Functions handle the serverless backend logic.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please fork the repository and create a pull request with your changes.
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+**LinguaFlow** - *Empowering Tutors, Personalizing Learning.*
