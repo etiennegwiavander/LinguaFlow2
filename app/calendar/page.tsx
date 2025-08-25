@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MainLayout from "@/components/main-layout";
 import { Calendar, RefreshCcw, CheckCircle, XCircle, Clock, AlertCircle, Zap } from "lucide-react";
@@ -15,7 +15,7 @@ import { googleCalendarService, CalendarEvent } from "@/lib/google-calendar";
 import { toast } from "sonner";
 import { format, addWeeks, parseISO } from "date-fns";
 
-export default function CalendarPage() {
+function CalendarPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -553,5 +553,22 @@ export default function CalendarPage() {
         )}
       </div>
     </MainLayout>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={
+      <MainLayout>
+        <div className="flex items-center justify-center h-[50vh]">
+          <div className="text-center">
+            <Calendar className="h-8 w-8 animate-spin text-cyber-400 mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading calendar...</p>
+          </div>
+        </div>
+      </MainLayout>
+    }>
+      <CalendarPageContent />
+    </Suspense>
   );
 }

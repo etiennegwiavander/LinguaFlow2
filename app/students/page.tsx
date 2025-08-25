@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import MainLayout from "@/components/main-layout";
@@ -32,7 +32,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
-export default function StudentsPage() {
+function StudentsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -393,5 +393,22 @@ export default function StudentsPage() {
         }}
       />
     </MainLayout>
+  );
+}
+
+export default function StudentsPage() {
+  return (
+    <Suspense fallback={
+      <MainLayout>
+        <div className="flex items-center justify-center h-[50vh]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-cyber-400 mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading students...</p>
+          </div>
+        </div>
+      </MainLayout>
+    }>
+      <StudentsPageContent />
+    </Suspense>
   );
 }

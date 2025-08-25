@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, AlertTriangle, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function RecoverAccountPage() {
+function RecoverAccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'expired'>('loading');
@@ -239,5 +239,29 @@ export default function RecoverAccountPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+export
+ default function RecoverAccountPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-blue-600">
+              Loading...
+            </CardTitle>
+            <CardDescription className="text-base">
+              Please wait while we load the recovery page...
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    }>
+      <RecoverAccountContent />
+    </Suspense>
   );
 }
