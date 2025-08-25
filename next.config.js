@@ -1,6 +1,3 @@
-const path = require('path');
-const webpack = require('webpack');
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -8,144 +5,47 @@ const nextConfig = {
   },
   images: { 
     unoptimized: true,
-    domains: ['images.pexels.com']
+    domains: ['images.pexels.com', 'images.unsplash.com']
   },
-  optimizeFonts: false,
-  // Configure for Netlify deployment
+  // Configure for deployment
   trailingSlash: true,
-  webpack: (config, { isServer, dev }) => {
-    // Only apply these optimizations in production builds
-    if (!dev) {
-      // Ignore optional dependencies that are not needed for client-side builds
-      if (!isServer) {
-        // Add resolve.alias to completely exclude problematic modules from client bundle
-        config.resolve = config.resolve || {};
-        config.resolve.alias = config.resolve.alias || {};
-        config.resolve.alias = {
-          ...config.resolve.alias,
-          'bufferutil': false,
-          'utf-8-validate': false,
-          'html-to-docx': false,
-        };
-
-        // Ensure fallbacks for Node.js modules
-        config.resolve.fallback = {
-          ...config.resolve.fallback,
-          fs: false,
-          net: false,
-          tls: false,
-          crypto: false,
-          stream: false,
-          url: false,
-          zlib: false,
-          http: false,
-          https: false,
-          assert: false,
-          os: false,
-          path: false,
-          buffer: false,
-          util: false,
-        };
-      }
-    }
-    
-    // Suppress warnings for dynamic requires in Supabase realtime
+  // Disable SWC minification to avoid build issues
+  swcMinify: false,
+  // Output configuration
+  output: 'standalone',
+  // Basic webpack configuration
+  webpack: (config, { isServer }) => {
+    // Suppress warnings for dynamic requires
     config.module = config.module || {};
     config.module.exprContextCritical = false;
     
-    // Initialize plugins array if it doesn't exist
-    config.plugins = config.plugins || [];
-    
-    // Add comprehensive IgnorePlugin to handle optional dependencies
-    config.plugins.push(
-      new webpack.IgnorePlugin({
-        checkResource(resource, context) {
-          // Ignore html-to-docx on client side
-          if (!isServer && resource === 'html-to-docx') {
-            return true;
-          }
-          
-          // Ignore Deno-specific imports when requested from supabase/functions
-          if (context && context.includes('supabase/functions')) {
-            return resource.startsWith('jsr:') || resource.startsWith('npm:');
-          }
-          
-          // Ignore optional ws dependencies
-          if (context && (context.includes('node_modules/ws') || context.includes('node_modules/@supabase'))) {
-            return resource === 'bufferutil' || resource === 'utf-8-validate';
-          }
-          
-          return false;
-        }
-      })
-    );
-    
-    // More comprehensive exclusion of supabase/functions from all processing
-    const supabaseFunctionsPath = path.resolve(__dirname, 'supabase/functions');
-    
-    // Add a more aggressive ignore plugin for supabase functions
-    config.plugins.push(
-      new webpack.IgnorePlugin({
-        checkResource(resource, context) {
-          // Completely ignore any imports from supabase/functions directory
-          if (context && context.includes('supabase/functions')) {
-            return true;
-          }
-          return false;
-        }
-      })
-    );
-    
-    // Exclude from all module rules
-    config.module.rules.forEach(rule => {
-      if (rule.test && (
-        rule.test.toString().includes('tsx?') || 
-        rule.test.toString().includes('jsx?') ||
-        rule.test.toString().includes('ts') ||
-        rule.test.toString().includes('js')
-      )) {
-        // Ensure exclude is an array
-        if (!rule.exclude) {
-          rule.exclude = [];
-        } else if (typeof rule.exclude === 'function' || rule.exclude instanceof RegExp) {
-          const originalExclude = rule.exclude;
-          rule.exclude = [originalExclude];
-        }
-        
-        // Add supabase/functions to exclusion list
-        if (Array.isArray(rule.exclude)) {
-          rule.exclude.push(supabaseFunctionsPath);
-          rule.exclude.push(/supabase\/functions/);
-        }
-      }
-    });
+    // Add fallbacks for Node.js modules on client side
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        stream: false,
+        url: false,
+        zlib: false,
+        http: false,
+        https: false,
+        assert: false,
+        os: false,
+        path: false,
+        buffer: false,
+        util: false,
+      };
+    }
     
     return config;
   },
-  // Exclude supabase/functions from TypeScript compilation at the Next.js level
-  typescript: {
-    ignoreBuildErrors: false,
-  },
-  // Explicitly exclude supabase functions from the build
-  pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
-  // Add custom webpack configuration to completely ignore supabase/functions
+  // Experimental features
   experimental: {
-    // This helps with build performance and avoids processing unnecessary files
     optimizePackageImports: ['lucide-react'],
-    // Exclude directories from compilation
-    outputFileTracingExcludes: {
-      '*': ['./supabase/functions/**/*'],
-    },
   },
-
-  // Disable SWC minification which might be causing the syntax errors
-  swcMinify: false,
-  // Add compiler options to help with build stability
-  compiler: {
-    removeConsole: false,
-  },
-  // Add distDir to ensure proper build output
-  distDir: '.next',
 };
 
 module.exports = nextConfig;
