@@ -102,3 +102,108 @@ export interface FlashcardSession {
   currentIndex: number;
   startedAt: Date;
 }
+
+// Vocabulary Flashcards Types
+
+export interface VocabularyCardData {
+  word: string;
+  pronunciation: string;
+  partOfSpeech: string;
+  definition: string;
+  exampleSentences: {
+    present: string;
+    past: string;
+    future: string;
+    presentPerfect: string;
+    pastPerfect: string;
+    futurePerfect: string;
+  };
+}
+
+export interface VocabularySession {
+  sessionId: string;
+  studentId: string;
+  startTime: Date;
+  currentPosition: number;
+  words: VocabularyCardData[];
+  isActive: boolean;
+}
+
+export interface StudentVocabularyProfile {
+  studentId: string;
+  proficiencyLevel: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+  nativeLanguage: string;
+  learningGoals: string[];
+  vocabularyWeaknesses: string[];
+  conversationalBarriers: string[];
+  lastSessionPosition?: number;
+  seenWords: string[];
+}
+
+export interface VocabularyGenerationRequest {
+  studentProfile: StudentVocabularyProfile;
+  excludeWords: string[];
+  count: number;
+  difficulty?: string;
+  focusAreas?: string[];
+}
+
+export interface VocabularyGenerationResponse {
+  words: VocabularyCardData[];
+  sessionId: string;
+  success: boolean;
+  error?: string;
+}
+
+// Infinite Vocabulary Types
+
+export interface VocabularyHistory {
+  id: string;
+  studentId: string;
+  word: string;
+  firstSeenAt: Date;
+  lastSeenAt: Date;
+  timesSeen: number;
+  difficultyLevel: string;
+  masteryScore: number;
+  semanticCategory?: string;
+  wordFamily?: string;
+}
+
+export interface SemanticRelationship {
+  word: string;
+  relatedWord: string;
+  relationshipType: 'synonym' | 'antonym' | 'family' | 'concept' | 'theme';
+  strength: number;
+  difficultyLevel: string;
+}
+
+export interface GenerationPattern {
+  studentId: string;
+  difficultyLevel: string;
+  semanticCategories: string[];
+  wordFamilies: string[];
+  learningVelocity: number;
+  successRate: number;
+  preferredThemes: string[];
+  avoidedPatterns: string[];
+}
+
+export interface ExpansionQueue {
+  id: string;
+  studentId: string;
+  baseWord: string;
+  expansionWords: string[];
+  expansionType: 'semantic' | 'thematic' | 'difficulty' | 'family';
+  priorityScore: number;
+  isActive: boolean;
+}
+
+export interface VocabularyAnalytics {
+  totalWordsLearned: number;
+  averageMasteryScore: number;
+  learningVelocity: number;
+  strongCategories: string[];
+  weakCategories: string[];
+  recommendedDifficulty: string;
+}

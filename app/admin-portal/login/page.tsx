@@ -38,8 +38,8 @@ export default function AdminLoginPage() {
       // In a real app, you would call your Supabase Edge Function
       if (values.username === "admin" && values.password === "admin123") {
         // Store admin session
-        localStorage.setItem('admin_session', JSON.stringify({ 
-          loggedIn: true, 
+        localStorage.setItem('admin_session', JSON.stringify({
+          loggedIn: true,
           username: values.username,
           timestamp: Date.now()
         }));
@@ -62,7 +62,7 @@ export default function AdminLoginPage() {
       <div className="floating-elements"></div>
       <div className="fixed top-40 right-20 w-32 h-32 bg-neon-400/20 rounded-full blur-xl animate-float pointer-events-none" style={{ animationDelay: '2s' }}></div>
       <div className="fixed bottom-40 left-20 w-24 h-24 bg-purple-400/20 rounded-full blur-xl animate-float pointer-events-none" style={{ animationDelay: '4s' }}></div>
-      
+
       <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
         <Card className="w-full max-w-md cyber-card animate-scale-in">
           <CardHeader className="space-y-2 text-center">

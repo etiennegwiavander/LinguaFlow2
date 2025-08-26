@@ -1,0 +1,220 @@
+/* Vocabulary Flashcards Accessibility Styles */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .vocabulary-card {
+    border: 2px solid currentColor !important;
+    background: var(--background) !important;
+  }
+  
+  .vocabulary-word {
+    font-weight: 900 !important;
+    text-shadow: 0 0 1px currentColor !important;
+  }
+  
+  .vocabulary-pronunciation {
+    font-weight: 700 !important;
+    border: 1px solid currentColor !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 0.25rem !important;
+  }
+  
+  .vocabulary-definition {
+    font-weight: 600 !important;
+    line-height: 1.6 !important;
+  }
+  
+  .vocabulary-example {
+    border-left: 4px solid currentColor !important;
+    padding-left: 1rem !important;
+    font-weight: 500 !important;
+  }
+  
+  .vocabulary-button {
+    border: 2px solid currentColor !important;
+    font-weight: 600 !important;
+  }
+  
+  .vocabulary-progress {
+    border: 1px solid currentColor !important;
+    background: transparent !important;
+  }
+  
+  .vocabulary-progress-fill {
+    background: currentColor !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .vocabulary-card,
+  .vocabulary-navigation,
+  .vocabulary-interface {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+  
+  .vocabulary-card-enter,
+  .vocabulary-card-exit {
+    transition: opacity 0.1s ease !important;
+  }
+}
+
+/* Large text support */
+@media (min-resolution: 192dpi) {
+  .vocabulary-word {
+    font-size: clamp(2rem, 5vw, 4rem) !important;
+    line-height: 1.2 !important;
+  }
+  
+  .vocabulary-pronunciation {
+    font-size: clamp(1.25rem, 3vw, 2rem) !important;
+  }
+  
+  .vocabulary-definition {
+    font-size: clamp(1.125rem, 2.5vw, 1.5rem) !important;
+    line-height: 1.5 !important;
+  }
+  
+  .vocabulary-example {
+    font-size: clamp(1rem, 2vw, 1.25rem) !important;
+    line-height: 1.6 !important;
+  }
+}
+
+/* Focus indicators */
+.vocabulary-focusable:focus-visible {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 2px !important;
+  border-radius: 0.25rem !important;
+}
+
+/* Screen reader only content */
+.vocabulary-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Skip links for keyboard navigation */
+.vocabulary-skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--background);
+  color: var(--foreground);
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+  border: 2px solid var(--primary);
+  z-index: 1000;
+}
+
+.vocabulary-skip-link:focus {
+  top: 6px;
+}
+
+/* Color scheme support */
+@media (prefers-color-scheme: dark) {
+  .vocabulary-interface {
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .vocabulary-interface {
+    color-scheme: light;
+  }
+}
+
+/* Print styles */
+@media print {
+  .vocabulary-interface {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .vocabulary-navigation,
+  .vocabulary-close-button {
+    display: none !important;
+  }
+  
+  .vocabulary-card {
+    border: 2px solid black !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+/* Touch target sizing for mobile accessibility */
+@media (max-width: 768px) {
+  .vocabulary-button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 0.75rem !important;
+  }
+  
+  .vocabulary-navigation-button {
+    min-height: 48px !important;
+    min-width: 48px !important;
+  }
+}
+
+/* Windows High Contrast Mode */
+@media (-ms-high-contrast: active) {
+  .vocabulary-card {
+    border: 2px solid WindowText !important;
+    background: Window !important;
+    color: WindowText !important;
+  }
+  
+  .vocabulary-button {
+    border: 2px solid ButtonText !important;
+    background: ButtonFace !important;
+    color: ButtonText !important;
+  }
+  
+  .vocabulary-progress {
+    border: 1px solid WindowText !important;
+    background: Window !important;
+  }
+  
+  .vocabulary-progress-fill {
+    background: Highlight !important;
+  }
+}
+
+/* Forced colors mode (Windows 11+) */
+@media (forced-colors: active) {
+  .vocabulary-card {
+    border: 1px solid CanvasText !important;
+    background: Canvas !important;
+    color: CanvasText !important;
+  }
+  
+  .vocabulary-button {
+    border: 1px solid ButtonText !important;
+    background: ButtonFace !important;
+    color: ButtonText !important;
+  }
+  
+  .vocabulary-button:hover {
+    background: Highlight !important;
+    color: HighlightText !important;
+  }
+  
+  .vocabulary-progress {
+    border: 1px solid CanvasText !important;
+    background: Canvas !important;
+  }
+  
+  .vocabulary-progress-fill {
+    background: Highlight !important;
+  }
+}

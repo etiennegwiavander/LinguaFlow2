@@ -1167,7 +1167,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     try {
       console.log('Sharing lesson:', lesson.id);
       console.log('Current user:', user);
-      
+
       // Check if user is authenticated with Supabase
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session) {
@@ -1178,10 +1178,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       }
 
       console.log('User session verified:', session.user.id);
-      
+
       // Generate a unique share token
       const shareToken = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Create a shareable lesson record in the database (using initial schema)
       const shareableData = {
         lesson_id: lesson.id,
@@ -1202,7 +1202,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
       if (error) {
         console.error('Supabase error details:', error);
-        
+
         // Check for specific RLS policy errors
         if (error.code === '42501' || error.message?.includes('policy')) {
           throw new Error('Permission denied. Make sure you own this lesson.');
@@ -1212,7 +1212,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           throw new Error(`Database error: ${error.message}`);
         }
       }
-      
+
       if (!shareRecord) {
         throw new Error('No record returned from database');
       }
@@ -1241,7 +1241,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
   const handleCopyLink = async () => {
     if (!shareUrl) return;
-    
+
     try {
       await navigator.clipboard.writeText(shareUrl);
       toast.success('Link copied to clipboard!');
@@ -1399,7 +1399,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
       case 'activities':
         const activityItems = safeGetArray(section, 'activities') || safeGetArray(section, 'items');
-        
+
         // Debug logging to see what's in the section
         console.log('🔍 Activities section debug:', {
           sectionId,
@@ -1536,7 +1536,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           <div className="space-y-3">
             {items.map((item: string, index: number) => {
               const itemText = safeStringify(item);
-              
+
               // Process markdown formatting for expressions and other content
               const processedContent = itemText
                 .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>')
@@ -1548,7 +1548,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   className="p-3 bg-gradient-to-r from-cyber-50/50 to-neon-50/50 dark:from-cyber-900/20 dark:to-neon-900/20 rounded-lg border border-cyber-400/20"
                   onDoubleClick={handleTextDoubleClick}
                 >
-                  <span 
+                  <span
                     className="font-medium"
                     dangerouslySetInnerHTML={{ __html: processedContent }}
                   />

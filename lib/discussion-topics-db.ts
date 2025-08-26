@@ -1,6 +1,10 @@
-import { supabase, supabaseRequest } from './supabase';
-import { DiscussionTopic } from '../types';
-import { startTimer, endTimer, trackDatabaseOperation } from './performance-monitor';
+import { supabase, supabaseRequest } from "./supabase";
+import { DiscussionTopic } from "../types";
+import {
+  startTimer,
+  endTimer,
+  trackDatabaseOperation,
+} from "./performance-monitor";
 
 // Discussion Topics Database Operations
 
@@ -13,32 +17,42 @@ export async function getDiscussionTopicsByStudent(
 ): Promise<{ data: DiscussionTopic[] | null; error: any }> {
   // Validate inputs
   if (!studentId || !tutorId) {
-    return { 
-      data: null, 
-      error: { message: 'Student ID and Tutor ID are required' } 
+    return {
+      data: null,
+      error: { message: "Student ID and Tutor ID are required" },
     };
   }
 
-  console.log('🔍 Fetching discussion topics for student:', studentId, 'tutor:', tutorId);
+  console.log(
+    "🔍 Fetching discussion topics for student:",
+    studentId,
+    "tutor:",
+    tutorId
+  );
 
   try {
     const { data, error } = await supabase
-      .from('discussion_topics')
-      .select('*')
-      .eq('student_id', studentId)
-      .eq('tutor_id', tutorId)
-      .order('created_at', { ascending: false });
+      .from("discussion_topics")
+      .select("*")
+      .eq("student_id", studentId)
+      .eq("tutor_id", tutorId)
+      .order("created_at", { ascending: false });
 
-    console.log('📊 Discussion topics result:', { data, error, count: data?.length || 0 });
+    console.log("📊 Discussion topics result:", {
+      data,
+      error,
+      count: data?.length || 0,
+    });
 
     return { data, error };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ Discussion topics fetch error:', errorMessage);
-    
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error("❌ Discussion topics fetch error:", errorMessage);
+
     return {
       data: null,
-      error: { message: errorMessage }
+      error: { message: errorMessage },
     };
   }
 }
@@ -53,12 +67,12 @@ export async function getDiscussionTopicsByLevel(
 ): Promise<{ data: DiscussionTopic[] | null; error: any }> {
   return supabaseRequest(async () => {
     const { data, error } = await supabase
-      .from('discussion_topics')
-      .select('*')
-      .eq('student_id', studentId)
-      .eq('tutor_id', tutorId)
-      .eq('level', level)
-      .order('created_at', { ascending: false });
+      .from("discussion_topics")
+      .select("*")
+      .eq("student_id", studentId)
+      .eq("tutor_id", tutorId)
+      .eq("level", level)
+      .order("created_at", { ascending: false });
 
     return { data, error };
   });
@@ -72,13 +86,13 @@ export async function getDiscussionTopicsByLevel(
 export async function getPredefinedTopicsByLevel(
   level: string
 ): Promise<{ data: DiscussionTopic[] | null; error: any }> {
-  console.log('🎯 Getting predefined topics for level:', level);
-  
+  console.log("🎯 Getting predefined topics for level:", level);
+
   // Validate input
   if (!level) {
-    return { 
-      data: null, 
-      error: { message: 'Level is required' } 
+    return {
+      data: null,
+      error: { message: "Level is required" },
     };
   }
 
@@ -86,65 +100,66 @@ export async function getPredefinedTopicsByLevel(
   // In the future, we might want to create a separate predefined_topics table
   const predefinedTopics: DiscussionTopic[] = [
     {
-      id: 'predefined-1',
-      title: 'Food & Cooking',
-      description: 'Discuss favorite foods, cooking experiences, and culinary traditions',
-      category: 'lifestyle',
+      id: "predefined-1",
+      title: "Food & Cooking",
+      description:
+        "Discuss favorite foods, cooking experiences, and culinary traditions",
+      category: "lifestyle",
       level: level,
       is_custom: false,
       student_id: null,
       tutor_id: null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     },
     {
-      id: 'predefined-2',
-      title: 'Travel & Tourism',
-      description: 'Share travel experiences and dream destinations',
-      category: 'lifestyle',
+      id: "predefined-2",
+      title: "Travel & Tourism",
+      description: "Share travel experiences and dream destinations",
+      category: "lifestyle",
       level: level,
       is_custom: false,
       student_id: null,
       tutor_id: null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     },
     {
-      id: 'predefined-3',
-      title: 'Technology & Innovation',
-      description: 'Explore the impact of technology on daily life',
-      category: 'technology',
+      id: "predefined-3",
+      title: "Technology & Innovation",
+      description: "Explore the impact of technology on daily life",
+      category: "technology",
       level: level,
       is_custom: false,
       student_id: null,
       tutor_id: null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     },
     {
-      id: 'predefined-4',
-      title: 'Work & Career',
-      description: 'Discuss professional experiences and career goals',
-      category: 'professional',
+      id: "predefined-4",
+      title: "Work & Career",
+      description: "Discuss professional experiences and career goals",
+      category: "professional",
       level: level,
       is_custom: false,
       student_id: null,
       tutor_id: null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     },
     {
-      id: 'predefined-5',
-      title: 'Hobbies & Interests',
-      description: 'Share personal interests and leisure activities',
-      category: 'lifestyle',
+      id: "predefined-5",
+      title: "Hobbies & Interests",
+      description: "Share personal interests and leisure activities",
+      category: "lifestyle",
       level: level,
       is_custom: false,
       student_id: null,
       tutor_id: null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+      updated_at: new Date().toISOString(),
+    },
   ];
 
   return { data: predefinedTopics, error: null };
@@ -154,11 +169,11 @@ export async function getPredefinedTopicsByLevel(
  * Create a new discussion topic
  */
 export async function createDiscussionTopic(
-  topic: Omit<DiscussionTopic, 'id' | 'created_at' | 'updated_at'>
+  topic: Omit<DiscussionTopic, "id" | "created_at" | "updated_at">
 ): Promise<{ data: DiscussionTopic | null; error: any }> {
   return supabaseRequest(async () => {
     const { data, error } = await supabase
-      .from('discussion_topics')
+      .from("discussion_topics")
       .insert([topic])
       .select()
       .single();
@@ -179,27 +194,33 @@ export async function createCustomDiscussionTopic(
 ): Promise<{ data: DiscussionTopic | null; error: any }> {
   // Validate input
   if (!title || title.trim().length === 0) {
-    return { data: null, error: { message: 'Topic title is required' } };
+    return { data: null, error: { message: "Topic title is required" } };
   }
 
   if (title.length > 200) {
-    return { data: null, error: { message: 'Topic title must be less than 200 characters' } };
+    return {
+      data: null,
+      error: { message: "Topic title must be less than 200 characters" },
+    };
   }
 
   if (description && description.length > 500) {
-    return { data: null, error: { message: 'Topic description must be less than 500 characters' } };
+    return {
+      data: null,
+      error: { message: "Topic description must be less than 500 characters" },
+    };
   }
 
   // Sanitize input
   const sanitizedTitle = title.trim();
   const sanitizedDescription = description?.trim();
 
-  const topicData: Omit<DiscussionTopic, 'id' | 'created_at' | 'updated_at'> = {
+  const topicData: Omit<DiscussionTopic, "id" | "created_at" | "updated_at"> = {
     student_id: studentId,
     tutor_id: tutorId,
     title: sanitizedTitle,
     description: sanitizedDescription,
-    category: 'custom',
+    category: "custom",
     level,
     is_custom: true,
   };
@@ -212,13 +233,13 @@ export async function createCustomDiscussionTopic(
  */
 export async function updateDiscussionTopic(
   topicId: string,
-  updates: Partial<Omit<DiscussionTopic, 'id' | 'created_at' | 'updated_at'>>
+  updates: Partial<Omit<DiscussionTopic, "id" | "created_at" | "updated_at">>
 ): Promise<{ data: DiscussionTopic | null; error: any }> {
   return supabaseRequest(async () => {
     const { data, error } = await supabase
-      .from('discussion_topics')
+      .from("discussion_topics")
       .update(updates)
-      .eq('id', topicId)
+      .eq("id", topicId)
       .select()
       .single();
 
@@ -234,9 +255,9 @@ export async function deleteDiscussionTopic(
 ): Promise<{ data: null; error: any }> {
   return supabaseRequest(async () => {
     const { error } = await supabase
-      .from('discussion_topics')
+      .from("discussion_topics")
       .delete()
-      .eq('id', topicId);
+      .eq("id", topicId);
 
     return { data: null, error };
   });
@@ -250,9 +271,9 @@ export async function getDiscussionTopicById(
 ): Promise<{ data: DiscussionTopic | null; error: any }> {
   return supabaseRequest(async () => {
     const { data, error } = await supabase
-      .from('discussion_topics')
-      .select('*')
-      .eq('id', topicId)
+      .from("discussion_topics")
+      .select("*")
+      .eq("id", topicId)
       .single();
 
     return { data, error };
@@ -269,12 +290,12 @@ export async function searchDiscussionTopics(
 ): Promise<{ data: DiscussionTopic[] | null; error: any }> {
   return supabaseRequest(async () => {
     const { data, error } = await supabase
-      .from('discussion_topics')
-      .select('*')
-      .eq('student_id', studentId)
-      .eq('tutor_id', tutorId)
-      .ilike('title', `%${searchTerm}%`)
-      .order('created_at', { ascending: false });
+      .from("discussion_topics")
+      .select("*")
+      .eq("student_id", studentId)
+      .eq("tutor_id", tutorId)
+      .ilike("title", `%${searchTerm}%`)
+      .order("created_at", { ascending: false });
 
     return { data, error };
   });
@@ -290,11 +311,11 @@ export async function checkTopicExists(
 ): Promise<{ data: boolean | null; error: any }> {
   return supabaseRequest(async () => {
     const { data, error } = await supabase
-      .from('discussion_topics')
-      .select('id')
-      .eq('student_id', studentId)
-      .eq('tutor_id', tutorId)
-      .ilike('title', title.trim())
+      .from("discussion_topics")
+      .select("id")
+      .eq("student_id", studentId)
+      .eq("tutor_id", tutorId)
+      .ilike("title", title.trim())
       .limit(1);
 
     if (error) {
