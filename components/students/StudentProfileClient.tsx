@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useContext } from "react";
+import { useSearchParams } from "next/navigation";
 import MainLayout from "@/components/main-layout";
 import { Student, SubTopic } from "@/types";
 import { languages } from "@/lib/sample-data";
@@ -11,7 +12,6 @@ import {
   GraduationCap,
   Languages as LanguagesIcon,
   Loader2,
-  MessageSquare,
   Sparkles,
   Target,
   RefreshCw,
@@ -67,8 +67,7 @@ import StudentForm from "@/components/students/StudentForm";
 import LessonMaterialDisplay from "@/components/lessons/LessonMaterialDisplay";
 import SubTopicSelectionDialog from "@/components/students/SubTopicSelectionDialog";
 import EditImprovementAreasDialog from "@/components/students/EditImprovementAreasDialog";
-import DiscussionTopicsTab from "@/components/students/DiscussionTopicsTab";
-import VocabularyFlashcardsTab from "@/components/students/VocabularyFlashcardsTab";
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { ProgressContext } from "@/lib/progress-context";
@@ -111,7 +110,19 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [hasGeneratedBefore, setHasGeneratedBefore] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("ai-architect");
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    const tabFromUrl = searchParams.get('tab');
+    return tabFromUrl || "ai-architect";
+  });
+
+  // Update active tab when URL changes
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
   const [isGeneratingInteractive, setIsGeneratingInteractive] = useState(false);
   const [interactiveGenerationProgress, setInteractiveGenerationProgress] = useState("");
   const [isSubTopicDialogOpen, setIsSubTopicDialogOpen] = useState(false);
@@ -690,7 +701,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
 
-          <TabsList className="sticky top-16 z-40 grid w-full grid-cols-6 glass-effect border-cyber-400/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+          <TabsList className="sticky top-16 z-40 grid w-full grid-cols-4 glass-effect border-cyber-400/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
             <TabsTrigger value="ai-architect" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <Brain className="h-4 w-4" />
               <span className="hidden sm:inline">AI Lesson Architect</span>
@@ -700,16 +711,6 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Lesson Material</span>
               <span className="sm:hidden">Material</span>
-            </TabsTrigger>
-            <TabsTrigger value="discussion-topics" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Discussion Topics</span>
-              <span className="sm:hidden">Topics</span>
-            </TabsTrigger>
-            <TabsTrigger value="vocabulary-flashcards" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Vocabulary Flashcards</span>
-              <span className="sm:hidden">Vocab</span>
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <History className="h-4 w-4" />
@@ -1265,15 +1266,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
             </Card>
           </TabsContent>
 
-          {/* Discussion Topics Tab */}
-          <TabsContent value="discussion-topics" className="space-y-6 animate-scale-in">
-            <DiscussionTopicsTab student={student} />
-          </TabsContent>
 
-          {/* Vocabulary Flashcards Tab */}
-          <TabsContent value="vocabulary-flashcards" className="space-y-6 animate-scale-in">
-            <VocabularyFlashcardsTab student={student} />
-          </TabsContent>
 
           {/* Lesson History Tab */}
           <TabsContent value="history" className="space-y-6 animate-scale-in">

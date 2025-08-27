@@ -74,6 +74,27 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
     return false;
   };
 
+  // Check if we're currently viewing a student profile
+  const isStudentProfileActive = () => {
+    // Only show when viewing a specific student profile (e.g., /students/123)
+    // Hide when on student list (/students or /students/)
+    return pathname.match(/^\/students\/[^\/]+/) && !pathname.match(/^\/students\/?$/);
+  };
+
+  // Student-specific navigation items
+  const studentNavItems = [
+    {
+      title: 'Discussion Topics',
+      href: `${pathname}?tab=discussion-topics`,
+      icon: 'MessageSquare'
+    },
+    {
+      title: 'Vocabulary Flashcards',
+      href: `${pathname}?tab=vocabulary-flashcards`,
+      icon: 'BookOpen'
+    }
+  ];
+
   return (
     <aside 
       className={cn(
@@ -102,45 +123,131 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-2 py-4">
-          <TooltipProvider delayDuration={0}>
-            {filteredNavItems.map((item, index) => {
-              const active = isActive(item.href);
-              
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "nav-item group relative overflow-hidden",
-                        active ? "nav-item-active" : "nav-item-inactive",
-                        sidebarCollapsed ? "justify-center" : "justify-start"
-                      )}
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      {active && (
-                        <>
-                          <div className="absolute inset-0 bg-gradient-to-r from-cyber-400/10 to-neon-400/10 animate-pulse"></div>
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyber-400 to-neon-400"></div>
-                        </>
-                      )}
-                      <div className="relative z-10 flex items-center">
-                        <IconComponent name={item.icon} />
-                        {!sidebarCollapsed && <span className="ml-3 font-medium">{item.title}</span>}
-                      </div>
-                    </Link>
-                  </TooltipTrigger>
-                  {sidebarCollapsed && (
-                    <TooltipContent side="right" className="font-medium glass-effect border-cyber-400/30">
-                      {item.title}
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              );
-            })}
-          </TooltipProvider>
-        </nav>
+        <div className="flex-1 flex flex-col">
+          {/* Main Navigation */}
+          <nav className="space-y-1 px-2 py-4">
+            <TooltipProvider delayDuration={0}>
+              {/* Core navigation items */}
+              {filteredNavItems.filter(item => item.title === 'Dashboard' || item.title === 'My Students').map((item, index) => {
+                const active = isActive(item.href);
+                
+                return (
+                  <Tooltip key={item.href}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "nav-item group relative overflow-hidden",
+                          active ? "nav-item-active" : "nav-item-inactive",
+                          sidebarCollapsed ? "justify-center" : "justify-start"
+                        )}
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                      >
+                        {active && (
+                          <>
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyber-400/10 to-neon-400/10 animate-pulse"></div>
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyber-400 to-neon-400"></div>
+                          </>
+                        )}
+                        <div className="relative z-10 flex items-center">
+                          <IconComponent name={item.icon} />
+                          {!sidebarCollapsed && <span className="ml-3 font-medium">{item.title}</span>}
+                        </div>
+                      </Link>
+                    </TooltipTrigger>
+                    {sidebarCollapsed && (
+                      <TooltipContent side="right" className="font-medium glass-effect border-cyber-400/30">
+                        {item.title}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                );
+              })}
+
+              {/* Student-specific navigation items - only show when viewing a student profile */}
+              {isStudentProfileActive() && studentNavItems.map((item, index) => {
+                // For now, let's just show the items without active state logic
+                const isTabActive = false; // We'll handle this later
+                
+                return (
+                  <Tooltip key={item.href}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "nav-item group relative overflow-hidden ml-4",
+                          isTabActive ? "nav-item-active" : "nav-item-inactive",
+                          sidebarCollapsed ? "justify-center ml-0" : "justify-start"
+                        )}
+                        style={{ animationDelay: `${(index + 2) * 0.1}s` }}
+                      >
+                        {isTabActive && (
+                          <>
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyber-400/10 to-neon-400/10 animate-pulse"></div>
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyber-400 to-neon-400"></div>
+                          </>
+                        )}
+                        <div className="relative z-10 flex items-center">
+                          <IconComponent name={item.icon} />
+                          {!sidebarCollapsed && <span className="ml-3 font-medium text-sm">{item.title}</span>}
+                        </div>
+                      </Link>
+                    </TooltipTrigger>
+                    {sidebarCollapsed && (
+                      <TooltipContent side="right" className="font-medium glass-effect border-cyber-400/30">
+                        {item.title}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                );
+              })}
+            </TooltipProvider>
+          </nav>
+
+          {/* Spacer */}
+          <div className="flex-1"></div>
+
+          {/* Secondary Navigation */}
+          <nav className="space-y-1 px-2 pb-4">
+            <TooltipProvider delayDuration={0}>
+              {filteredNavItems.filter(item => item.title === 'Calendar Sync' || item.title === 'Settings').map((item, index) => {
+                const active = isActive(item.href);
+                
+                return (
+                  <Tooltip key={item.href}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "nav-item group relative overflow-hidden",
+                          active ? "nav-item-active" : "nav-item-inactive",
+                          sidebarCollapsed ? "justify-center" : "justify-start"
+                        )}
+                        style={{ animationDelay: `${(index + 2) * 0.1}s` }}
+                      >
+                        {active && (
+                          <>
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyber-400/10 to-neon-400/10 animate-pulse"></div>
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyber-400 to-neon-400"></div>
+                          </>
+                        )}
+                        <div className="relative z-10 flex items-center">
+                          <IconComponent name={item.icon} />
+                          {!sidebarCollapsed && <span className="ml-3 font-medium">{item.title}</span>}
+                        </div>
+                      </Link>
+                    </TooltipTrigger>
+                    {sidebarCollapsed && (
+                      <TooltipContent side="right" className="font-medium glass-effect border-cyber-400/30">
+                        {item.title}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                );
+              })}
+            </TooltipProvider>
+          </nav>
+        </div>
 
         {/* Collapse Button */}
         <div className="border-t border-cyber-400/20 p-4">
