@@ -319,6 +319,25 @@ class CacheManager {
     return daysSinceGeneration > 1;
   }
 
+  // Force refresh questions (for system updates)
+  forceRefreshQuestions(topicId: string): void {
+    this.invalidateQuestionsCache(topicId);
+    this.invalidateTopicMetadata(topicId);
+  }
+
+  // Clear all questions cache (for system-wide updates)
+  clearAllQuestionsCache(): void {
+    if (!this.isClient) return;
+
+    try {
+      this.removeFromStorage(CACHE_KEYS.QUESTIONS);
+      this.removeFromStorage(CACHE_KEYS.TOPIC_METADATA);
+      console.log('Cleared all questions cache');
+    } catch (error) {
+      console.warn('Failed to clear questions cache:', error);
+    }
+  }
+
   // Update metadata after successful operations
   updateTopicMetadata(
     topicId: string,
@@ -368,6 +387,10 @@ export const clearAllCache =
   discussionCache.clearAllCache.bind(discussionCache);
 export const getCacheStats =
   discussionCache.getCacheStats.bind(discussionCache);
+export const forceRefreshQuestions =
+  discussionCache.forceRefreshQuestions.bind(discussionCache);
+export const clearAllQuestionsCache =
+  discussionCache.clearAllQuestionsCache.bind(discussionCache);
 
 // Auto-cleanup expired entries on module load
 if (typeof window !== "undefined") {

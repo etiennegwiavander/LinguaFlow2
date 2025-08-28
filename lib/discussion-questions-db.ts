@@ -361,3 +361,53 @@ export async function reorderQuestions(
     return getQuestionsByTopicId(topicId);
   });
 }
+
+/**
+ * Force regeneration of questions by clearing existing ones
+ * This is useful when the question generation algorithm has been improved
+ */
+export async function forceRegenerateQuestions(
+  topicId: string
+): Promise<{ data: null; error: any }> {
+  return supabaseRequest(async () => {
+    // Delete all existing questions for this topic
+    const { error } = await supabase
+      .from('discussion_questions')
+      .delete()
+      .eq('topic_id', topicId);
+
+    return { data: null, error };
+  });
+}
+
+/**
+ * Clear all questions for a student (useful for system-wide updates)
+ */
+export async function clearAllQuestionsForStudent(
+  studentId: string
+): Promise<{ data: null; error: any }> {
+  return supabaseRequest(async () => {
+    // First get all topics for this student
+    const { data: topics, error: topicsError } = await supabase
+      .from('discussion_topics')
+      .select('id')
+      .eq('student_id', studentId);
+
+    if (topicsError) {
+      return { data: null, error: topicsError };
+    }
+
+    if (!topics || topics.length === 0) {
+      return { data: null, error: null };
+    }
+
+    // Delete all questions for these topics
+    const topicIds = topics.map(t => t.id);
+    const { error } = await supabase
+      .from('discussion_questions')
+      .delete()
+      .in('topic_id', topicIds);
+
+    return { data: null, error };
+  });
+}

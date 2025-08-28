@@ -30,196 +30,270 @@ interface Student {
   notes: string | null;
 }
 
-// Personalized questions generator using student profile
-function generatePersonalizedQuestions(student: Student, topicTitle: string) {
-  const nativeLanguage = student.native_language || "your native language";
-  const targetLanguage =
-    student.target_language === "en" ? "English" : student.target_language;
-  const ageGroup = student.age_group || "adult";
-  const goals = student.end_goals || "language learning";
+// Create highly contextual, topic-specific prompts
+function createTopicSpecificPrompt(topicTitle: string, student: Student): string {
+  const topicLower = topicTitle.toLowerCase();
   const studentName = student.name;
+  const level = student.level.toUpperCase();
+  
+  // Base requirements for all topics
+  const baseRequirements = `
+Student: ${studentName} (${level} level ${student.target_language})
+Generate 15-18 unique, contextual discussion questions.
 
-  // Create highly personalized questions based on student profile
-  const personalizedQuestions = [];
+CRITICAL REQUIREMENTS:
+- Each question must be completely different in structure and approach
+- NO formulaic patterns like "Tell me about a time when..." repeated
+- NO generic question starters across multiple questions
+- Make each question feel like it comes from a different conversation
+- Use ${studentName}'s name in questions naturally, not forced
+- Focus on specific, concrete scenarios rather than abstract concepts
 
-  // Personal connection questions (always include)
-  personalizedQuestions.push(
-    `${studentName}, what interests you most about ${topicTitle}?`,
-    `How is ${topicTitle} different in your country compared to ${targetLanguage}-speaking countries?`,
-    `What would you tell someone from your ${nativeLanguage}-speaking background about ${topicTitle}?`,
-    `${studentName}, share your personal experience with ${topicTitle}.`
-  );
+Format: JSON array only:
+[{"question_text": "...", "difficulty_level": "${student.level}", "question_order": 1}]
+`;
 
-  // Goal-oriented questions based on student's specific goals
-  if (goals.includes("business") || goals.includes("professional")) {
-    personalizedQuestions.push(
-      `How could ${topicTitle} impact your professional career?`,
-      `What business opportunities do you see related to ${topicTitle}?`,
-      `How would you present ${topicTitle} in a professional meeting?`
-    );
-  } else if (goals.includes("travel") || goals.includes("tourism")) {
-    personalizedQuestions.push(
-      `How would ${topicTitle} enhance your travel experiences?`,
-      `What would you want to know about ${topicTitle} when visiting ${targetLanguage}-speaking countries?`,
-      `How would you ask about ${topicTitle} when traveling abroad?`
-    );
-  } else if (goals.includes("academic") || goals.includes("study")) {
-    personalizedQuestions.push(
-      `How would you research ${topicTitle} for an academic project?`,
-      `What academic questions would you ask about ${topicTitle}?`,
-      `How would you explain ${topicTitle} in an academic presentation?`
-    );
-  } else {
-    personalizedQuestions.push(
-      `How does understanding ${topicTitle} help you achieve your goal of ${goals}?`,
-      `What vocabulary related to ${topicTitle} do you find most challenging in ${targetLanguage}?`,
-      `How would discussing ${topicTitle} help you in real-life ${targetLanguage} conversations?`
-    );
+  // Topic-specific prompts with completely different approaches
+  if (topicLower.includes('food') || topicLower.includes('cooking') || topicLower.includes('restaurant')) {
+    return `${baseRequirements}
+
+FOOD & COOKING - Create questions that explore:
+- Specific cooking disasters and kitchen adventures
+- Sensory memories (smells, tastes, textures)
+- Cultural food traditions and family recipes
+- Restaurant experiences and food discoveries
+- Emotional connections to specific dishes
+- Food-related travel memories
+- Cooking skills and kitchen confidence
+- Food preferences and dietary choices
+
+Example variety (use different structures):
+- "What's the worst cooking disaster you've ever had, ${studentName}?"
+- "If you could smell one food cooking right now, what would instantly make you hungry?"
+- "Which dish from your childhood could your mother/grandmother make that no restaurant has ever matched?"
+- "Have you ever tried to recreate a dish you had while traveling? How did it go?"
+- "What's a food combination that sounds weird but you absolutely love?"
+
+Make each question completely unique in structure and focus.`;
   }
+  
+  if (topicLower.includes('travel') || topicLower.includes('vacation') || topicLower.includes('trip')) {
+    return `${baseRequirements}
 
-  // Level-appropriate questions with personalization
-  if (student.level === "a1" || student.level === "a2") {
-    personalizedQuestions.push(
-      `${studentName}, can you name three things related to ${topicTitle}?`,
-      `Do you like ${topicTitle}? Please tell me why.`,
-      `Is ${topicTitle} popular in your country? Yes or no?`,
-      `What do you usually do with ${topicTitle}?`,
-      `${studentName}, describe ${topicTitle} in simple words.`,
-      `When do you think about ${topicTitle}?`
-    );
-  } else if (student.level === "b1" || student.level === "b2") {
-    personalizedQuestions.push(
-      `${studentName}, what are the advantages and disadvantages of ${topicTitle}?`,
-      `How has your opinion about ${topicTitle} changed over time?`,
-      `What would you recommend to someone new to ${topicTitle}?`,
-      `How do you think ${topicTitle} will change in the next 10 years?`,
-      `Compare ${topicTitle} in your country with other countries you know.`,
-      `What problems might people face with ${topicTitle}?`
-    );
-  } else {
-    personalizedQuestions.push(
-      `${studentName}, analyze the cultural significance of ${topicTitle} in different societies.`,
-      `What ethical considerations should we keep in mind regarding ${topicTitle}?`,
-      `How does ${topicTitle} reflect broader social and economic trends?`,
-      `What role should governments play in regulating ${topicTitle}?`,
-      `Critically evaluate the impact of ${topicTitle} on modern society.`,
-      `What philosophical questions does ${topicTitle} raise?`
-    );
+TRAVEL & ADVENTURE - Create questions about:
+- Specific travel mishaps and unexpected adventures
+- Cultural shock moments and discoveries
+- Transportation experiences (flights, trains, buses)
+- Meeting locals and language barriers
+- Travel planning vs spontaneous adventures
+- Solo travel vs group travel experiences
+- Budget travel vs luxury experiences
+- Travel photography and memories
+- Getting lost and finding hidden gems
+
+Example variety (use different structures):
+- "What's the most embarrassing thing that happened to you while traveling, ${studentName}?"
+- "Have you ever missed a flight or train? What happened next?"
+- "Which local person you met while traveling left the biggest impression on you?"
+- "What's the strangest place you've ever slept during your travels?"
+- "If you could relive one travel day exactly as it happened, which would it be?"
+
+Each question should explore different aspects with unique phrasing.`;
   }
+  
+  if (topicLower.includes('technology') || topicLower.includes('social media') || topicLower.includes('internet')) {
+    return `${baseRequirements}
 
-  // Grammar-focused questions based on specific weaknesses
-  if (student.grammar_weaknesses?.includes("past tense")) {
-    personalizedQuestions.push(
-      `${studentName}, tell me about a time when ${topicTitle} was important to you.`,
-      `How did you first encounter ${topicTitle}?`,
-      `What happened the last time you experienced ${topicTitle}?`
-    );
+TECHNOLOGY & DIGITAL LIFE - Create questions about:
+- Specific tech failures and digital disasters
+- Social media habits and online relationships
+- Smartphone addiction and digital detox
+- Online shopping and digital payments
+- Video calls and remote communication
+- Apps that changed their life
+- Tech generational differences
+- Privacy concerns and digital footprint
+- Gaming and entertainment technology
+
+Example variety (use different structures):
+- "What's the most frustrating tech problem you've ever dealt with, ${studentName}?"
+- "Have you ever posted something online that you immediately regretted?"
+- "Which app on your phone would be hardest to give up for a month?"
+- "What's the weirdest thing you've ever bought online?"
+- "Do you remember your first email address or social media account?"
+
+Focus on specific scenarios and personal tech experiences.`;
   }
+  
+  if (topicLower.includes('work') || topicLower.includes('job') || topicLower.includes('career')) {
+    return `${baseRequirements}
 
-  if (student.grammar_weaknesses?.includes("future")) {
-    personalizedQuestions.push(
-      `What will ${topicTitle} be like in the future?`,
-      `${studentName}, how are you going to use ${topicTitle} in your life?`,
-      `What do you predict will happen with ${topicTitle} next year?`
-    );
+WORK & CAREER - Create questions about:
+- Specific workplace situations and office dynamics
+- Career changes and professional growth
+- Work-life balance challenges
+- Memorable colleagues and bosses
+- Job interviews and career mistakes
+- Remote work and office culture
+- Professional achievements and failures
+- Workplace communication and conflicts
+- Industry changes and future of work
+
+Example variety (use different structures):
+- "What's the most awkward situation you've experienced at work, ${studentName}?"
+- "Have you ever had a boss who completely changed how you think about leadership?"
+- "What's the biggest professional risk you've ever taken?"
+- "If you could go back and give your first-day-at-work self one piece of advice, what would it be?"
+- "What's a work skill you wish you'd learned earlier in your career?"
+
+Each question should target specific workplace scenarios.`;
   }
+  
+  if (topicLower.includes('health') || topicLower.includes('fitness') || topicLower.includes('exercise')) {
+    return `${baseRequirements}
 
-  if (student.grammar_weaknesses?.includes("conditionals")) {
-    personalizedQuestions.push(
-      `If you could change one thing about ${topicTitle}, what would it be?`,
-      `What would happen if ${topicTitle} didn't exist?`,
-      `${studentName}, if you were an expert on ${topicTitle}, what would you do?`
-    );
+HEALTH & FITNESS - Create questions about:
+- Specific fitness challenges and achievements
+- Health scares and medical experiences
+- Exercise routines and workout preferences
+- Mental health and stress management
+- Sleep habits and energy levels
+- Injury recovery and physical limitations
+- Healthy eating and diet experiments
+- Body image and self-confidence
+- Wellness trends and health fads
+
+Example variety (use different structures):
+- "What's the most physically challenging thing you've ever accomplished, ${studentName}?"
+- "Have you ever tried a fitness trend that was completely wrong for you?"
+- "What's your relationship with sleep like - are you a morning person or night owl?"
+- "If you could change one thing about how you take care of your health, what would it be?"
+- "What's the best piece of health advice someone ever gave you?"
+
+Focus on personal health journeys and specific experiences.`;
   }
+  
+  // Generic but still contextual for other topics
+  return `${baseRequirements}
 
-  // Age-appropriate questions with personalization
-  if (ageGroup === "teenager") {
-    personalizedQuestions.push(
-      `How do young people in your generation view ${topicTitle}?`,
-      `${studentName}, what would your friends think about ${topicTitle}?`,
-      `How is ${topicTitle} different for teenagers compared to adults?`
-    );
-  } else if (ageGroup === "senior") {
-    personalizedQuestions.push(
-      `How has ${topicTitle} evolved since you were younger?`,
-      `${studentName}, what wisdom would you share about ${topicTitle}?`,
-      `What changes have you seen in ${topicTitle} over the years?`
-    );
-  } else {
-    personalizedQuestions.push(
-      `How does ${topicTitle} fit into your professional life?`,
-      `What role does ${topicTitle} play in your family?`,
-      `${studentName}, how do you balance ${topicTitle} with your other responsibilities?`
-    );
+TOPIC: ${topicTitle} - Create questions that explore:
+- Personal experiences and memorable moments
+- Emotional connections and meaningful stories
+- Practical challenges and learning experiences
+- Cultural differences and perspectives
+- Future aspirations and past reflections
+- Specific scenarios and concrete examples
+- Problem-solving and decision-making
+- Relationships and social aspects
+
+Example variety for any topic:
+- "What's something about ${topicTitle} that completely surprised you, ${studentName}?"
+- "Have you ever had to make a difficult decision related to ${topicTitle}?"
+- "What's the biggest misconception people have about ${topicTitle}?"
+- "If you could teach someone one important thing about ${topicTitle}, what would it be?"
+- "What's changed the most about ${topicTitle} since you were younger?"
+
+Make each question explore different angles with unique structures.`;
+}
+
+// AI-powered question generator using Gemini API
+async function generatePersonalizedQuestions(student: Student, topicTitle: string) {
+  console.log('🤖 Generating questions using Gemini API');
+  
+  try {
+    // Get Gemini API key from environment
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiApiKey) {
+      throw new Error("GEMINI_API_KEY not found in environment variables");
+    }
+
+    // Create highly specific, contextual prompts based on the topic
+    const topicSpecificPrompt = createTopicSpecificPrompt(topicTitle, student);
+    
+    // Call Gemini API
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: topicSpecificPrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.9,
+          topK: 50,
+          topP: 0.95,
+          maxOutputTokens: 3000,
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!generatedText) {
+      throw new Error('No content generated by Gemini API');
+    }
+
+    console.log('🤖 Raw Gemini response:', generatedText);
+
+    // Extract JSON from the response
+    const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in Gemini response');
+    }
+
+    const questions = JSON.parse(jsonMatch[0]);
+    
+    // Validate and format questions
+    if (!Array.isArray(questions) || questions.length === 0) {
+      throw new Error('Invalid questions format from Gemini API');
+    }
+
+    console.log(`✅ Generated ${questions.length} questions using Gemini API`);
+    
+    return questions.map((q, index) => ({
+      question_text: q.question_text || q.question || '',
+      difficulty_level: student.level,
+      question_order: index + 1
+    }));
+
+  } catch (error) {
+    console.error('❌ Gemini API failed:', error);
+    
+    // Fallback to emergency questions if Gemini fails
+    console.log('🔄 Using emergency fallback questions');
+    const emergencyQuestions = [
+      `${student.name}, tell me about a personal experience with ${topicTitle} that was meaningful to you.`,
+      `Describe a time when ${topicTitle} surprised you or changed your perspective.`,
+      `What's the most interesting thing you've learned about ${topicTitle} recently?`,
+      `How does ${topicTitle} connect to your daily life or personal goals?`,
+      `Share a story about ${topicTitle} that you think others would find interesting.`,
+      `What questions do you have about ${topicTitle} that you'd like to explore?`,
+      `Describe how ${topicTitle} is different in your culture compared to others.`,
+      `What advice would you give someone who is new to ${topicTitle}?`,
+      `Tell me about a challenge you've faced related to ${topicTitle}.`,
+      `What's something about ${topicTitle} that most people don't know?`,
+      `How has your understanding of ${topicTitle} evolved over time?`,
+      `What's the most creative way you've seen ${topicTitle} used or applied?`,
+      `Describe a moment when ${topicTitle} made you feel proud or accomplished.`,
+      `What would you want to teach others about ${topicTitle}?`,
+      `How do you think ${topicTitle} will change in the future?`
+    ];
+
+    return emergencyQuestions.map((question, index) => ({
+      question_text: question,
+      difficulty_level: student.level,
+      question_order: index + 1
+    }));
   }
-
-  // Conversation fluency barriers - specific practice
-  if (student.conversational_fluency_barriers?.includes("confidence")) {
-    personalizedQuestions.push(
-      `${studentName}, what's one simple thing you could say about ${topicTitle} to start a conversation?`,
-      `How would you politely disagree with someone about ${topicTitle}?`,
-      `Practice introducing ${topicTitle} to someone who doesn't know about it.`
-    );
-  }
-
-  if (student.conversational_fluency_barriers?.includes("vocabulary")) {
-    personalizedQuestions.push(
-      `What are the most important words related to ${topicTitle}?`,
-      `${studentName}, explain ${topicTitle} using only simple words.`,
-      `What synonyms can you think of for words related to ${topicTitle}?`
-    );
-  }
-
-  // Learning style adaptations
-  if (student.learning_styles?.includes("visual")) {
-    personalizedQuestions.push(
-      `${studentName}, describe what ${topicTitle} looks like.`,
-      `If you could draw ${topicTitle}, what would you include?`
-    );
-  }
-
-  if (student.learning_styles?.includes("kinesthetic")) {
-    personalizedQuestions.push(
-      `How do you physically interact with ${topicTitle}?`,
-      `${studentName}, what actions are involved in ${topicTitle}?`
-    );
-  }
-
-  // Pronunciation challenges
-  if (student.pronunciation_challenges) {
-    personalizedQuestions.push(
-      `${studentName}, practice saying words related to ${topicTitle} clearly.`,
-      `What sounds in ${topicTitle} vocabulary are difficult for you?`
-    );
-  }
-
-  // Vocabulary gaps
-  if (student.vocabulary_gaps) {
-    personalizedQuestions.push(
-      `What new words about ${topicTitle} would you like to learn?`,
-      `${studentName}, use ${topicTitle} vocabulary in different sentences.`
-    );
-  }
-
-  // Generic but personalized fallbacks
-  personalizedQuestions.push(
-    `From your perspective as a ${targetLanguage} learner, what's challenging about discussing ${topicTitle}?`,
-    `${studentName}, how would you explain ${topicTitle} to someone who speaks ${nativeLanguage}?`,
-    `What questions would you ask a native ${targetLanguage} speaker about ${topicTitle}?`,
-    `How does ${topicTitle} help you practice the ${targetLanguage} skills you want to improve?`,
-    `${studentName}, what's the most interesting thing about ${topicTitle} for you?`,
-    `How would you teach someone else about ${topicTitle}?`
-  );
-
-  // Shuffle and select 20 questions for variety
-  const shuffled = personalizedQuestions.sort(() => Math.random() - 0.5);
-  const selectedQuestions = shuffled.slice(0, 20);
-
-  return selectedQuestions.map((question, index) => ({
-    question_text: question,
-    difficulty_level: student.level,
-    question_order: index + 1,
-  }));
 }
 
 serve(async (req) => {
@@ -283,7 +357,7 @@ serve(async (req) => {
 
     // Generate personalized questions based on student profile
     console.log("🎯 Generating personalized questions...");
-    const questions = generatePersonalizedQuestions(student, topic_title);
+    const questions = await generatePersonalizedQuestions(student, topic_title);
 
     console.log(`✅ Generated ${questions.length} questions successfully`);
 

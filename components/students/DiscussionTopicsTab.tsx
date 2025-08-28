@@ -11,36 +11,38 @@ import { FlashcardInterface } from "./FlashcardInterface";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { 
-  AIGenerationErrorFallback, 
-  NetworkErrorFallback, 
-  GenericErrorFallback 
+import {
+  AIGenerationErrorFallback,
+  NetworkErrorFallback,
+  GenericErrorFallback
 } from "./ErrorFallbacks";
-import { 
-  DiscussionTopicsTabSkeleton, 
-  QuestionGenerationSkeleton, 
-  ProgressBar 
+import {
+  DiscussionTopicsTabSkeleton,
+  QuestionGenerationSkeleton,
+  ProgressBar
 } from "./SkeletonLoaders";
 import { AIGenerationLoading } from "./LoadingStates";
 
-import { 
-  getQuestionsByTopicId, 
+import {
+  getQuestionsByTopicId,
   checkQuestionsExistWithCount,
   getQuestionsWithMetadata,
-  storeAIGeneratedQuestions 
+  storeAIGeneratedQuestions,
+  forceRegenerateQuestions
 } from "@/lib/discussion-questions-db";
 import {
   getQuestionsCache,
   setQuestionsCache,
   shouldRefreshQuestions,
   updateTopicMetadata,
-  clearExpiredEntries
+  clearExpiredEntries,
+  forceRefreshQuestions
 } from "@/lib/discussion-cache";
-import { 
-  startTimer, 
-  endTimer, 
-  trackComponentRender, 
-  usePerformanceTracking 
+import {
+  startTimer,
+  endTimer,
+  trackComponentRender,
+  usePerformanceTracking
 } from "@/lib/performance-monitor";
 import { useSidebar } from "@/lib/sidebar-context";
 
@@ -68,12 +70,12 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
   // Performance tracking - must be at the top
   const trackRender = usePerformanceTracking('DiscussionTopicsTab');
   const { collapseSidebar } = useSidebar();
-  
+
   // Track render completion immediately
   React.useEffect(() => {
     trackRender();
   });
-  
+
   const [state, setState] = useState<DiscussionTopicsState>({
     topics: [],
     selectedTopic: null,
@@ -94,14 +96,64 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
   useEffect(() => {
     const initializeTutor = async () => {
       try {
+        // ULTRA AGGRESSIVE cache clearing for contextual AI questions system
+        const hasUpgraded = localStorage.getItem('linguaflow_questions_upgraded_v8_manual_clear');
+        if (!hasUpgraded) {
+          console.log('🔄 ULTRA FORCE UPGRADING to contextual AI questions system v8...');
+
+          // Show alert to user about the upgrade
+          if (typeof window !== 'undefined') {
+            console.log('🚨 CLEARING ALL CACHED QUESTIONS - You will see fresh AI-generated questions!');
+          }
+
+          // Import cache functions
+          const { clearAllQuestionsCache, clearAllCache } = await import('@/lib/discussion-cache');
+
+          // Clear ALL cache aggressively
+          clearAllCache();
+          clearAllQuestionsCache();
+
+          // Also clear browser cache and force reload of questions
+          if (typeof window !== 'undefined') {
+            // Clear ALL localStorage items (more aggressive)
+            Object.keys(localStorage).forEach(key => {
+              if (key.includes('linguaflow') || key.includes('discussion') || key.includes('questions') || key.includes('topics') || key.includes('cache')) {
+                console.log('🗑️ Clearing cache key:', key);
+                localStorage.removeItem(key);
+              }
+            });
+
+            // Also clear sessionStorage
+            Object.keys(sessionStorage).forEach(key => {
+              if (key.includes('linguaflow') || key.includes('discussion') || key.includes('questions') || key.includes('topics')) {
+                console.log('🗑️ Clearing session key:', key);
+                sessionStorage.removeItem(key);
+              }
+            });
+          }
+
+          // Also clear database questions for this student
+          try {
+            console.log('🗑️ Clearing database questions for student:', student.id);
+            const { clearAllQuestionsForStudent } = await import('@/lib/discussion-questions-db');
+            await clearAllQuestionsForStudent(student.id);
+            console.log('✅ Cleared database questions for student');
+          } catch (error) {
+            console.warn('Failed to clear database questions:', error);
+          }
+
+          localStorage.setItem('linguaflow_questions_upgraded_v8_manual_clear', 'true');
+          console.log('✅ ULTRA FORCE CLEARED all caches and database - Questions system upgraded to v8');
+        }
+
         const { data: { user }, error } = await supabase.auth.getUser();
-        
+
         if (error) {
           console.error('Auth error:', error);
           // For development/testing, use a fallback tutor ID
           const fallbackTutorId = process.env.NODE_ENV === 'development' ? 'dev-tutor-id' : null;
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             tutorId: fallbackTutorId,
             error: fallbackTutorId ? null : 'Authentication required',
             errorType: fallbackTutorId ? null : 'generic',
@@ -109,14 +161,14 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
           }));
           return;
         }
-        
+
         if (user) {
           setState(prev => ({ ...prev, tutorId: user.id, isLoadingTopics: false }));
         } else {
           // No user found, use fallback for development
           const fallbackTutorId = process.env.NODE_ENV === 'development' ? 'dev-tutor-id' : null;
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             tutorId: fallbackTutorId,
             error: fallbackTutorId ? null : 'Please log in to view discussion topics',
             errorType: fallbackTutorId ? null : 'generic',
@@ -127,8 +179,8 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
         console.error('Failed to initialize tutor:', error);
         // For development/testing, use a fallback tutor ID
         const fallbackTutorId = process.env.NODE_ENV === 'development' ? 'dev-tutor-id' : null;
-        setState(prev => ({ 
-          ...prev, 
+        setState(prev => ({
+          ...prev,
           tutorId: fallbackTutorId,
           error: fallbackTutorId ? null : 'Failed to load user information',
           errorType: fallbackTutorId ? null : 'network',
@@ -136,20 +188,20 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
         }));
       }
     };
-    
+
     // Clean up expired cache entries
     clearExpiredEntries();
-    
+
     initializeTutor();
-  }, []);
+  }, [student.id]);
 
 
 
   const handleTopicSelect = async (topic: DiscussionTopic) => {
-    setState(prev => ({ 
-      ...prev, 
-      selectedTopic: topic, 
-      isGeneratingQuestions: true, 
+    setState(prev => ({
+      ...prev,
+      selectedTopic: topic,
+      isGeneratingQuestions: true,
       generationProgress: "Checking cache and existing questions...",
       generationProgressPercent: 10,
       error: null,
@@ -161,33 +213,22 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
       let questionsList: Question[] = [];
       let fromCache = false;
 
-      // First, try to get questions from cache
-      const cachedQuestions = getQuestionsCache(topic.id);
-      if (cachedQuestions && cachedQuestions.length >= 10) {
-        // Check if we should refresh the cache
-        if (!shouldRefreshQuestions(topic.id, cachedQuestions.length)) {
-          questionsList = cachedQuestions;
-          fromCache = true;
-          setState(prev => ({ 
-            ...prev, 
-            generationProgress: "Loading questions from cache...",
-            generationProgressPercent: 80
-          }));
-        }
-      }
+      // FORCE FRESH GENERATION - Skip cache completely for better contextual questions
+      console.log('🔄 Forcing fresh question generation for better contextual results');
+      fromCache = false;
 
       if (!fromCache) {
         // For predefined topics, skip database check and go straight to AI generation
         if (topic.id.startsWith('predefined-')) {
           console.log('🎯 Predefined topic detected, skipping database check');
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             generationProgress: "Generating personalized questions...",
             generationProgressPercent: 40
           }));
-          
+
           const newQuestions = await generateQuestionsForTopic(topic);
-          
+
           if (newQuestions.length > 0) {
             // For predefined topics, we don't store in database, just use them directly
             questionsList = newQuestions.map((q, index) => ({
@@ -198,128 +239,169 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
               difficulty_level: q.difficulty_level,
               created_at: new Date().toISOString()
             }));
-            
-            // Cache the questions for future use
-            setQuestionsCache(topic.id, questionsList);
-            updateTopicMetadata(topic.id, questionsList.length, student.id, student.level);
-            
+
+            // Skip caching for now to ensure fresh questions every time
+            console.log('🚫 Skipping cache to ensure fresh contextual questions');
+
             toast.success(`Generated ${questionsList.length} questions for "${topic.title}"`);
           } else {
             throw new Error('Failed to generate questions');
           }
         } else {
           // Check if questions exist in database with count for better decision making (custom topics only)
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             generationProgress: "Checking database for questions...",
             generationProgressPercent: 25
           }));
           const { data: questionsInfo, error: checkError } = await checkQuestionsExistWithCount(topic.id);
           if (checkError) {
-            const errorType = checkError.message.includes('network') || checkError.message.includes('fetch') 
+            const errorType = checkError.message.includes('network') || checkError.message.includes('fetch')
               ? 'network' : 'generic';
             throw { ...checkError, type: errorType };
           }
 
-        if (questionsInfo?.exists) {
-          // Questions exist, fetch them with metadata for better caching
-          setState(prev => ({ 
-            ...prev, 
-            generationProgress: "Loading questions from database...",
-            generationProgressPercent: 50
-          }));
-          
-          const { data: questionsData, error: questionsError } = await getQuestionsWithMetadata(topic.id);
-          if (questionsError) throw questionsError;
-          
-          questionsList = questionsData?.questions || [];
-          
-          // Cache the fetched questions
-          if (questionsList.length > 0) {
-            setQuestionsCache(topic.id, questionsList);
-            updateTopicMetadata(topic.id, questionsList.length, student.id, student.level);
-          }
-          
-          // Verify we have enough questions (at least 10 for a good experience)
-          if (questionsData && questionsData.count < 10) {
-            setState(prev => ({ 
-              ...prev, 
-              generationProgress: "Insufficient questions found, generating additional ones...",
-              generationProgressPercent: 60
+          if (questionsInfo?.exists) {
+            // Questions exist, fetch them with metadata for better caching
+            setState(prev => ({
+              ...prev,
+              generationProgress: "Loading questions from database...",
+              generationProgressPercent: 50
             }));
-            
-            // Generate new questions to supplement existing ones
-            const newQuestions = await generateQuestionsForTopic(topic);
-            if (newQuestions.length > 0) {
-              // Store the new questions in database
-              const { data: storedQuestions, error: storeError } = await storeAIGeneratedQuestions(
-                topic.id, 
-                newQuestions.map((q, index) => ({
-                  question_text: q.question_text,
-                  difficulty_level: q.difficulty_level,
-                  question_order: questionsList.length + index + 1
-                }))
-              );
-              
-              if (storeError) {
-                console.warn('Failed to store additional questions:', storeError);
-              } else if (storedQuestions) {
-                questionsList = [...questionsList, ...storedQuestions];
-                // Update cache with new questions
-                setQuestionsCache(topic.id, questionsList);
-                updateTopicMetadata(topic.id, questionsList.length, student.id, student.level);
+
+            const { data: questionsData, error: questionsError } = await getQuestionsWithMetadata(topic.id);
+            if (questionsError) throw questionsError;
+
+            questionsList = questionsData?.questions || [];
+
+            // Check if existing questions are using old generic format
+            const needsRegeneration = areQuestionsGeneric(questionsList);
+
+            if (needsRegeneration) {
+              setState(prev => ({
+                ...prev,
+                generationProgress: "Upgrading questions to enhanced format...",
+                generationProgressPercent: 60
+              }));
+
+              // Clear old questions and generate new enhanced ones
+              const { forceRegenerateQuestions } = await import('@/lib/discussion-questions-db');
+              await forceRegenerateQuestions(topic.id);
+
+              // Clear cache for this topic
+              const { forceRefreshQuestions } = await import('@/lib/discussion-cache');
+              forceRefreshQuestions(topic.id);
+
+              // Generate new enhanced questions
+              const newQuestions = await generateQuestionsForTopic(topic);
+
+              if (newQuestions.length > 0) {
+                // Store the new enhanced questions
+                const { data: storedQuestions, error: storeError } = await storeAIGeneratedQuestions(
+                  topic.id,
+                  newQuestions
+                );
+
+                if (storeError) {
+                  console.warn('Failed to store enhanced questions:', storeError);
+                  questionsList = newQuestions.map((q, index) => ({
+                    id: `temp-${index}`,
+                    topic_id: topic.id,
+                    question_text: q.question_text,
+                    question_order: q.question_order,
+                    difficulty_level: q.difficulty_level,
+                    created_at: new Date().toISOString()
+                  }));
+                } else if (storedQuestions) {
+                  questionsList = storedQuestions;
+                }
+
+                // Skip caching for now to ensure fresh questions
+                console.log('🚫 Skipping cache for enhanced questions');
+
+                toast.success(`Enhanced ${questionsList.length} questions with personalized format!`);
+              }
+            } else {
+              // Skip caching existing questions to force fresh generation
+              console.log('🚫 Skipping cache for existing questions');
+            }
+
+            // Verify we have enough questions (at least 10 for a good experience)
+            if (questionsData && questionsData.count < 10 && !needsRegeneration) {
+              setState(prev => ({
+                ...prev,
+                generationProgress: "Insufficient questions found, generating additional ones...",
+                generationProgressPercent: 60
+              }));
+
+              // Generate new questions to supplement existing ones
+              const newQuestions = await generateQuestionsForTopic(topic);
+              if (newQuestions.length > 0) {
+                // Store the new questions in database
+                const { data: storedQuestions, error: storeError } = await storeAIGeneratedQuestions(
+                  topic.id,
+                  newQuestions.map((q, index) => ({
+                    question_text: q.question_text,
+                    difficulty_level: q.difficulty_level,
+                    question_order: questionsList.length + index + 1
+                  }))
+                );
+
+                if (storeError) {
+                  console.warn('Failed to store additional questions:', storeError);
+                } else if (storedQuestions) {
+                  questionsList = [...questionsList, ...storedQuestions];
+                  // Skip caching additional questions
+                  console.log('🚫 Skipping cache for additional questions');
+                }
               }
             }
-          }
-        } else {
-          // No existing questions, generate new ones
-          setState(prev => ({ 
-            ...prev, 
-            generationProgress: "Generating personalized questions...",
-            generationProgressPercent: 40
-          }));
-          
-          const newQuestions = await generateQuestionsForTopic(topic);
-          
-          if (newQuestions.length > 0) {
-            // Store questions in database for future use
-            setState(prev => ({ 
-              ...prev, 
-              generationProgress: "Saving questions for future use...",
-              generationProgressPercent: 85
-            }));
-            
-            const { data: storedQuestions, error: storeError } = await storeAIGeneratedQuestions(
-              topic.id, 
-              newQuestions
-            );
-            
-            if (storeError) {
-              console.warn('Failed to store questions, using temporary ones:', storeError);
-              // Use the generated questions even if storage failed
-              questionsList = newQuestions.map((q, index) => ({
-                id: `temp-${index}`,
-                topic_id: topic.id,
-                question_text: q.question_text,
-                question_order: q.question_order,
-                difficulty_level: q.difficulty_level,
-                created_at: new Date().toISOString()
-              }));
-            } else if (storedQuestions) {
-              questionsList = storedQuestions;
-            }
-            
-            // Cache the new questions
-            if (questionsList.length > 0) {
-              setQuestionsCache(topic.id, questionsList);
-              updateTopicMetadata(topic.id, questionsList.length, student.id, student.level);
-            }
-            
-            toast.success(`Generated ${questionsList.length} questions for "${topic.title}"`);
           } else {
-            throw new Error('Failed to generate questions');
+            // No existing questions, generate new ones
+            setState(prev => ({
+              ...prev,
+              generationProgress: "Generating personalized questions...",
+              generationProgressPercent: 40
+            }));
+
+            const newQuestions = await generateQuestionsForTopic(topic);
+
+            if (newQuestions.length > 0) {
+              // Store questions in database for future use
+              setState(prev => ({
+                ...prev,
+                generationProgress: "Saving questions for future use...",
+                generationProgressPercent: 85
+              }));
+
+              const { data: storedQuestions, error: storeError } = await storeAIGeneratedQuestions(
+                topic.id,
+                newQuestions
+              );
+
+              if (storeError) {
+                console.warn('Failed to store questions, using temporary ones:', storeError);
+                // Use the generated questions even if storage failed
+                questionsList = newQuestions.map((q, index) => ({
+                  id: `temp-${index}`,
+                  topic_id: topic.id,
+                  question_text: q.question_text,
+                  question_order: q.question_order,
+                  difficulty_level: q.difficulty_level,
+                  created_at: new Date().toISOString()
+                }));
+              } else if (storedQuestions) {
+                questionsList = storedQuestions;
+              }
+
+              // Skip caching new questions to ensure fresh generation
+              console.log('🚫 Skipping cache for new questions - ensuring fresh generation');
+
+              toast.success(`Generated ${questionsList.length} questions for "${topic.title}"`);
+            } else {
+              throw new Error('Failed to generate questions');
+            }
           }
-        }
         } // Close the else block for custom topics
       }
 
@@ -332,26 +414,24 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
       collapseSidebar();
 
       // Seamless transition to flashcard interface
-      setState(prev => ({ 
-        ...prev, 
-        questions: questionsList, 
-        isGeneratingQuestions: false, 
+      setState(prev => ({
+        ...prev,
+        questions: questionsList,
+        isGeneratingQuestions: false,
         generationProgress: "",
         generationProgressPercent: 100,
-        isFlashcardOpen: true 
+        isFlashcardOpen: true
       }));
 
-      // Show cache hit message if questions were loaded from cache
-      if (fromCache) {
-        toast.success(`Loaded ${questionsList.length} questions from cache`);
-      }
+      // Always show fresh generation message since we're not using cache
+      toast.success(`Generated ${questionsList.length} fresh contextual questions!`);
 
     } catch (error: any) {
       console.error('Error handling topic selection:', error);
-      
+
       // Determine error type for appropriate fallback UI
       let errorType: 'network' | 'ai-generation' | 'validation' | 'generic' = 'generic';
-      
+
       if (error.type) {
         errorType = error.type;
       } else if (error.message?.includes('network') || error.message?.includes('fetch') || error.message?.includes('connection')) {
@@ -361,9 +441,9 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
       } else if (error.message?.includes('validation') || error.message?.includes('invalid')) {
         errorType = 'validation';
       }
-      
-      setState(prev => ({ 
-        ...prev, 
+
+      setState(prev => ({
+        ...prev,
         error: error.message || 'Failed to load or generate questions',
         errorType,
         isGeneratingQuestions: false,
@@ -372,16 +452,42 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
         selectedTopic: null,
         retryCount: prev.retryCount + 1
       }));
-      
+
       // Show appropriate toast message
-      const toastMessage = errorType === 'network' 
+      const toastMessage = errorType === 'network'
         ? 'Connection failed. Please check your internet connection.'
         : errorType === 'ai-generation'
-        ? 'Failed to generate questions. Please try again.'
-        : error.message || 'Failed to load questions';
-        
+          ? 'Failed to generate questions. Please try again.'
+          : error.message || 'Failed to load questions';
+
       toast.error(toastMessage);
     }
+  };
+
+  // Helper function to detect if questions are using old generic format
+  const areQuestionsGeneric = (questions: Question[]): boolean => {
+    if (!questions || questions.length === 0) return false;
+
+    // Check for generic patterns that indicate old format
+    const genericPatterns = [
+      /^What do you think about/i,
+      /^How is .+ different in your country/i,
+      /^What would you tell someone/i,
+      /^Share your personal experience/i,
+      /^What interests you most about/i,
+      /^How does understanding .+ help you achieve/i,
+      /^What vocabulary related to .+ do you find/i,
+      /^How would discussing .+ help you in real-life/i,
+      /^From your perspective as a .+ learner/i,
+      /^What questions would you ask a native/i
+    ];
+
+    // If more than 30% of questions match generic patterns, consider them old format
+    const genericCount = questions.filter(q =>
+      genericPatterns.some(pattern => pattern.test(q.question_text))
+    ).length;
+
+    return genericCount > questions.length * 0.3;
   };
 
   // Helper function to generate questions for a topic
@@ -391,32 +497,32 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
     question_order: number;
   }>> => {
     const { startTimer, endTimer } = await import('@/lib/performance-monitor');
-    
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       throw new Error('Not authenticated');
     }
 
     // Update progress with more specific messaging
-    setState(prev => ({ 
-      ...prev, 
+    setState(prev => ({
+      ...prev,
       generationProgress: `Creating ${student.level.toUpperCase()} level questions for "${topic.title}"...`,
       generationProgressPercent: 70
     }));
 
-    startTimer('ai_question_generation', { 
-      topicId: topic.id, 
-      topicTitle: topic.title, 
+    startTimer('ai_question_generation', {
+      topicId: topic.id,
+      topicTitle: topic.title,
       studentLevel: student.level,
-      isCustomTopic: topic.is_custom 
+      isCustomTopic: topic.is_custom
     });
 
     try {
       // Call the AI function to generate questions
       const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-discussion-questions`;
-      
+
       console.log('🤖 Attempting to call AI function:', functionUrl);
-      
+
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
@@ -431,119 +537,242 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
       });
 
       console.log('🤖 AI function response status:', response.status);
-      
+
       if (!response.ok) {
-        // If function is not deployed, fall back to hardcoded questions
+        // If function is not deployed, fall back to Gemini API
         if (response.status === 404) {
-          console.warn('🔄 AI function not deployed, using fallback questions');
-          return generateFallbackQuestions(topic);
+          console.warn('🔄 AI function not deployed, using Gemini API fallback');
+          return await generateFallbackQuestions(topic);
         }
-        
+
         const errorText = await response.text();
         const error = new Error(`Failed to generate questions: ${errorText}`);
         (error as any).type = response.status >= 500 ? 'network' : 'ai-generation';
-        
-        endTimer('ai_question_generation', { 
-          topicId: topic.id, 
-          success: false, 
+
+        endTimer('ai_question_generation', {
+          topicId: topic.id,
+          success: false,
           error: errorText,
-          statusCode: response.status 
+          statusCode: response.status
         });
-        
+
         throw error;
       }
 
       const result = await response.json();
-      
+
       if (result.success && result.questions) {
-        endTimer('ai_question_generation', { 
-          topicId: topic.id, 
-          success: true, 
-          questionCount: result.questions.length 
+        endTimer('ai_question_generation', {
+          topicId: topic.id,
+          success: true,
+          questionCount: result.questions.length
         });
-        
+
         return result.questions;
       } else {
-        endTimer('ai_question_generation', { 
-          topicId: topic.id, 
-          success: false, 
-          error: result.error || 'Unknown error' 
+        endTimer('ai_question_generation', {
+          topicId: topic.id,
+          success: false,
+          error: result.error || 'Unknown error'
         });
-        
+
         throw new Error(result.error || 'Failed to generate questions');
       }
     } catch (error) {
-      // If network error or function not available, use fallback
+      // If network error or function not available, use Gemini API fallback
       if (error instanceof Error && (error.message.includes('fetch') || error.message.includes('network'))) {
-        console.warn('Network error, using fallback questions:', error.message);
-        return generateFallbackQuestions(topic);
+        console.warn('Network error, using Gemini API fallback:', error.message);
+        return await generateFallbackQuestions(topic);
       }
-      
-      endTimer('ai_question_generation', { 
-        topicId: topic.id, 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+
+      endTimer('ai_question_generation', {
+        topicId: topic.id,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
       throw error;
     }
   };
 
-  // Fallback question generator
-  const generateFallbackQuestions = (topic: DiscussionTopic): Array<{
+  // AI-powered fallback question generator using Gemini API directly
+  const generateFallbackQuestions = async (topic: DiscussionTopic): Promise<Array<{
     question_text: string;
     difficulty_level: string;
     question_order: number;
-  }> => {
-    const baseQuestions = [
-      `What do you think about ${topic.title}?`,
-      `Can you describe your experience with ${topic.title}?`,
-      `How important is ${topic.title} in your daily life?`,
-      `What would you like to learn about ${topic.title}?`,
-      `How has ${topic.title} changed in recent years?`,
-      `What advice would you give someone about ${topic.title}?`,
-      `What challenges do people face with ${topic.title}?`,
-      `How does ${topic.title} differ in various cultures?`,
-      `What role does ${topic.title} play in your community?`,
-      `How do you see ${topic.title} evolving in the future?`,
-      `What are the benefits of ${topic.title}?`,
-      `What problems can ${topic.title} cause?`,
-      `How did you first learn about ${topic.title}?`,
-      `What would happen if there was no ${topic.title}?`,
-      `How do different generations view ${topic.title}?`,
-      `What's your favorite thing about ${topic.title}?`,
-      `What's the most difficult aspect of ${topic.title}?`,
-      `How would you explain ${topic.title} to a child?`,
-      `What misconceptions do people have about ${topic.title}?`,
-      `How has technology affected ${topic.title}?`,
-      `What trends do you notice in ${topic.title}?`,
-      `How does ${topic.title} impact the environment?`,
-      `What skills are needed for ${topic.title}?`,
-      `How do you stay updated about ${topic.title}?`,
-      `What would you change about ${topic.title} if you could?`
-    ];
+  }>> => {
+    console.log('🤖 Using Gemini API fallback for question generation');
 
-    return baseQuestions.slice(0, 20).map((question, index) => ({
-      question_text: question,
-      difficulty_level: student.level,
-      question_order: index + 1
-    }));
+    try {
+      // Create topic-specific prompt for better contextual questions
+      const createTopicSpecificPrompt = (topicTitle: string, student: any): string => {
+        const topicLower = topicTitle.toLowerCase();
+        const studentName = student.name;
+        const level = student.level.toUpperCase();
+
+        const baseRequirements = `
+Student: ${studentName} (${level} level ${student.target_language})
+Generate 15-18 unique, contextual discussion questions.
+
+CRITICAL REQUIREMENTS:
+- Each question must be completely different in structure and approach
+- NO formulaic patterns like "Tell me about a time when..." repeated
+- NO generic question starters across multiple questions
+- Make each question feel like it comes from a different conversation
+- Use ${studentName}'s name naturally in questions
+- Focus on specific, concrete scenarios rather than abstract concepts
+
+Format: JSON array only:
+[{"question_text": "...", "difficulty_level": "${student.level}", "question_order": 1}]
+`;
+
+        if (topicLower.includes('food') || topicLower.includes('cooking') || topicLower.includes('restaurant')) {
+          return `${baseRequirements}
+
+FOOD & COOKING - Create questions exploring specific cooking disasters, sensory memories, cultural food traditions, restaurant experiences, emotional connections to dishes, food-related travel memories, and cooking skills.
+
+Example variety (use different structures):
+- "What's the worst cooking disaster you've ever had, ${studentName}?"
+- "If you could smell one food cooking right now, what would instantly make you hungry?"
+- "Which dish from your childhood could your mother/grandmother make that no restaurant has ever matched?"
+- "Have you ever tried to recreate a dish you had while traveling? How did it go?"
+
+Make each question completely unique in structure and focus.`;
+        }
+
+        if (topicLower.includes('travel') || topicLower.includes('vacation') || topicLower.includes('trip')) {
+          return `${baseRequirements}
+
+TRAVEL & ADVENTURE - Create questions about specific travel mishaps, cultural shock moments, transportation experiences, meeting locals, language barriers, and travel planning vs spontaneous adventures.
+
+Example variety:
+- "What's the most embarrassing thing that happened to you while traveling, ${studentName}?"
+- "Have you ever missed a flight or train? What happened next?"
+- "Which local person you met while traveling left the biggest impression on you?"
+
+Each question should explore different aspects with unique phrasing.`;
+        }
+
+        if (topicLower.includes('technology') || topicLower.includes('social media') || topicLower.includes('internet')) {
+          return `${baseRequirements}
+
+TECHNOLOGY & DIGITAL LIFE - Create questions about specific tech failures, social media habits, smartphone addiction, online shopping, video calls, apps that changed their life, and tech generational differences.
+
+Example variety:
+- "What's the most frustrating tech problem you've ever dealt with, ${studentName}?"
+- "Have you ever posted something online that you immediately regretted?"
+- "Which app on your phone would be hardest to give up for a month?"
+
+Focus on specific scenarios and personal tech experiences.`;
+        }
+
+        // Generic but contextual for other topics
+        return `${baseRequirements}
+
+TOPIC: ${topicTitle} - Create questions exploring personal experiences, emotional connections, practical challenges, cultural differences, future aspirations, specific scenarios, problem-solving, and relationships.
+
+Example variety:
+- "What's something about ${topicTitle} that completely surprised you, ${studentName}?"
+- "Have you ever had to make a difficult decision related to ${topicTitle}?"
+- "What's the biggest misconception people have about ${topicTitle}?"
+
+Make each question explore different angles with unique structures.`;
+      };
+
+      // Call Gemini API directly with topic-specific prompt
+      const topicSpecificPrompt = createTopicSpecificPrompt(topic.title, student);
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: topicSpecificPrompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.9,
+            topK: 50,
+            topP: 0.95,
+            maxOutputTokens: 3000,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!generatedText) {
+        throw new Error('No content generated by Gemini API');
+      }
+
+      // Extract JSON from the response
+      const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        throw new Error('No valid JSON found in Gemini response');
+      }
+
+      const questions = JSON.parse(jsonMatch[0]);
+
+      // Validate and format questions
+      if (!Array.isArray(questions) || questions.length === 0) {
+        throw new Error('Invalid questions format from Gemini API');
+      }
+
+      console.log(`✅ Generated ${questions.length} questions using Gemini API fallback`);
+      return questions.map((q, index) => ({
+        question_text: q.question_text || q.question || '',
+        difficulty_level: student.level,
+        question_order: index + 1
+      }));
+
+    } catch (error) {
+      console.error('❌ Gemini API fallback failed:', error);
+
+      // Ultimate fallback - return a few high-quality hardcoded questions
+      console.log('🔄 Using emergency hardcoded questions');
+      const emergencyQuestions = [
+        `${student.name}, tell me about a personal experience with ${topic.title} that was meaningful to you.`,
+        `Describe a time when ${topic.title} surprised you or changed your perspective.`,
+        `What's the most interesting thing you've learned about ${topic.title} recently?`,
+        `How does ${topic.title} connect to your daily life or personal goals?`,
+        `Share a story about ${topic.title} that you think others would find interesting.`,
+        `What questions do you have about ${topic.title} that you'd like to explore?`,
+        `Describe how ${topic.title} is different in your culture compared to others.`,
+        `What advice would you give someone who is new to ${topic.title}?`,
+        `Tell me about a challenge you've faced related to ${topic.title}.`,
+        `What's something about ${topic.title} that most people don't know?`
+      ];
+
+      return emergencyQuestions.map((question, index) => ({
+        question_text: question,
+        difficulty_level: student.level,
+        question_order: index + 1
+      }));
+    }
   };
 
 
 
   const handleFlashcardClose = () => {
-    setState(prev => ({ 
-      ...prev, 
-      isFlashcardOpen: false, 
-      selectedTopic: null, 
-      questions: [] 
+    setState(prev => ({
+      ...prev,
+      isFlashcardOpen: false,
+      selectedTopic: null,
+      questions: []
     }));
   };
 
   const handleRetry = () => {
-    setState(prev => ({ 
-      ...prev, 
-      error: null, 
+    setState(prev => ({
+      ...prev,
+      error: null,
       errorType: null,
       generationProgressPercent: 0
     }));
@@ -569,7 +798,7 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
         return <NetworkErrorFallback {...errorProps} />;
       case 'ai-generation':
         return (
-          <AIGenerationErrorFallback 
+          <AIGenerationErrorFallback
             {...errorProps}
             topicTitle={state.selectedTopic?.title}
             error={state.error}
@@ -638,7 +867,7 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
         <CardContent>
           <ErrorBoundary
             fallback={
-              <GenericErrorFallback 
+              <GenericErrorFallback
                 onRetry={() => window.location.reload()}
               />
             }
@@ -662,7 +891,7 @@ const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }:
       {/* Flashcard Interface */}
       <ErrorBoundary
         fallback={
-          <GenericErrorFallback 
+          <GenericErrorFallback
             onRetry={handleFlashcardClose}
             onReset={handleFlashcardClose}
           />
