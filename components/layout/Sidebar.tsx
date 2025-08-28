@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { NavItem } from "@/types";
+
 import { navItems } from "@/lib/sample-data";
 import { useAuth } from "@/lib/auth-context";
 import { useSidebar } from "@/lib/sidebar-context";
@@ -27,6 +27,7 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { sidebarCollapsed, setSidebarCollapsed, isMobile } = useSidebar();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showAttentionAnimation, setShowAttentionAnimation] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -46,6 +47,8 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
 
     checkAdminStatus();
   }, [user]);
+
+
 
   const toggleSidebar = () => {
     const newCollapsed = !sidebarCollapsed;
@@ -75,11 +78,11 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
   };
 
   // Check if we're currently viewing a student profile
-  const isStudentProfileActive = () => {
+  const isStudentProfileActive = useCallback(() => {
     // Only show when viewing a specific student profile (e.g., /students/123)
     // Hide when on student list (/students or /students/)
     return pathname.match(/^\/students\/[^\/]+/) && !pathname.match(/^\/students\/?$/);
-  };
+  }, [pathname]);
 
   // Student-specific navigation items
   const studentNavItems = [
@@ -94,6 +97,31 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
       icon: 'BookOpen'
     }
   ];
+
+  // Show attention animation automatically when viewing a student profile
+  useEffect(() => {
+    const isCurrentlyActive = !!isStudentProfileActive();
+    
+    if (isCurrentlyActive) {
+      // Small delay to ensure sidebar items are rendered before starting animation
+      const startTimer = setTimeout(() => {
+        setShowAttentionAnimation(true);
+      }, 500); // 500ms delay to ensure items are visible
+      
+      // Timer for attention animation - disappears after 30 seconds
+      const endTimer = setTimeout(() => {
+        setShowAttentionAnimation(false);
+      }, 30500); // 30 seconds + 500ms delay
+
+      return () => {
+        clearTimeout(startTimer);
+        clearTimeout(endTimer);
+      };
+    } else {
+      // Reset animation when leaving student profile
+      setShowAttentionAnimation(false);
+    }
+  }, [isStudentProfileActive, pathname]);
 
   return (
     <aside 
@@ -177,10 +205,27 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
                         className={cn(
                           "nav-item group relative overflow-hidden ml-4",
                           isTabActive ? "nav-item-active" : "nav-item-inactive",
-                          sidebarCollapsed ? "justify-center ml-0" : "justify-start"
+                          sidebarCollapsed ? "justify-center ml-0" : "justify-start",
+
                         )}
-                        style={{ animationDelay: `${(index + 2) * 0.1}s` }}
+                        style={{ 
+                          animationDelay: `${(index + 2) * 0.1}s`,
+                          ...(showAttentionAnimation && {
+                            animationDelay: `${index * 0.5}s`
+                          })
+                        }}
                       >
+                        {/* Subtle border animation for attention */}
+                        {showAttentionAnimation && (
+                          <div 
+                            className="absolute inset-0 rounded-lg pointer-events-none animate-border-glow"
+                            style={{ 
+                              animationDelay: `${index * 0.5}s`,
+                              zIndex: 0
+                            }}
+                          />
+                        )}
+                        
                         {isTabActive && (
                           <>
                             <div className="absolute inset-0 bg-gradient-to-r from-cyber-400/10 to-neon-400/10 animate-pulse"></div>
@@ -248,6 +293,8 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
             </TooltipProvider>
           </nav>
         </div>
+
+
 
         {/* Collapse Button */}
         <div className="border-t border-cyber-400/20 p-4">

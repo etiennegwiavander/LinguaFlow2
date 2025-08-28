@@ -12,6 +12,7 @@ import {
   GraduationCap,
   Languages as LanguagesIcon,
   Loader2,
+  MessageSquare,
   Sparkles,
   Target,
   RefreshCw,
@@ -67,7 +68,8 @@ import StudentForm from "@/components/students/StudentForm";
 import LessonMaterialDisplay from "@/components/lessons/LessonMaterialDisplay";
 import SubTopicSelectionDialog from "@/components/students/SubTopicSelectionDialog";
 import EditImprovementAreasDialog from "@/components/students/EditImprovementAreasDialog";
-
+import DiscussionTopicsTab from "@/components/students/DiscussionTopicsTab";
+import VocabularyFlashcardsTab from "@/components/students/VocabularyFlashcardsTab";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { ProgressContext } from "@/lib/progress-context";
@@ -699,7 +701,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
         </div>
 
         {/* Tabbed Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
 
           <TabsList className="sticky top-16 z-40 grid w-full grid-cols-4 glass-effect border-cyber-400/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
             <TabsTrigger value="ai-architect" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
@@ -712,6 +714,16 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
               <span className="hidden sm:inline">Lesson Material</span>
               <span className="sm:hidden">Material</span>
             </TabsTrigger>
+            {/* <TabsTrigger value="discussion-topics" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Discussion Topics</span>
+              <span className="sm:hidden">Topics</span>
+            </TabsTrigger>
+            <TabsTrigger value="vocabulary-flashcards" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Vocabulary Flashcards</span>
+              <span className="sm:hidden">Vocab</span>
+            </TabsTrigger> */}
             <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-cyber-400/20">
               <History className="h-4 w-4" />
               <span className="hidden sm:inline">Lesson History</span>
@@ -1266,7 +1278,15 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
             </Card>
           </TabsContent>
 
+          {/* Discussion Topics Tab */}
+          <TabsContent value="discussion-topics" className="space-y-6 animate-scale-in">
+            <DiscussionTopicsTab student={student} />
+          </TabsContent>
 
+          {/* Vocabulary Flashcards Tab */}
+          <TabsContent value="vocabulary-flashcards" className="space-y-6 animate-scale-in">
+            <VocabularyFlashcardsTab student={student} />
+          </TabsContent>
 
           {/* Lesson History Tab */}
           <TabsContent value="history" className="space-y-6 animate-scale-in">
