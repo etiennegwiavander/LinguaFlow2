@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Student, DiscussionTopic, Question } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, MessageSquare, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import TopicsList from "./TopicsList";
 import { FlashcardInterface } from "./FlashcardInterface";
 import { toast } from "sonner";
@@ -16,34 +14,16 @@ import {
   NetworkErrorFallback,
   GenericErrorFallback
 } from "./ErrorFallbacks";
-import {
-  DiscussionTopicsTabSkeleton,
-  QuestionGenerationSkeleton,
-  ProgressBar
-} from "./SkeletonLoaders";
+import { DiscussionTopicsTabSkeleton } from "./SkeletonLoaders";
 import { AIGenerationLoading } from "./LoadingStates";
 
 import {
-  getQuestionsByTopicId,
   checkQuestionsExistWithCount,
   getQuestionsWithMetadata,
-  storeAIGeneratedQuestions,
-  forceRegenerateQuestions
+  storeAIGeneratedQuestions
 } from "@/lib/discussion-questions-db";
-import {
-  getQuestionsCache,
-  setQuestionsCache,
-  shouldRefreshQuestions,
-  updateTopicMetadata,
-  clearExpiredEntries,
-  forceRefreshQuestions
-} from "@/lib/discussion-cache";
-import {
-  startTimer,
-  endTimer,
-  trackComponentRender,
-  usePerformanceTracking
-} from "@/lib/performance-monitor";
+import { clearExpiredEntries } from "@/lib/discussion-cache";
+import { usePerformanceTracking } from "@/lib/performance-monitor";
 import { useSidebar } from "@/lib/sidebar-context";
 
 interface DiscussionTopicsTabProps {

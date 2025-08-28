@@ -364,6 +364,51 @@
   @apply bg-transparent;
 }
 
+/* Lesson content dark mode fixes */
+@layer components {
+  /* Ensure all lesson content is visible in dark mode */
+  .lesson-content {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+  
+  .lesson-content p {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+  
+  .lesson-content li {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+  
+  .lesson-content div {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+  
+  .lesson-content span {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+  
+  /* Override any inherited dark text colors in lesson sections */
+  .lesson-section-content {
+    @apply text-gray-700 dark:text-gray-300 !important;
+  }
+  
+  .lesson-section-content * {
+    @apply text-gray-700 dark:text-gray-300 !important;
+  }
+  
+  /* Specific fixes for info cards and content sections */
+  .info-card-content {
+    @apply text-gray-700 dark:text-gray-300 !important;
+  }
+  
+  .info-card-content p,
+  .info-card-content li,
+  .info-card-content div,
+  .info-card-content span {
+    @apply text-gray-700 dark:text-gray-300 !important;
+  }
+}
+
 /* Enhanced animations */
 @keyframes shimmer {
   0% { background-position: -200% 0; }

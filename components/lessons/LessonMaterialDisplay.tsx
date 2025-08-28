@@ -427,13 +427,13 @@ const generateFallbackContent = (section: TemplateSection, level: string): React
     if (levelLower === 'a1' || levelLower === 'a2') {
       return (
         <div className="space-y-3">
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             Welcome to this lesson! Today we will learn new words and practice speaking.
           </p>
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             This lesson will help you understand important language concepts step by step.
           </p>
-          <ul className="list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
             <li>Learn new vocabulary words</li>
             <li>Practice pronunciation</li>
             <li>Use words in sentences</li>
@@ -444,13 +444,13 @@ const generateFallbackContent = (section: TemplateSection, level: string): React
     } else if (levelLower === 'b1' || levelLower === 'b2') {
       return (
         <div className="space-y-3">
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             This lesson focuses on expanding your language skills through practical exercises and real-world applications.
           </p>
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             You&apos;ll develop confidence in using new vocabulary and grammar structures in meaningful contexts.
           </p>
-          <ul className="list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
             <li>Master advanced vocabulary and expressions</li>
             <li>Apply grammar rules in complex sentences</li>
             <li>Engage in interactive communication exercises</li>
@@ -461,13 +461,13 @@ const generateFallbackContent = (section: TemplateSection, level: string): React
     } else {
       return (
         <div className="space-y-3">
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             This advanced lesson explores sophisticated language concepts and their practical applications in professional and academic contexts.
           </p>
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             Through comprehensive analysis and practice, you&apos;ll refine your linguistic competence and develop nuanced communication skills.
           </p>
-          <ul className="list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
             <li>Analyze complex linguistic structures and their usage</li>
             <li>Master sophisticated vocabulary and idiomatic expressions</li>
             <li>Develop advanced communication strategies</li>
@@ -480,19 +480,19 @@ const generateFallbackContent = (section: TemplateSection, level: string): React
     if (levelLower === 'a1' || levelLower === 'a2') {
       return (
         <div className="space-y-3">
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             Great job! You have learned many new things in this lesson.
           </p>
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             Let&apos;s think about what we learned today:
           </p>
-          <ul className="list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
             <li>What new words did you learn?</li>
             <li>Which exercises were easy for you?</li>
             <li>Which parts need more practice?</li>
             <li>How will you use these words tomorrow?</li>
           </ul>
-          <p className="text-sm leading-relaxed font-medium">
+          <p className="text-sm leading-relaxed font-medium text-gray-700 dark:text-gray-300">
             Keep practicing these new words every day!
           </p>
         </div>
@@ -500,19 +500,19 @@ const generateFallbackContent = (section: TemplateSection, level: string): React
     } else if (levelLower === 'b1' || levelLower === 'b2') {
       return (
         <div className="space-y-3">
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             Congratulations on completing this lesson! Take a moment to reflect on your learning journey.
           </p>
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             Consider these reflection questions:
           </p>
-          <ul className="list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
             <li>How confident do you feel using the new vocabulary in conversation?</li>
             <li>Which grammar concepts require additional practice?</li>
             <li>What strategies helped you understand difficult concepts?</li>
             <li>How can you apply these skills in real-world situations?</li>
           </ul>
-          <p className="text-sm leading-relaxed font-medium">
+          <p className="text-sm leading-relaxed font-medium text-gray-700 dark:text-gray-300">
             Continue practicing to build fluency and confidence in your language skills.
           </p>
         </div>
@@ -520,19 +520,19 @@ const generateFallbackContent = (section: TemplateSection, level: string): React
     } else {
       return (
         <div className="space-y-3">
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             This lesson has provided comprehensive coverage of advanced linguistic concepts. Reflect on your analytical and practical engagement with the material.
           </p>
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             Critical reflection points:
           </p>
-          <ul className="list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
             <li>How effectively can you apply these concepts in professional discourse?</li>
             <li>What connections do you see between these concepts and broader linguistic patterns?</li>
             <li>Which aspects of the material challenge your current understanding?</li>
             <li>How might these skills enhance your academic or professional communication?</li>
           </ul>
-          <p className="text-sm leading-relaxed font-medium">
+          <p className="text-sm leading-relaxed font-medium text-gray-700 dark:text-gray-300">
             Continue to engage with complex materials to further develop your sophisticated language competence.
           </p>
         </div>
@@ -543,10 +543,10 @@ const generateFallbackContent = (section: TemplateSection, level: string): React
     if (levelLower === 'a1' || levelLower === 'a2') {
       return (
         <div className="space-y-3">
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             This section will help you learn and practice important language skills.
           </p>
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             Follow the instructions and take your time to understand each part.
           </p>
         </div>
@@ -554,10 +554,10 @@ const generateFallbackContent = (section: TemplateSection, level: string): React
     } else if (levelLower === 'b1' || levelLower === 'b2') {
       return (
         <div className="space-y-3">
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             This section provides structured practice opportunities to develop your language proficiency.
           </p>
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             Engage actively with the material to maximize your learning outcomes.
           </p>
         </div>
@@ -565,10 +565,10 @@ const generateFallbackContent = (section: TemplateSection, level: string): React
     } else {
       return (
         <div className="space-y-3">
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             This section presents advanced concepts designed to enhance your linguistic competence and analytical skills.
           </p>
-          <p className="text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             Apply critical thinking and draw connections to broader linguistic principles.
           </p>
         </div>
@@ -1262,8 +1262,8 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     if (!section || typeof section !== 'object') {
       console.warn('Invalid section object:', section);
       return (
-        <div key="invalid-section" className="p-4 border border-red-200 rounded-lg bg-red-50">
-          <p className="text-red-600">Invalid section data</p>
+        <div key="invalid-section" className="p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20">
+          <p className="text-red-600 dark:text-red-400">Invalid section data</p>
         </div>
       );
     }
@@ -1313,10 +1313,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
               {/* Check if we have content as a string */}
               {cardContent ? (
                 <div
-                  className="prose max-w-none"
+                  className="prose max-w-none info-card-content"
                   onDoubleClick={handleTextDoubleClick}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-700 dark:text-gray-300">
                     {cardContent}
                   </p>
                 </div>
@@ -1325,13 +1325,13 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   {objectives.map((item, index) => (
                     <li key={index} className="flex items-start">
                       <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                      <span onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
+                      <span className="text-gray-700 dark:text-gray-300" onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="prose max-w-none">
-                  <div onDoubleClick={handleTextDoubleClick}>
+                <div className="prose max-w-none info-card-content">
+                  <div className="lesson-section-content" onDoubleClick={handleTextDoubleClick}>
                     {generateFallbackContent(section, lesson?.student?.level || 'intermediate')}
                   </div>
                 </div>
@@ -1351,7 +1351,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
                   <p
-                    className="text-sm font-medium"
+                    className="text-sm font-medium text-gray-900 dark:text-gray-900"
                     onDoubleClick={handleTextDoubleClick}
                   >
                     {safeGetString(section, 'instruction', '')}
@@ -1382,13 +1382,13 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   {objectiveItems.map((item, index) => (
                     <li key={index} className="flex items-start">
                       <Target className="w-4 h-4 mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
-                      <span onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
+                      <span className="text-gray-700 dark:text-gray-300" onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="prose max-w-none">
-                  <div onDoubleClick={handleTextDoubleClick}>
+                <div className="prose max-w-none lesson-content">
+                  <div className="lesson-section-content" onDoubleClick={handleTextDoubleClick}>
                     {generateFallbackContent(section, lesson?.student?.level || 'intermediate')}
                   </div>
                 </div>
@@ -1424,7 +1424,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   {activityItems.map((item, index) => (
                     <li key={index} className="flex items-start">
                       <ArrowRight className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                      <span onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
+                      <span className="text-gray-700 dark:text-gray-300" onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
                     </li>
                   ))}
                 </ul>
@@ -1456,7 +1456,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   {materialItems.map((item, index) => (
                     <li key={index} className="flex items-start">
                       <PenTool className="w-4 h-4 mr-2 mt-0.5 text-purple-500 flex-shrink-0" />
-                      <span onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
+                      <span className="text-gray-700 dark:text-gray-300" onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
                     </li>
                   ))}
                 </ul>
@@ -1488,7 +1488,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   {assessmentItems.map((item, index) => (
                     <li key={index} className="flex items-start">
                       <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-orange-500 flex-shrink-0" />
-                      <span onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
+                      <span className="text-gray-700 dark:text-gray-300" onDoubleClick={handleTextDoubleClick}>{safeStringify(item)}</span>
                     </li>
                   ))}
                 </ul>
@@ -1549,7 +1549,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   onDoubleClick={handleTextDoubleClick}
                 >
                   <span
-                    className="font-medium"
+                    className="font-medium text-gray-700 dark:text-gray-300"
                     dangerouslySetInnerHTML={{ __html: processedContent }}
                   />
                 </div>
@@ -1634,7 +1634,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         return (
           <div className="prose max-w-none">
             <div
-              className="whitespace-pre-wrap text-sm leading-relaxed"
+              className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300"
               onDoubleClick={handleTextDoubleClick}
             >
               {textContent}
@@ -2338,7 +2338,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <BookOpen className="w-8 h-8 text-red-600" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">Failed to Load Lesson</h3>
+          <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Failed to Load Lesson</h3>
           <p className="text-muted-foreground mb-4">{error}</p>
           <Button
             onClick={() => window.location.reload()}
@@ -2358,7 +2358,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <BookOpen className="w-8 h-8 text-gray-600" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">Lesson Not Found</h3>
+          <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Lesson Not Found</h3>
           <p className="text-muted-foreground">The requested lesson could not be found.</p>
         </div>
       </div>
@@ -2375,7 +2375,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <BookOpen className="w-8 h-8 text-red-600" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Invalid Template Structure</h3>
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Invalid Template Structure</h3>
             <p className="text-muted-foreground">The lesson template has an invalid structure.</p>
           </div>
         </div>
@@ -2523,7 +2523,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h4 className="font-semibold mb-3 flex items-center">
+                  <h4 className="font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
                     <Target className="w-4 h-4 mr-2 text-blue-600" />
                     Objectives
                   </h4>
@@ -2531,7 +2531,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
                     {Array.isArray(lessonPlan.objectives) && lessonPlan.objectives.map((objective, objIndex) => (
                       <li key={objIndex} className="flex items-start">
                         <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                        <span onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
+                        <span className="text-gray-700 dark:text-gray-300" onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
                           {safeStringify(objective)}
                         </span>
                       </li>
@@ -2542,7 +2542,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
                 <Separator className="bg-cyber-400/20" />
 
                 <div>
-                  <h4 className="font-semibold mb-3 flex items-center">
+                  <h4 className="font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
                     <Users className="w-4 h-4 mr-2 text-purple-600" />
                     Activities
                   </h4>
@@ -2550,7 +2550,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
                     {Array.isArray(lessonPlan.activities) && lessonPlan.activities.map((activity, actIndex) => (
                       <li key={actIndex} className="flex items-start">
                         <ArrowRight className="w-4 h-4 mr-2 mt-0.5 text-purple-500 flex-shrink-0" />
-                        <span onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
+                        <span className="text-gray-700 dark:text-gray-300" onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
                           {safeStringify(activity)}
                         </span>
                       </li>
@@ -2562,7 +2562,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-semibold mb-3 flex items-center">
+                    <h4 className="font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
                       <BookOpen className="w-4 h-4 mr-2 text-green-600" />
                       Materials
                     </h4>
@@ -2570,7 +2570,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
                       {Array.isArray(lessonPlan.materials) && lessonPlan.materials.map((material, matIndex) => (
                         <li key={matIndex} className="flex items-start">
                           <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          <span onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
+                          <span className="text-gray-700 dark:text-gray-300" onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
                             {safeStringify(material)}
                           </span>
                         </li>
@@ -2579,7 +2579,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
                   </div>
 
                   <div>
-                    <h4 className="font-semibold mb-3 flex items-center">
+                    <h4 className="font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
                       <CheckCircle2 className="w-4 h-4 mr-2 text-orange-600" />
                       Assessment
                     </h4>
@@ -2587,7 +2587,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
                       {Array.isArray(lessonPlan.assessment) && lessonPlan.assessment.map((item, assIndex) => (
                         <li key={assIndex} className="flex items-start">
                           <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          <span onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
+                          <span className="text-gray-700 dark:text-gray-300" onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}>
                             {safeStringify(item)}
                           </span>
                         </li>
@@ -2667,7 +2667,7 @@ Apply these concepts in academic writing, professional presentations, and sophis
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <BookOpen className="w-8 h-8 text-gray-600" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">No Lesson Content</h3>
+          <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">No Lesson Content</h3>
           <p className="text-muted-foreground">
             This lesson doesn&apos;t have any generated content yet. Generate lesson plans first, then use &quot;Use This Plan&quot; to create interactive material.
           </p>

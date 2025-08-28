@@ -779,14 +779,39 @@ function SharedLessonPage() {
 
       case 'vocabulary_matching':
       case 'vocabulary': {
-        const vocabularyItems = safeGetArray(section, 'vocabulary_items').map((item: any) => ({
-          word: safeGetString(item, 'word', 'Unknown word'),
-          partOfSpeech: safeGetString(item, 'part_of_speech', 'noun'),
-          phonetic: safeGetString(item, 'phonetic', ''),
-          definition: safeGetString(item, 'definition', 'No definition available'),
-          examples: safeGetArray(item, 'examples'),
-          level: sharedLesson?.lesson?.student?.level || 'intermediate'
-        }));
+        const vocabularyItems = safeGetArray(section, 'vocabulary_items').map((item: any) => {
+          // Extract word using the same logic as tutor's lesson material
+          const word = safeStringify(item.word || item.name || 'Unknown word');
+          const definition = safeStringify(item.definition || item.prompt || item.meaning || 'No definition available');
+          
+          // Extract part of speech with fallbacks
+          let partOfSpeech = 'noun'; // default
+          if (item.part_of_speech || item.partOfSpeech || item.pos) {
+            partOfSpeech = safeStringify(item.part_of_speech || item.partOfSpeech || item.pos).toLowerCase();
+          }
+          
+          // Extract phonetic with fallbacks
+          let phonetic = item.phonetic || item.pronunciation || item.ipa || '';
+          
+          // Extract examples with multiple fallback properties
+          let examples: string[] = [];
+          if (item.examples && Array.isArray(item.examples)) {
+            examples = item.examples.map((ex: any) => safeStringify(ex));
+          } else if (item.example_sentences && Array.isArray(item.example_sentences)) {
+            examples = item.example_sentences.map((ex: any) => safeStringify(ex));
+          } else if (item.sentences && Array.isArray(item.sentences)) {
+            examples = item.sentences.map((ex: any) => safeStringify(ex));
+          }
+          
+          return {
+            word,
+            partOfSpeech,
+            phonetic,
+            definition,
+            examples,
+            level: sharedLesson?.lesson?.student?.level || 'intermediate'
+          };
+        });
 
         if (vocabularyItems.length === 0) {
           return (
@@ -1018,7 +1043,7 @@ function SharedLessonPage() {
             <CardContent>
               {cardContent ? (
                 <div className="prose max-w-none">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-700 dark:text-gray-300">
                     {cardContent}
                   </p>
                 </div>
@@ -1027,7 +1052,7 @@ function SharedLessonPage() {
                   {objectives.map((item, index) => (
                     <li key={index} className="flex items-start">
                       <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                      <span>{safeStringify(item)}</span>
+                      <span className="text-gray-700 dark:text-gray-300">{safeStringify(item)}</span>
                     </li>
                   ))}
                 </ul>
@@ -1050,7 +1075,7 @@ function SharedLessonPage() {
               </CardTitle>
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-900">
                     {safeGetString(section, 'instruction', '')}
                   </p>
                 </div>
@@ -1084,7 +1109,7 @@ function SharedLessonPage() {
               )}
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-900">
                     {safeGetString(section, 'instruction', '')}
                   </p>
                 </div>
@@ -1113,7 +1138,7 @@ function SharedLessonPage() {
               )}
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-900">
                     {safeGetString(section, 'instruction', '')}
                   </p>
                 </div>
@@ -1197,7 +1222,7 @@ function SharedLessonPage() {
               )}
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-900">
                     {safeGetString(section, 'instruction', '')}
                   </p>
                 </div>
@@ -1259,7 +1284,7 @@ function SharedLessonPage() {
               )}
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-900">
                     {safeGetString(section, 'instruction', '')}
                   </p>
                 </div>
@@ -1268,7 +1293,7 @@ function SharedLessonPage() {
             <CardContent>
               {section.content && (
                 <div className="prose max-w-none mb-4">
-                  <p className="leading-relaxed">{section.content}</p>
+                  <p className="leading-relaxed text-gray-700 dark:text-gray-300">{section.content}</p>
                 </div>
               )}
               {section.items && section.items.length > 0 && (
@@ -1276,7 +1301,7 @@ function SharedLessonPage() {
                   {section.items.map((item: string, index: number) => (
                     <li key={index} className="flex items-start">
                       <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                      <span>{item}</span>
+                      <span className="text-gray-700 dark:text-gray-300">{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -1295,7 +1320,7 @@ function SharedLessonPage() {
               </CardTitle>
               {section.instruction && (
                 <div className={`p-3 rounded-lg ${getBgColor(section.instruction_bg_color_var)}`}>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-900">
                     {safeGetString(section, 'instruction', '')}
                   </p>
                 </div>
@@ -1337,7 +1362,7 @@ function SharedLessonPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading shared lesson...</p>
@@ -1348,12 +1373,12 @@ function SharedLessonPage() {
 
   if (error || isExpired) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <Card className="max-w-md mx-auto">
           <CardContent className="pt-6">
             <div className="text-center">
               <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">
+              <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">
                 {isExpired ? 'Link Expired' : 'Error'}
               </h2>
               <p className="text-muted-foreground mb-4">
@@ -1371,12 +1396,12 @@ function SharedLessonPage() {
 
   if (!sharedLesson) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <Card className="max-w-md mx-auto">
           <CardContent className="pt-6">
             <div className="text-center">
               <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Lesson Not Found</h2>
+              <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Lesson Not Found</h2>
               <p className="text-muted-foreground">
                 The requested lesson could not be found.
               </p>
@@ -1388,7 +1413,7 @@ function SharedLessonPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
@@ -1447,46 +1472,46 @@ function SharedLessonPage() {
               <CardContent>
                 {lessonContent.type === 'text' ? (
                   <div className="prose max-w-none">
-                    <p className="text-lg">{lessonContent.content}</p>
+                    <p className="text-lg text-gray-700 dark:text-gray-300">{lessonContent.content}</p>
                   </div>
                 ) : lessonContent.type === 'fallback' ? (
                   <div className="prose max-w-none">
                     <div className="text-center py-8">
                       <BookOpen className="w-12 h-12 mx-auto mb-4 text-amber-500" />
-                      <h3 className="text-lg font-semibold mb-2">Lesson Available</h3>
+                      <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Lesson Available</h3>
                       <p className="text-muted-foreground">{lessonContent.content}</p>
                     </div>
                   </div>
                 ) : lessonContent.type === 'generated' ? (
                   <div className="prose max-w-none">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">{lessonContent.title}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{lessonContent.title}</h3>
                       {lessonContent.content.objectives && (
                         <div>
-                          <h4 className="font-medium mb-2">Objectives:</h4>
+                          <h4 className="font-medium mb-2 text-gray-900 dark:text-gray-100">Objectives:</h4>
                           <ul className="list-disc list-inside space-y-1">
                             {lessonContent.content.objectives.map((obj: string, index: number) => (
-                              <li key={index} className="text-sm">{obj}</li>
+                              <li key={index} className="text-sm text-gray-700 dark:text-gray-300">{obj}</li>
                             ))}
                           </ul>
                         </div>
                       )}
                       {lessonContent.content.activities && (
                         <div>
-                          <h4 className="font-medium mb-2">Activities:</h4>
+                          <h4 className="font-medium mb-2 text-gray-900 dark:text-gray-100">Activities:</h4>
                           <ul className="list-disc list-inside space-y-1">
                             {lessonContent.content.activities.map((activity: string, index: number) => (
-                              <li key={index} className="text-sm">{activity}</li>
+                              <li key={index} className="text-sm text-gray-700 dark:text-gray-300">{activity}</li>
                             ))}
                           </ul>
                         </div>
                       )}
                       {lessonContent.content.materials && (
                         <div>
-                          <h4 className="font-medium mb-2">Materials:</h4>
+                          <h4 className="font-medium mb-2 text-gray-900 dark:text-gray-100">Materials:</h4>
                           <ul className="list-disc list-inside space-y-1">
                             {lessonContent.content.materials.map((material: string, index: number) => (
-                              <li key={index} className="text-sm">{material}</li>
+                              <li key={index} className="text-sm text-gray-700 dark:text-gray-300">{material}</li>
                             ))}
                           </ul>
                         </div>
