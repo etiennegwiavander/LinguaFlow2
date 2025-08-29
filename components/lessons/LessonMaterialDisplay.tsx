@@ -2467,14 +2467,17 @@ Apply these concepts in academic writing, professional presentations, and sophis
                 </Button>
               </div>
             )}
-            <Button
-              size="lg"
-              className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-              onClick={handleExportLesson}
-            >
-              <Download className="w-5 h-5 mr-2" />
-              Export Lesson
-            </Button>
+            {/* Export button temporarily removed */}
+            {/* {false && (
+              <Button
+                size="lg"
+                className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                onClick={handleExportLesson}
+              >
+                <Download className="w-5 h-5 mr-2" />
+                Export Lesson
+              </Button>
+            )} */}
           </div>
 
           {/* Translation Popup */}
@@ -2652,14 +2655,17 @@ Apply these concepts in academic writing, professional presentations, and sophis
                 </Button>
               </div>
             )}
-            <Button
-              size="lg"
-              className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
-              onClick={handleExportLesson}
-            >
-              <FileText className="w-5 h-5 mr-2" />
-              Export Lesson
-            </Button>
+            {/* Export button temporarily hidden */}
+            {/* {false && (
+              <Button
+                size="lg"
+                className="px-8 bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+                onClick={handleExportLesson}
+              >
+                <FileText className="w-5 h-5 mr-2" />
+                Export Lesson
+              </Button>
+            )} */}
           </div>
         </div>
       ) : (
