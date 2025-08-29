@@ -73,28 +73,34 @@ function ResetPasswordContent() {
       tokenHash = tokenHash || hashParams.get('token_hash');
     }
     
-    // Debug: Log all URL parameters
-    console.log('Reset password URL params:', {
-      accessToken: accessToken ? 'present' : 'missing',
-      refreshToken: refreshToken ? 'present' : 'missing',
-      tokenHash: tokenHash ? 'present' : 'missing',
-      type,
-      error,
-      errorDescription,
-      hash: typeof window !== 'undefined' ? window.location.hash : 'N/A',
-      allParams: Object.fromEntries(searchParams.entries())
-    });
+    // Debug: Log URL parameters in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Reset password URL params:', {
+        accessToken: accessToken ? 'present' : 'missing',
+        refreshToken: refreshToken ? 'present' : 'missing',
+        tokenHash: tokenHash ? 'present' : 'missing',
+        type,
+        error,
+        errorDescription,
+        hash: typeof window !== 'undefined' ? window.location.hash : 'N/A',
+        allParams: Object.fromEntries(searchParams.entries())
+      });
+    }
 
     // Check for errors first
     if (error) {
-      console.log('Reset link error:', error, errorDescription);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Reset link error:', error, errorDescription);
+      }
       setIsValidToken(false);
       return;
     }
 
     // Check for password reset tokens - handle both formats
     if ((accessToken && refreshToken) || tokenHash) {
-      console.log('Valid reset tokens found, proceeding...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Valid reset tokens found, proceeding...');
+      }
       if (accessToken && refreshToken) {
         // Standard format
         setResetTokens({ accessToken, refreshToken });
@@ -104,10 +110,12 @@ function ResetPasswordContent() {
       }
       validateResetTokens();
     } else {
-      console.log('Invalid reset link - missing required parameters');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Invalid reset link - missing required parameters');
+      }
       setIsValidToken(false);
     }
-  }, [searchParams, validateResetTokens]);
+  }, [searchParams]);
 
   const validateResetTokens = async () => {
     try {
