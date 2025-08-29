@@ -102,15 +102,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      const path = window.location.pathname;
+      const urlParams = new URLSearchParams(window.location.search);
+      const isPasswordReset = path === '/auth/reset-password' &&
+        (urlParams.has('access_token') || urlParams.has('token_hash'));
+
+      // If this is a password reset flow, don't set user or redirect
+      if (isPasswordReset) {
+        setLoading(false);
+        return;
+      }
+
       setUser(session?.user ?? null);
       setLoading(false);
 
       // Check if we need to redirect
-      const path = window.location.pathname;
       if (session?.user) {
         // User is logged in
-        // Don't redirect if user is on reset password page (they have a temporary session)
-        if ((path.startsWith('/auth/') || path === '/') && path !== '/auth/reset-password') {
+        if (path.startsWith('/auth/') || path === '/') {
           router.replace('/dashboard');
         }
       } else {
@@ -125,18 +134,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentPath = window.location.pathname;
+      const urlParams = new URLSearchParams(window.location.search);
+      const isPasswordReset = currentPath === '/auth/reset-password' &&
+        (urlParams.has('access_token') || urlParams.has('token_hash'));
+
+      // If this is a password reset flow, don't handle auth changes normally
+      if (isPasswordReset) {
+        setLoading(false);
+        return;
+      }
+
       setUser(session?.user ?? null);
       setLoading(false);
 
       // Handle navigation based on auth state
       if (session?.user) {
-        const currentPath = window.location.pathname;
-        // Don't redirect if user is on reset password page (they have a temporary session)
-        if ((currentPath.startsWith('/auth/') || currentPath === '/') && currentPath !== '/auth/reset-password') {
+        if (currentPath.startsWith('/auth/') || currentPath === '/') {
           router.replace('/dashboard');
         }
       } else {
-        const currentPath = window.location.pathname;
         if (!isUnprotectedRoute(currentPath)) {
           router.replace('/auth/login');
         }

@@ -57,26 +57,63 @@ function ResetPasswordContent() {
   });
 
   useEffect(() => {
-    // Check if we have the required parameters
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
+    // Check if we have the required parameters from URL search params
+    let accessToken = searchParams.get('access_token');
+    let refreshToken = searchParams.get('refresh_token');
+    let tokenHash = searchParams.get('token_hash');
     const type = searchParams.get('type');
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    
+    // Also check URL hash/fragment (Supabase sometimes uses this)
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      accessToken = accessToken || hashParams.get('access_token');
+      refreshToken = refreshToken || hashParams.get('refresh_token');
+      tokenHash = tokenHash || hashParams.get('token_hash');
+    }
+    
+    // Debug: Log all URL parameters
+    console.log('Reset password URL params:', {
+      accessToken: accessToken ? 'present' : 'missing',
+      refreshToken: refreshToken ? 'present' : 'missing',
+      tokenHash: tokenHash ? 'present' : 'missing',
+      type,
+      error,
+      errorDescription,
+      hash: typeof window !== 'undefined' ? window.location.hash : 'N/A',
+      allParams: Object.fromEntries(searchParams.entries())
+    });
 
-    if (type === 'recovery' && accessToken && refreshToken) {
-      // Store tokens for later use
-      setResetTokens({ accessToken, refreshToken });
-      // Validate tokens without setting session
-      validateResetTokens(accessToken, refreshToken);
+    // Check for errors first
+    if (error) {
+      console.log('Reset link error:', error, errorDescription);
+      setIsValidToken(false);
+      return;
+    }
+
+    // Check for password reset tokens - handle both formats
+    if ((accessToken && refreshToken) || tokenHash) {
+      console.log('Valid reset tokens found, proceeding...');
+      if (accessToken && refreshToken) {
+        // Standard format
+        setResetTokens({ accessToken, refreshToken });
+      } else if (tokenHash) {
+        // Token hash format - store as accessToken for compatibility
+        setResetTokens({ accessToken: tokenHash, refreshToken: '' });
+      }
+      validateResetTokens();
     } else {
+      console.log('Invalid reset link - missing required parameters');
       setIsValidToken(false);
     }
-  }, [searchParams]);
+  }, [searchParams, validateResetTokens]);
 
-  const validateResetTokens = async (accessToken: string, refreshToken: string) => {
+  const validateResetTokens = async () => {
     try {
       // Simply validate that we have the required tokens
       // The actual validation will happen when we try to update the password
-      if (accessToken && refreshToken) {
+      if (resetTokens && (resetTokens.accessToken || resetTokens.refreshToken)) {
         setIsValidToken(true);
       } else {
         setIsValidToken(false);
@@ -96,27 +133,52 @@ function ResetPasswordContent() {
 
       const { accessToken, refreshToken } = resetTokens;
 
-      // Temporarily set the session to update password
-      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
+      // Handle different token formats
+      if (refreshToken) {
+        // Standard access/refresh token format
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
 
-      if (sessionError || !sessionData.user) {
-        throw new Error('Invalid or expired reset link');
+        if (sessionError || !sessionData.user) {
+          throw new Error('Invalid or expired reset link');
+        }
+
+        // Update the password
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: values.password
+        });
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        // Immediately sign out to prevent staying logged in
+        await supabase.auth.signOut();
+      } else {
+        // Token hash format - use verifyOtp
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: accessToken,
+          type: 'recovery'
+        });
+
+        if (error || !data.user) {
+          throw new Error('Invalid or expired reset link');
+        }
+
+        // Update the password
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: values.password
+        });
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        // Immediately sign out to prevent staying logged in
+        await supabase.auth.signOut();
       }
-
-      // Update the password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: values.password
-      });
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Immediately sign out to prevent staying logged in
-      await supabase.auth.signOut();
 
       setResetComplete(true);
       toast.success('Password updated successfully');
