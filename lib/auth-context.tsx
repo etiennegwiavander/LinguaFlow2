@@ -16,9 +16,9 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  signIn: async () => {},
-  signUp: async () => {},
-  signOut: async () => {},
+  signIn: async () => { },
+  signUp: async () => { },
+  signOut: async () => { },
 });
 
 const UNPROTECTED_ROUTES = [
@@ -28,6 +28,7 @@ const UNPROTECTED_ROUTES = [
   '/auth/login',
   '/auth/signup',
   '/auth/forgot-password',
+  '/auth/reset-password',
   '/auth/deletion-scheduled',
   '/auth/recover-account',
   '/calendar', // Added to prevent premature redirects during OAuth
@@ -41,12 +42,12 @@ const isUnprotectedRoute = (path: string): boolean => {
   if (UNPROTECTED_ROUTES.includes(path)) {
     return true;
   }
-  
+
   // Check for shared lesson routes (any path starting with /shared-lesson/)
   if (path.startsWith('/shared-lesson/')) {
     return true;
   }
-  
+
   return false;
 };
 
@@ -59,17 +60,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshSessionProactively = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session?.expires_at) {
         const expiresAt = new Date(session.expires_at * 1000);
         const now = new Date();
         const timeUntilExpiry = expiresAt.getTime() - now.getTime();
-        
+
         // If token expires in less than 10 minutes, refresh it
         if (timeUntilExpiry < 10 * 60 * 1000) {
           console.log('Token expires soon, refreshing proactively...');
           const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
-          
+
           if (error) {
             console.error('Proactive refresh failed:', error);
             // Don't throw error here, let normal flow handle it
@@ -89,12 +90,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check session every 5 minutes
     const interval = setInterval(refreshSessionProactively, 5 * 60 * 1000);
-    
+
     // Also check immediately if user is logged in
     if (user) {
       refreshSessionProactively();
     }
-    
+
     return () => clearInterval(interval);
   }, [user, refreshSessionProactively]);
 
@@ -108,7 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const path = window.location.pathname;
       if (session?.user) {
         // User is logged in
-        if (path.startsWith('/auth/') || path === '/') {
+        // Don't redirect if user is on reset password page (they have a temporary session)
+        if ((path.startsWith('/auth/') || path === '/') && path !== '/auth/reset-password') {
           router.replace('/dashboard');
         }
       } else {
@@ -128,7 +130,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Handle navigation based on auth state
       if (session?.user) {
-        if (window.location.pathname.startsWith('/auth/') || window.location.pathname === '/') {
+        const currentPath = window.location.pathname;
+        // Don't redirect if user is on reset password page (they have a temporary session)
+        if ((currentPath.startsWith('/auth/') || currentPath === '/') && currentPath !== '/auth/reset-password') {
           router.replace('/dashboard');
         }
       } else {
@@ -212,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: email,
         is_admin: false,
       };
-      
+
       const { data: tutorData, error: tutorError } = await supabase
         .from('tutors')
         .insert([tutorRecord])
@@ -226,7 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (cleanupError) {
           // Error handling without console.error
         }
-        
+
         throw new Error(`Failed to create tutor profile: ${tutorError.message}`);
       }
 

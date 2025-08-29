@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Languages } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,10 +38,11 @@ const formSchema = z.object({
   rememberMe: z.boolean().default(false),
 });
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
+  const searchParams = useSearchParams();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,6 +52,13 @@ export default function LoginPage() {
       rememberMe: false,
     },
   });
+
+  useEffect(() => {
+    const reset = searchParams?.get('reset');
+    if (reset === 'success') {
+      toast.success('Password reset successful! You can now sign in with your new password.');
+    }
+  }, [searchParams]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -210,5 +219,28 @@ export default function LoginPage() {
         </div>
       </div>
     </LandingLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <LandingLayout>
+        <div className="page-container">
+          <div className="page-background"></div>
+          <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+            <Card className="w-full max-w-md cyber-card">
+              <CardHeader className="space-y-2 text-center">
+                <CardTitle className="text-2xl font-bold">
+                  Loading...
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </LandingLayout>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 }
