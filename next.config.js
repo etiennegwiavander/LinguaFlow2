@@ -11,8 +11,8 @@ const nextConfig = {
   trailingSlash: true,
   // Disable SWC minification to avoid build issues
   swcMinify: false,
-  // Output configuration
-  output: 'standalone',
+  // Output configuration for Netlify
+  // output: 'standalone', // Removed - not compatible with Netlify
   // Basic webpack configuration
   webpack: (config, { isServer }) => {
     // Suppress warnings for dynamic requires

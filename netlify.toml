@@ -5,29 +5,12 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# Next.js specific configuration - re-enabled with minimal config
+# Next.js specific configuration
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[functions]
-  node_bundler = "esbuild"
-
-# Handle Next.js routing - removed problematic catch-all redirect
-[[redirects]]
-  from = "/_next/static/*"
-  to = "/_next/static/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-# Catch-all for Next.js client-side routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Let Next.js handle all routing including API routes
+# No manual redirects needed - the plugin handles everything
 
 [[headers]]
   for = "/*"
