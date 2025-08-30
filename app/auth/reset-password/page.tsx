@@ -77,12 +77,22 @@ function ResetPasswordContent() {
         window.localStorage.setItem('password-reset-active', 'true');
       }
       
-      // Extract tokens from URL immediately
-      const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      // CRITICAL: Extract tokens from stored URL or current URL
+      const storedUrl = window.sessionStorage.getItem('password-reset-url');
+      const currentUrl = storedUrl || window.location.href;
+      
+      // Clear stored URL after retrieving it
+      if (storedUrl) {
+        window.sessionStorage.removeItem('password-reset-url');
+        console.log('🔄 Using stored URL for token extraction');
+      }
+      
+      const url = new URL(currentUrl);
+      const urlParams = new URLSearchParams(url.search);
+      const hashParams = new URLSearchParams(url.hash.substring(1));
       
       console.log('🔍 Debug - URL Analysis:', {
-        fullUrl: window.location.href,
+        fullUrl: currentUrl,
         pathname: window.location.pathname,
         search: window.location.search,
         hash: window.location.hash,
@@ -106,10 +116,11 @@ function ResetPasswordContent() {
         type
       });
       
-      // Clean URL to prevent re-processing (but only after we've extracted tokens)
-      if (accessToken || tokenHash || error) {
+      // IMMEDIATELY clear URL to prevent Supabase auto-processing
+      if (accessToken || tokenHash || error || window.location.hash || window.location.search) {
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
+        console.log('🧹 URL cleaned to prevent auto-login');
       }
       
       // Check for auth errors
@@ -119,18 +130,18 @@ function ResetPasswordContent() {
         return;
       }
       
-      // If we have tokens from URL, use them immediately
+      // If we have tokens, store them for manual processing
       if (accessToken || tokenHash) {
         if (accessToken && refreshToken) {
           setResetTokens({ accessToken, refreshToken });
           setHasValidTokens(true);
           setIsValidating(false);
-          console.log('✅ URL tokens extracted successfully');
+          console.log('✅ URL tokens extracted and stored for manual processing');
         } else if (tokenHash) {
           setResetTokens({ tokenHash });
           setHasValidTokens(true);
           setIsValidating(false);
-          console.log('✅ Token hash extracted successfully');
+          console.log('✅ Token hash extracted and stored for manual processing');
         }
         return;
       }
@@ -141,6 +152,7 @@ function ResetPasswordContent() {
       setIsValidating(false);
     };
     
+    // Run initialization immediately, before any other effects
     initialize();
     
     // Cleanup function
@@ -444,6 +456,32 @@ function ResetPasswordContent() {
 }
 
 export default function ResetPasswordPage() {
+  // Intercept tokens IMMEDIATELY when component mounts, before any other processing
+  React.useEffect(() => {
+    // This runs as soon as the component mounts, before any other effects
+    if (typeof window !== 'undefined') {
+      const currentUrl = window.location.href;
+      
+      // Check if we have auth tokens in the URL
+      const hasAuthTokens = currentUrl.includes('access_token') || 
+                           currentUrl.includes('token_hash') ||
+                           currentUrl.includes('refresh_token');
+      
+      if (hasAuthTokens) {
+        console.log('🚨 INTERCEPTING: Auth tokens detected in URL, preventing auto-login');
+        
+        // Store the original URL for processing
+        window.sessionStorage.setItem('password-reset-url', currentUrl);
+        
+        // Immediately clear the URL to prevent Supabase from processing it
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        
+        console.log('🧹 URL cleared immediately to prevent auto-processing');
+      }
+    }
+  }, []);
+
   return (
     <React.Suspense fallback={
       <LandingLayout>
