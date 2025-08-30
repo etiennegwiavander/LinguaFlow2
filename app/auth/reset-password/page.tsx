@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,15 +26,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  createTemporaryResetSession,
-  verifyResetTokenHash,
-  updatePasswordWithReset,
-  cleanupResetSession
-} from "@/lib/supabase-reset-password";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import LandingLayout from "@/components/landing/LandingLayout";
-import { usePasswordResetInterceptor } from "@/lib/password-reset-url-interceptor";
 
 const formSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -49,10 +43,17 @@ function ResetPasswordContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [resetComplete, setResetComplete] = useState(false);
-  const router = useRouter();
+  const [isValidating, setIsValidating] = useState(true);
+  const [hasValidTokens, setHasValidTokens] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [resetTokens, setResetTokens] = useState<{
+    accessToken?: string;
+    refreshToken?: string;
+    tokenHash?: string;
+  } | null>(null);
   
-  // Use the URL interceptor to get tokens safely (prevents auto-login)
-  const { tokens, hasError, errorMessage, isReady, wasIntercepted } = usePasswordResetInterceptor();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -62,31 +63,79 @@ function ResetPasswordContent() {
     },
   });
 
-  // Helper method to validate JWT format
-  const isValidJWTFormat = (token: string): boolean => {
-    if (!token || typeof token !== 'string') return false;
-    const parts = token.split('.');
-    return parts.length === 3 && parts.every(part => part.length > 0);
-  };
-
-  // Determine if we have valid tokens
-  const hasValidTokens = React.useMemo(() => {
-    if (!tokens) return false;
+  // Extract and validate tokens from URL on component mount
+  useEffect(() => {
+    const validateTokens = async () => {
+      try {
+        // Extract tokens from URL parameters and hash
+        const urlParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        
+        const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
+        const tokenHash = urlParams.get('token_hash') || hashParams.get('token_hash');
+        const error = urlParams.get('error') || hashParams.get('error');
+        const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
+        
+        // Clean URL immediately to prevent any auto-processing
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        
+        // Check for auth errors
+        if (error) {
+          setErrorMessage(`Authentication error: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`);
+          setIsValidating(false);
+          return;
+        }
+        
+        // Validate token presence
+        if (!accessToken && !tokenHash) {
+          setErrorMessage('This reset link appears to be incomplete, expired, or already used. Please request a new password reset.');
+          setIsValidating(false);
+          return;
+        }
+        
+        // Basic format validation
+        if (accessToken && refreshToken) {
+          // Standard JWT format
+          const isValidJWT = (token: string) => {
+            const parts = token.split('.');
+            return parts.length === 3 && parts.every(part => part.length > 0);
+          };
+          
+          if (!isValidJWT(accessToken) || !isValidJWT(refreshToken)) {
+            setErrorMessage('This reset link is not in the correct format. Please request a new password reset.');
+            setIsValidating(false);
+            return;
+          }
+          
+          setResetTokens({ accessToken, refreshToken });
+        } else if (tokenHash) {
+          // Token hash format
+          if (tokenHash.length < 10) {
+            setErrorMessage('This reset link appears to be corrupted. Please request a new password reset.');
+            setIsValidating(false);
+            return;
+          }
+          
+          setResetTokens({ tokenHash });
+        }
+        
+        setHasValidTokens(true);
+        setIsValidating(false);
+        
+      } catch (error) {
+        console.error('Error validating reset tokens:', error);
+        setErrorMessage('There was a problem processing your reset link. Please request a new password reset.');
+        setIsValidating(false);
+      }
+    };
     
-    const hasStandardTokens = tokens.accessToken && tokens.refreshToken;
-    const hasTokenHash = tokens.tokenHash;
-    
-    if (hasStandardTokens) {
-      return isValidJWTFormat(tokens.accessToken!) && isValidJWTFormat(tokens.refreshToken!);
-    } else if (hasTokenHash) {
-      return tokens.tokenHash!.length >= 10;
-    }
-    
-    return false;
-  }, [tokens]);
+    validateTokens();
+  }, []);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!tokens) {
+    if (!resetTokens) {
       toast.error('No reset tokens available');
       return;
     }
@@ -94,48 +143,57 @@ function ResetPasswordContent() {
     setIsLoading(true);
     
     try {
-      const { accessToken, refreshToken, tokenHash } = tokens;
+      const { accessToken, refreshToken, tokenHash } = resetTokens;
       
-      if (refreshToken && accessToken) {
-        // Standard access/refresh token format
+      if (accessToken && refreshToken) {
+        // Standard access/refresh token format - use setSession temporarily
         console.log('Using standard token format for password update');
         
-        // Create temporary session for password update
-        const { data: sessionData, error: sessionError } = await createTemporaryResetSession(accessToken, refreshToken);
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
         
         if (sessionError || !sessionData?.user) {
-          throw new Error('Reset link validation failed. Please request a new password reset.');
+          throw new Error('Reset link has expired or is invalid. Please request a new password reset.');
         }
         
         // Update password
-        const updateResult = await updatePasswordWithReset(values.password);
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: values.password
+        });
         
-        if (updateResult.error) {
-          throw new Error('Failed to update password. Please try again.');
+        if (updateError) {
+          throw new Error(updateError.message || 'Failed to update password. Please try again.');
         }
         
         // Immediately sign out to prevent persistent login
-        await cleanupResetSession();
+        await supabase.auth.signOut({ scope: 'local' });
         
       } else if (tokenHash) {
-        // Token hash format
+        // Token hash format - use verifyOtp
         console.log('Using token hash format for password update');
         
-        const { data, error } = await verifyResetTokenHash(tokenHash);
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery'
+        });
         
         if (error || !data?.user) {
-          throw new Error('Reset link validation failed. Please request a new password reset.');
+          throw new Error('Reset link has expired or is invalid. Please request a new password reset.');
         }
         
         // Update password
-        const updateResult = await updatePasswordWithReset(values.password);
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: values.password
+        });
         
-        if (updateResult.error) {
-          throw new Error('Failed to update password. Please try again.');
+        if (updateError) {
+          throw new Error(updateError.message || 'Failed to update password. Please try again.');
         }
         
         // Immediately sign out to prevent persistent login
-        await cleanupResetSession();
+        await supabase.auth.signOut({ scope: 'local' });
       } else {
         throw new Error('Invalid token format');
       }
@@ -156,8 +214,8 @@ function ResetPasswordContent() {
     }
   }
 
-  // Loading state while interceptor processes tokens
-  if (!isReady) {
+  // Loading state while validating tokens
+  if (isValidating) {
     return (
       <LandingLayout>
         <div className="min-h-screen flex items-center justify-center p-4">
@@ -175,7 +233,7 @@ function ResetPasswordContent() {
   }
 
   // Error state
-  if (hasError || !hasValidTokens) {
+  if (errorMessage || !hasValidTokens) {
     return (
       <LandingLayout>
         <div className="min-h-screen flex items-center justify-center p-4">
@@ -186,7 +244,7 @@ function ResetPasswordContent() {
               </div>
               <CardTitle className="text-red-600">Invalid Reset Link</CardTitle>
               <CardDescription>
-                {errorMessage || 'This password reset link is not valid'}
+                This password reset link is not valid
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

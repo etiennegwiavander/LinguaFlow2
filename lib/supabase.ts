@@ -10,14 +10,27 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     // Persist session in localStorage
     persistSession: true,
-    // Detect session in URL (for OAuth flows)
-    detectSessionInUrl: true,
-
+    // SECURITY FIX: Disable automatic session detection to prevent auto-login on password reset
+    detectSessionInUrl: false,
   },
   // Global request configuration
   global: {
     headers: {
       'X-Client-Info': 'supabase-js-web',
+    },
+  },
+});
+
+// Create a separate client for OAuth flows that need URL session detection
+export const supabaseOAuth = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true, // Only enabled for OAuth flows
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js-oauth',
     },
   },
 });
