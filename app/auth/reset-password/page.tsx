@@ -27,7 +27,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/lib/supabase";
+import { 
+  supabaseResetPassword,
+  createTemporaryResetSession,
+  verifyResetTokenHash,
+  updatePasswordWithReset,
+  cleanupResetSession
+} from "@/lib/supabase-reset-password";
 import { toast } from "sonner";
 import LandingLayout from "@/components/landing/LandingLayout";
 import { ResetPasswordLoadingState, ResetPasswordSkeleton } from "@/components/auth/ResetPasswordLoadingStates";
@@ -40,7 +46,6 @@ import {
   useReducedMotion 
 } from "@/components/auth/ResetPasswordAccessibility";
 import { 
-  validateTokensOptimized, 
   performanceMonitor, 
   preloadResources,
   debounce 
@@ -201,34 +206,49 @@ function ResetPasswordContent() {
 
       setValidationProgress(80);
 
-      // Use optimized validation with caching
-      const tokens = hasStandardTokens 
-        ? { accessToken: accessToken!, refreshToken: refreshToken! }
-        : { accessToken: tokenHash! };
-
-      const validationResult = await validateTokensOptimized(tokens);
-      
-      setValidationProgress(100);
-
-      if (!validationResult.isValid) {
-        const errorInfo = {
-          type: 'invalid_tokens' as const,
-          message: validationResult.error || 'Token validation failed',
-          userMessage: validationResult.error || 'This reset link is invalid. Please request a new password reset.'
-        };
-        
-        setErrorDetails(errorInfo);
-        setIsValidToken(false);
-        announceToScreenReader(`Error: ${errorInfo.userMessage}`, 'assertive');
-        return;
-      }
-
-      // Set tokens for password update
+      // Perform basic format validation only (no API calls to prevent auto-login)
       if (hasStandardTokens) {
+        // Basic JWT format validation for standard tokens
+        if (!isValidJWTFormat(accessToken!) || !isValidJWTFormat(refreshToken!)) {
+          const errorInfo = {
+            type: 'invalid_tokens' as const,
+            message: 'Tokens do not match expected JWT format',
+            userMessage: 'This reset link is not in the correct format. Please request a new password reset.'
+          };
+          setErrorDetails(errorInfo);
+          setIsValidToken(false);
+          announceToScreenReader(`Error: ${errorInfo.userMessage}`, 'assertive');
+          return;
+        }
+        
         setResetTokens({ accessToken: accessToken!, refreshToken: refreshToken! });
-      } else {
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Standard format tokens validated successfully');
+        }
+      } else if (hasTokenHash) {
+        // Basic validation for token hash
+        if (!tokenHash || tokenHash.length < 10) {
+          const errorInfo = {
+            type: 'invalid_tokens' as const,
+            message: 'Token hash is malformed or too short',
+            userMessage: 'This reset link appears to be corrupted. Please request a new password reset.'
+          };
+          setErrorDetails(errorInfo);
+          setIsValidToken(false);
+          announceToScreenReader(`Error: ${errorInfo.userMessage}`, 'assertive');
+          return;
+        }
+        
+        // Store as accessToken for compatibility, empty refreshToken indicates token_hash format
         setResetTokens({ accessToken: tokenHash!, refreshToken: '' });
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Token hash format validated successfully');
+        }
       }
+
+      setValidationProgress(100);
 
       // Clear any previous errors and mark as valid
       setErrorDetails({ type: null, message: '', userMessage: '' });
@@ -261,7 +281,7 @@ function ResetPasswordContent() {
     } finally {
       timer.end();
     }
-  }, [searchParams, getAuthErrorMessage, announceToScreenReader, focusElement]);
+  }, [searchParams, announceToScreenReader, getAuthErrorMessage, isValidJWTFormat, focusElement]);
 
   // Debounced validation to prevent excessive API calls
   const debouncedValidation = useMemo(
@@ -327,10 +347,7 @@ function ResetPasswordContent() {
         try {
           // Create a temporary session scope for password update only
           setUpdateProgress(30);
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+          const { data: sessionData, error: sessionError } = await createTemporaryResetSession(accessToken, refreshToken);
 
           setUpdateProgress(50);
 
@@ -362,9 +379,7 @@ function ResetPasswordContent() {
 
           // Update the password within the temporary session scope
           setUpdateProgress(70);
-          updateResult = await supabase.auth.updateUser({
-            password: values.password
-          });
+          updateResult = await updatePasswordWithReset(values.password);
 
           setUpdateProgress(85);
 
@@ -389,7 +404,7 @@ function ResetPasswordContent() {
         } catch (error) {
           // Ensure cleanup even if password update fails
           try {
-            await supabase.auth.signOut();
+            await cleanupResetSession();
             if (process.env.NODE_ENV === 'development') {
               console.log('🧹 Cleanup: Signed out successfully');
             }
@@ -407,7 +422,7 @@ function ResetPasswordContent() {
 
         // CRITICAL SECURITY: Immediately sign out to prevent persistent login
         setUpdateProgress(95);
-        await supabase.auth.signOut();
+        await cleanupResetSession();
         if (process.env.NODE_ENV === 'development') {
           console.log('🔒 Security: Final sign out completed');
         }
@@ -420,10 +435,7 @@ function ResetPasswordContent() {
         
         try {
           setUpdateProgress(30);
-          const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: accessToken,
-            type: 'recovery'
-          });
+          const { data, error } = await verifyResetTokenHash(accessToken);
 
           setUpdateProgress(50);
 
@@ -455,9 +467,7 @@ function ResetPasswordContent() {
 
           // Update the password using the session from verifyOtp
           setUpdateProgress(70);
-          updateResult = await supabase.auth.updateUser({
-            password: values.password
-          });
+          updateResult = await updatePasswordWithReset(values.password);
 
           setUpdateProgress(85);
 
@@ -482,7 +492,7 @@ function ResetPasswordContent() {
         } catch (error) {
           // Ensure cleanup even if password update fails
           try {
-            await supabase.auth.signOut();
+            await cleanupResetSession();
             if (process.env.NODE_ENV === 'development') {
               console.log('🧹 Cleanup: Signed out successfully');
             }
@@ -500,7 +510,7 @@ function ResetPasswordContent() {
 
         // CRITICAL SECURITY: Immediately sign out to prevent persistent login
         setUpdateProgress(95);
-        await supabase.auth.signOut();
+        await cleanupResetSession();
         if (process.env.NODE_ENV === 'development') {
           console.log('🔒 Security: Final sign out completed');
         }

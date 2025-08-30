@@ -77,7 +77,6 @@ The current password reset implementation has several security issues that need 
 
 - [x] 7. Optimize performance and user experience
 
-
   - Minimize API calls during token validation
   - Improve loading states and user feedback
   - Ensure responsive design and accessibility
