@@ -358,15 +358,15 @@ function ResetPasswordContent() {
             if (process.env.NODE_ENV === 'development') {
               console.error('❌ Session creation failed:', {
                 category: errorCategory.type,
-                originalMessage: sessionError.message,
-                code: sessionError.status || 'unknown'
+                originalMessage: (sessionError as any)?.message || 'Unknown error',
+                code: (sessionError as any)?.status || 'unknown'
               });
             }
             
             throw new Error(errorCategory.userMessage);
           }
 
-          if (!sessionData.user) {
+          if (!sessionData?.user) {
             if (process.env.NODE_ENV === 'development') {
               console.error('❌ Session created but no user data returned');
             }
@@ -390,8 +390,8 @@ function ResetPasswordContent() {
             if (process.env.NODE_ENV === 'development') {
               console.error('❌ Password update failed:', {
                 category: errorCategory.type,
-                originalMessage: updateResult.error.message,
-                code: updateResult.error.status || 'unknown'
+                originalMessage: (updateResult.error as any)?.message || 'Unknown error',
+                code: (updateResult.error as any)?.status || 'unknown'
               });
             }
             
@@ -446,15 +446,15 @@ function ResetPasswordContent() {
             if (process.env.NODE_ENV === 'development') {
               console.error('❌ Token verification failed:', {
                 category: errorCategory.type,
-                originalMessage: error.message,
-                code: error.status || 'unknown'
+                originalMessage: (error as any)?.message || 'Unknown error',
+                code: (error as any)?.status || 'unknown'
               });
             }
             
             throw new Error(errorCategory.userMessage);
           }
 
-          if (!data.user) {
+          if (!data?.user) {
             if (process.env.NODE_ENV === 'development') {
               console.error('❌ Token verified but no user data returned');
             }
@@ -478,8 +478,8 @@ function ResetPasswordContent() {
             if (process.env.NODE_ENV === 'development') {
               console.error('❌ Password update failed:', {
                 category: errorCategory.type,
-                originalMessage: updateResult.error.message,
-                code: updateResult.error.status || 'unknown'
+                originalMessage: (updateResult.error as any)?.message || 'Unknown error',
+                code: (updateResult.error as any)?.status || 'unknown'
               });
             }
             
@@ -568,8 +568,8 @@ function ResetPasswordContent() {
           operationId,
           errorType,
           userMessage: userFriendlyMessage,
-          originalMessage: error.message,
-          stack: error.stack,
+          originalMessage: (error as any)?.message || 'Unknown error',
+          stack: (error as any)?.stack,
           tokenInfo: resetTokens ? {
             hasAccessToken: !!resetTokens.accessToken,
             accessTokenLength: resetTokens.accessToken?.length || 0,
