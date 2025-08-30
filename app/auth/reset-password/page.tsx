@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,7 +51,12 @@ function ResetPasswordContent() {
     tokenHash?: string;
   } | null>(null);
   
-  const router = useRouter();
+  // Manual navigation to avoid router issues
+  const navigateToLogin = () => {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/auth/login?reset=success';
+    }
+  };
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -250,7 +254,7 @@ function ResetPasswordContent() {
       
       // Redirect to login after success
       setTimeout(() => {
-        router.push('/auth/login?reset=success');
+        navigateToLogin();
       }, 2000);
       
     } catch (error: any) {
@@ -455,33 +459,34 @@ function ResetPasswordContent() {
   );
 }
 
-export default function ResetPasswordPage() {
-  // Intercept tokens IMMEDIATELY when component mounts, before any other processing
-  React.useEffect(() => {
-    // This runs as soon as the component mounts, before any other effects
-    if (typeof window !== 'undefined') {
-      const currentUrl = window.location.href;
-      
-      // Check if we have auth tokens in the URL
-      const hasAuthTokens = currentUrl.includes('access_token') || 
-                           currentUrl.includes('token_hash') ||
-                           currentUrl.includes('refresh_token');
-      
-      if (hasAuthTokens) {
-        console.log('🚨 INTERCEPTING: Auth tokens detected in URL, preventing auto-login');
-        
-        // Store the original URL for processing
-        window.sessionStorage.setItem('password-reset-url', currentUrl);
-        
-        // Immediately clear the URL to prevent Supabase from processing it
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-        
-        console.log('🧹 URL cleared immediately to prevent auto-processing');
-      }
-    }
-  }, []);
+// CRITICAL: Intercept tokens BEFORE any React components mount
+if (typeof window !== 'undefined') {
+  // This runs immediately when the script loads, before React
+  const currentUrl = window.location.href;
+  
+  // Check if we have auth tokens in the URL
+  const hasAuthTokens = currentUrl.includes('access_token') || 
+                       currentUrl.includes('token_hash') ||
+                       currentUrl.includes('refresh_token');
+  
+  if (hasAuthTokens) {
+    console.log('🚨 IMMEDIATE INTERCEPT: Auth tokens detected, preventing auto-login');
+    
+    // Store the original URL for processing
+    window.sessionStorage.setItem('password-reset-url', currentUrl);
+    
+    // Immediately clear the URL to prevent Supabase from processing it
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+    
+    // Set flag to prevent auth context from running
+    window.localStorage.setItem('password-reset-active', 'true');
+    
+    console.log('🧹 URL cleared and flags set to prevent auto-processing');
+  }
+}
 
+export default function ResetPasswordPage() {
   return (
     <React.Suspense fallback={
       <LandingLayout>

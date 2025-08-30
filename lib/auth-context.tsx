@@ -102,13 +102,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const path = window.location.pathname;
     
+    // CRITICAL: Completely skip auth processing for password reset
+    if (path === '/auth/reset-password') {
+      console.log('🚫 Auth context: Skipping all processing for password reset page');
+      setLoading(false);
+      setUser(null); // Ensure no user is set
+      return;
+    }
+    
     // Check if password reset is active (more reliable than URL parsing)
     const isPasswordResetActive = typeof window !== 'undefined' && 
       window.localStorage.getItem('password-reset-active') === 'true';
     
     // If password reset is active, completely skip auth processing
-    if (isPasswordResetActive || path === '/auth/reset-password') {
+    if (isPasswordResetActive) {
+      console.log('🚫 Auth context: Password reset active, skipping auth processing');
       setLoading(false);
+      setUser(null); // Ensure no user is set
       return;
     }
 
@@ -134,36 +144,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes only if not password reset
     let subscription: any = null;
     
-    if (!isPasswordResetActive && path !== '/auth/reset-password') {
-      const authListener = supabase.auth.onAuthStateChange((_event, session) => {
-        const currentPath = window.location.pathname;
-        
-        // Double-check if password reset is active
-        const isCurrentPasswordResetActive = typeof window !== 'undefined' && 
-          window.localStorage.getItem('password-reset-active') === 'true';
-
-        // If password reset is active, don't handle auth changes normally
-        if (isCurrentPasswordResetActive || currentPath === '/auth/reset-password') {
-          return;
-        }
-
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        // Handle navigation based on auth state
-        if (session?.user) {
-          if (currentPath.startsWith('/auth/') || currentPath === '/') {
-            router.replace('/dashboard');
-          }
-        } else {
-          if (!isUnprotectedRoute(currentPath)) {
-            router.replace('/auth/login');
-          }
-        }
-      });
+    const authListener = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentPath = window.location.pathname;
       
-      subscription = authListener.data.subscription;
-    }
+      // CRITICAL: Always check if we're on password reset page
+      if (currentPath === '/auth/reset-password') {
+        console.log('🚫 Auth listener: Ignoring auth change on password reset page');
+        return;
+      }
+      
+      // Check if password reset is active
+      const isCurrentPasswordResetActive = typeof window !== 'undefined' && 
+        window.localStorage.getItem('password-reset-active') === 'true';
+
+      if (isCurrentPasswordResetActive) {
+        console.log('🚫 Auth listener: Password reset active, ignoring auth change');
+        return;
+      }
+      
+      setUser(session?.user ?? null);
+      setLoading(false);
+
+      // Handle navigation based on auth state
+      if (session?.user) {
+        if (currentPath.startsWith('/auth/') || currentPath === '/') {
+          router.replace('/dashboard');
+        }
+      } else {
+        if (!isUnprotectedRoute(currentPath)) {
+          router.replace('/auth/login');
+        }
+      }
+    });
+    
+    subscription = authListener.data.subscription;
 
     return () => subscription?.unsubscribe();
   }, [router]);
