@@ -71,11 +71,31 @@ function ResetPasswordContent() {
         const urlParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         
+        // Debug logging to see what we're receiving
+        console.log('🔍 Debug - URL Analysis:', {
+          fullUrl: window.location.href,
+          pathname: window.location.pathname,
+          search: window.location.search,
+          hash: window.location.hash,
+          searchParams: Object.fromEntries(urlParams.entries()),
+          hashParams: Object.fromEntries(hashParams.entries())
+        });
+        
         const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
         const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
         const tokenHash = urlParams.get('token_hash') || hashParams.get('token_hash');
         const error = urlParams.get('error') || hashParams.get('error');
         const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
+        const type = urlParams.get('type') || hashParams.get('type');
+        
+        console.log('🔍 Debug - Extracted tokens:', {
+          accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : null,
+          refreshToken: refreshToken ? `${refreshToken.substring(0, 20)}...` : null,
+          tokenHash: tokenHash ? `${tokenHash.substring(0, 20)}...` : null,
+          error,
+          errorDescription,
+          type
+        });
         
         // Clean URL immediately to prevent any auto-processing
         const cleanUrl = window.location.pathname;
@@ -90,6 +110,7 @@ function ResetPasswordContent() {
         
         // Validate token presence
         if (!accessToken && !tokenHash) {
+          console.log('❌ No tokens found in URL');
           setErrorMessage('This reset link appears to be incomplete, expired, or already used. Please request a new password reset.');
           setIsValidating(false);
           return;
@@ -147,14 +168,20 @@ function ResetPasswordContent() {
       
       if (accessToken && refreshToken) {
         // Standard access/refresh token format - use setSession temporarily
-        console.log('Using standard token format for password update');
+        console.log('🔄 Using standard token format for password update');
         
         const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken
         });
         
+        console.log('🔄 SetSession result:', { 
+          hasUser: !!sessionData?.user, 
+          error: sessionError?.message 
+        });
+        
         if (sessionError || !sessionData?.user) {
+          console.error('❌ SetSession failed:', sessionError);
           throw new Error('Reset link has expired or is invalid. Please request a new password reset.');
         }
         
@@ -172,14 +199,20 @@ function ResetPasswordContent() {
         
       } else if (tokenHash) {
         // Token hash format - use verifyOtp
-        console.log('Using token hash format for password update');
+        console.log('🔄 Using token hash format for password update');
         
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
           type: 'recovery'
         });
         
+        console.log('🔄 VerifyOtp result:', { 
+          hasUser: !!data?.user, 
+          error: error?.message 
+        });
+        
         if (error || !data?.user) {
+          console.error('❌ VerifyOtp failed:', error);
           throw new Error('Reset link has expired or is invalid. Please request a new password reset.');
         }
         
