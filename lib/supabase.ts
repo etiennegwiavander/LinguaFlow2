@@ -10,8 +10,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     // Persist session in localStorage
     persistSession: true,
-    // SECURITY FIX: Disable automatic session detection to prevent auto-login on password reset
-    detectSessionInUrl: false,
+    // TEMPORARY: Re-enable to debug what tokens are being generated
+    detectSessionInUrl: true,
   },
   // Global request configuration
   global: {

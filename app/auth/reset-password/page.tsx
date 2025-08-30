@@ -27,6 +27,13 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
+import { 
+  initializeAuthMiddleware, 
+  setPasswordResetMode, 
+  getInterceptedSession,
+  clearInterceptedSession,
+  cleanupAuthMiddleware 
+} from "@/lib/auth-middleware";
 import { toast } from "sonner";
 import LandingLayout from "@/components/landing/LandingLayout";
 
@@ -63,97 +70,107 @@ function ResetPasswordContent() {
     },
   });
 
-  // Extract and validate tokens from URL on component mount
+  // Initialize auth middleware and handle session interception
   useEffect(() => {
-    const validateTokens = async () => {
-      try {
-        // Extract tokens from URL parameters and hash
-        const urlParams = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        
-        // Debug logging to see what we're receiving
-        console.log('🔍 Debug - URL Analysis:', {
-          fullUrl: window.location.href,
-          pathname: window.location.pathname,
-          search: window.location.search,
-          hash: window.location.hash,
-          searchParams: Object.fromEntries(urlParams.entries()),
-          hashParams: Object.fromEntries(hashParams.entries())
+    // Initialize the auth middleware
+    initializeAuthMiddleware();
+    setPasswordResetMode(true);
+    
+    // Listen for intercepted sessions
+    const handleInterceptedSession = (event: any) => {
+      console.log('🔒 Received intercepted session:', event.detail);
+      const session = event.detail.session;
+      
+      if (session?.access_token && session?.refresh_token) {
+        setResetTokens({
+          accessToken: session.access_token,
+          refreshToken: session.refresh_token
         });
-        
-        const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
-        const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
-        const tokenHash = urlParams.get('token_hash') || hashParams.get('token_hash');
-        const error = urlParams.get('error') || hashParams.get('error');
-        const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
-        const type = urlParams.get('type') || hashParams.get('type');
-        
-        console.log('🔍 Debug - Extracted tokens:', {
-          accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : null,
-          refreshToken: refreshToken ? `${refreshToken.substring(0, 20)}...` : null,
-          tokenHash: tokenHash ? `${tokenHash.substring(0, 20)}...` : null,
-          error,
-          errorDescription,
-          type
-        });
-        
-        // Clean URL immediately to prevent any auto-processing
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-        
-        // Check for auth errors
-        if (error) {
-          setErrorMessage(`Authentication error: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`);
-          setIsValidating(false);
-          return;
-        }
-        
-        // Validate token presence
-        if (!accessToken && !tokenHash) {
-          console.log('❌ No tokens found in URL');
-          setErrorMessage('This reset link appears to be incomplete, expired, or already used. Please request a new password reset.');
-          setIsValidating(false);
-          return;
-        }
-        
-        // Basic format validation
-        if (accessToken && refreshToken) {
-          // Standard JWT format
-          const isValidJWT = (token: string) => {
-            const parts = token.split('.');
-            return parts.length === 3 && parts.every(part => part.length > 0);
-          };
-          
-          if (!isValidJWT(accessToken) || !isValidJWT(refreshToken)) {
-            setErrorMessage('This reset link is not in the correct format. Please request a new password reset.');
-            setIsValidating(false);
-            return;
-          }
-          
-          setResetTokens({ accessToken, refreshToken });
-        } else if (tokenHash) {
-          // Token hash format
-          if (tokenHash.length < 10) {
-            setErrorMessage('This reset link appears to be corrupted. Please request a new password reset.');
-            setIsValidating(false);
-            return;
-          }
-          
-          setResetTokens({ tokenHash });
-        }
-        
         setHasValidTokens(true);
         setIsValidating(false);
-        
-      } catch (error) {
-        console.error('Error validating reset tokens:', error);
-        setErrorMessage('There was a problem processing your reset link. Please request a new password reset.');
-        setIsValidating(false);
+        console.log('✅ Session tokens extracted successfully');
       }
     };
     
-    validateTokens();
-  }, []);
+    window.addEventListener('passwordResetSessionIntercepted', handleInterceptedSession);
+    
+    // Also try to extract tokens from URL as fallback
+    const extractFromUrl = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      console.log('🔍 Debug - URL Analysis:', {
+        fullUrl: window.location.href,
+        pathname: window.location.pathname,
+        search: window.location.search,
+        hash: window.location.hash,
+        searchParams: Object.fromEntries(urlParams.entries()),
+        hashParams: Object.fromEntries(hashParams.entries())
+      });
+      
+      const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
+      const tokenHash = urlParams.get('token_hash') || hashParams.get('token_hash');
+      const error = urlParams.get('error') || hashParams.get('error');
+      const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
+      const type = urlParams.get('type') || hashParams.get('type');
+      
+      console.log('🔍 Debug - Extracted tokens:', {
+        accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : null,
+        refreshToken: refreshToken ? `${refreshToken.substring(0, 20)}...` : null,
+        tokenHash: tokenHash ? `${tokenHash.substring(0, 20)}...` : null,
+        error,
+        errorDescription,
+        type
+      });
+      
+      // Clean URL to prevent re-processing
+      if (accessToken || tokenHash || error) {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+      
+      // Check for auth errors
+      if (error) {
+        setErrorMessage(`Authentication error: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`);
+        setIsValidating(false);
+        return;
+      }
+      
+      // If we have tokens from URL, use them
+      if (accessToken || tokenHash) {
+        if (accessToken && refreshToken) {
+          setResetTokens({ accessToken, refreshToken });
+        } else if (tokenHash) {
+          setResetTokens({ tokenHash });
+        }
+        setHasValidTokens(true);
+        setIsValidating(false);
+        console.log('✅ URL tokens extracted successfully');
+        return;
+      }
+      
+      // If no tokens found and no intercepted session after a delay, show error
+      setTimeout(() => {
+        const intercepted = getInterceptedSession();
+        if (!intercepted && !hasValidTokens) {
+          console.log('❌ No tokens found in URL or intercepted session');
+          setErrorMessage('This reset link appears to be incomplete, expired, or already used. Please request a new password reset.');
+          setIsValidating(false);
+        }
+      }, 2000); // Wait 2 seconds for potential session interception
+    };
+    
+    extractFromUrl();
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('passwordResetSessionIntercepted', handleInterceptedSession);
+      setPasswordResetMode(false);
+      clearInterceptedSession();
+    };
+  }, [hasValidTokens]);
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!resetTokens) {
@@ -442,6 +459,13 @@ function ResetPasswordContent() {
 }
 
 export default function ResetPasswordPage() {
+  // Cleanup auth middleware when page unmounts
+  React.useEffect(() => {
+    return () => {
+      cleanupAuthMiddleware();
+    };
+  }, []);
+
   return (
     <React.Suspense fallback={
       <LandingLayout>
