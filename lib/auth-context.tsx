@@ -100,19 +100,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, refreshSessionProactively]);
 
   useEffect(() => {
-    // Get initial session
+    const path = window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlHash = window.location.hash;
+    
+    // Check if this is a password reset flow (more comprehensive check)
+    const isPasswordReset = path === '/auth/reset-password' && (
+      urlParams.has('access_token') || 
+      urlParams.has('token_hash') ||
+      urlHash.includes('access_token') ||
+      urlHash.includes('token_hash')
+    );
+
+    // If this is a password reset flow, completely skip auth processing
+    if (isPasswordReset) {
+      setLoading(false);
+      return;
+    }
+
+    // Get initial session only if not password reset
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const path = window.location.pathname;
-      const urlParams = new URLSearchParams(window.location.search);
-      const isPasswordReset = path === '/auth/reset-password' &&
-        (urlParams.has('access_token') || urlParams.has('token_hash'));
-
-      // If this is a password reset flow, don't set user or redirect
-      if (isPasswordReset) {
-        setLoading(false);
-        return;
-      }
-
       setUser(session?.user ?? null);
       setLoading(false);
 
@@ -130,35 +137,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const currentPath = window.location.pathname;
-      const urlParams = new URLSearchParams(window.location.search);
-      const isPasswordReset = currentPath === '/auth/reset-password' &&
-        (urlParams.has('access_token') || urlParams.has('token_hash'));
+    // Listen for auth changes only if not password reset
+    let subscription: any = null;
+    
+    if (!isPasswordReset) {
+      const authListener = supabase.auth.onAuthStateChange((_event, session) => {
+        const currentPath = window.location.pathname;
+        const currentUrlParams = new URLSearchParams(window.location.search);
+        const currentUrlHash = window.location.hash;
+        
+        // Double-check if this is a password reset flow
+        const isCurrentPasswordReset = currentPath === '/auth/reset-password' && (
+          currentUrlParams.has('access_token') || 
+          currentUrlParams.has('token_hash') ||
+          currentUrlHash.includes('access_token') ||
+          currentUrlHash.includes('token_hash')
+        );
 
-      // If this is a password reset flow, don't handle auth changes normally
-      if (isPasswordReset) {
+        // If this is a password reset flow, don't handle auth changes normally
+        if (isCurrentPasswordReset) {
+          return;
+        }
+
+        setUser(session?.user ?? null);
         setLoading(false);
-        return;
-      }
 
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      // Handle navigation based on auth state
-      if (session?.user) {
-        if (currentPath.startsWith('/auth/') || currentPath === '/') {
-          router.replace('/dashboard');
+        // Handle navigation based on auth state
+        if (session?.user) {
+          if (currentPath.startsWith('/auth/') || currentPath === '/') {
+            router.replace('/dashboard');
+          }
+        } else {
+          if (!isUnprotectedRoute(currentPath)) {
+            router.replace('/auth/login');
+          }
         }
-      } else {
-        if (!isUnprotectedRoute(currentPath)) {
-          router.replace('/auth/login');
-        }
-      }
-    });
+      });
+      
+      subscription = authListener.data.subscription;
+    }
 
     return () => subscription.unsubscribe();
   }, [router]);
