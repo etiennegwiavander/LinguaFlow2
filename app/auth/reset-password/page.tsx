@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,14 +26,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/lib/supabase";
-import { 
-  initializeAuthMiddleware, 
-  setPasswordResetMode, 
-  getInterceptedSession,
-  clearInterceptedSession,
-  cleanupAuthMiddleware 
-} from "@/lib/auth-middleware";
+import { supabaseReset } from "@/lib/supabase-reset";
 import { toast } from "sonner";
 import LandingLayout from "@/components/landing/LandingLayout";
 
@@ -60,7 +53,6 @@ function ResetPasswordContent() {
   } | null>(null);
   
   const router = useRouter();
-  const searchParams = useSearchParams();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,32 +62,22 @@ function ResetPasswordContent() {
     },
   });
 
-  // Initialize auth middleware and handle session interception
+  // Initialize password reset (run only once)
   useEffect(() => {
-    // Initialize the auth middleware
-    initializeAuthMiddleware();
-    setPasswordResetMode(true);
+    let isInitialized = false;
     
-    // Listen for intercepted sessions
-    const handleInterceptedSession = (event: any) => {
-      console.log('🔒 Received intercepted session:', event.detail);
-      const session = event.detail.session;
+    const initialize = () => {
+      if (isInitialized) return;
+      isInitialized = true;
       
-      if (session?.access_token && session?.refresh_token) {
-        setResetTokens({
-          accessToken: session.access_token,
-          refreshToken: session.refresh_token
-        });
-        setHasValidTokens(true);
-        setIsValidating(false);
-        console.log('✅ Session tokens extracted successfully');
+      console.log('🔧 Initializing password reset page');
+      
+      // Set flag to prevent auth context interference
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('password-reset-active', 'true');
       }
-    };
-    
-    window.addEventListener('passwordResetSessionIntercepted', handleInterceptedSession);
-    
-    // Also try to extract tokens from URL as fallback
-    const extractFromUrl = () => {
+      
+      // Extract tokens from URL immediately
       const urlParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       
@@ -124,7 +106,7 @@ function ResetPasswordContent() {
         type
       });
       
-      // Clean URL to prevent re-processing
+      // Clean URL to prevent re-processing (but only after we've extracted tokens)
       if (accessToken || tokenHash || error) {
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
@@ -137,39 +119,37 @@ function ResetPasswordContent() {
         return;
       }
       
-      // If we have tokens from URL, use them
+      // If we have tokens from URL, use them immediately
       if (accessToken || tokenHash) {
         if (accessToken && refreshToken) {
           setResetTokens({ accessToken, refreshToken });
+          setHasValidTokens(true);
+          setIsValidating(false);
+          console.log('✅ URL tokens extracted successfully');
         } else if (tokenHash) {
           setResetTokens({ tokenHash });
+          setHasValidTokens(true);
+          setIsValidating(false);
+          console.log('✅ Token hash extracted successfully');
         }
-        setHasValidTokens(true);
-        setIsValidating(false);
-        console.log('✅ URL tokens extracted successfully');
         return;
       }
       
-      // If no tokens found and no intercepted session after a delay, show error
-      setTimeout(() => {
-        const intercepted = getInterceptedSession();
-        if (!intercepted && !hasValidTokens) {
-          console.log('❌ No tokens found in URL or intercepted session');
-          setErrorMessage('This reset link appears to be incomplete, expired, or already used. Please request a new password reset.');
-          setIsValidating(false);
-        }
-      }, 2000); // Wait 2 seconds for potential session interception
+      // If no tokens found, show error
+      console.log('❌ No tokens found in URL');
+      setErrorMessage('This reset link appears to be incomplete, expired, or already used. Please request a new password reset.');
+      setIsValidating(false);
     };
     
-    extractFromUrl();
+    initialize();
     
-    // Cleanup
+    // Cleanup function
     return () => {
-      window.removeEventListener('passwordResetSessionIntercepted', handleInterceptedSession);
-      setPasswordResetMode(false);
-      clearInterceptedSession();
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('password-reset-active');
+      }
     };
-  }, [hasValidTokens]);
+  }, []); // Empty dependency array - run only once
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -187,7 +167,7 @@ function ResetPasswordContent() {
         // Standard access/refresh token format - use setSession temporarily
         console.log('🔄 Using standard token format for password update');
         
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+        const { data: sessionData, error: sessionError } = await supabaseReset.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken
         });
@@ -203,7 +183,7 @@ function ResetPasswordContent() {
         }
         
         // Update password
-        const { error: updateError } = await supabase.auth.updateUser({
+        const { error: updateError } = await supabaseReset.auth.updateUser({
           password: values.password
         });
         
@@ -212,13 +192,13 @@ function ResetPasswordContent() {
         }
         
         // Immediately sign out to prevent persistent login
-        await supabase.auth.signOut({ scope: 'local' });
+        await supabaseReset.auth.signOut({ scope: 'local' });
         
       } else if (tokenHash) {
         // Token hash format - use verifyOtp
         console.log('🔄 Using token hash format for password update');
         
-        const { data, error } = await supabase.auth.verifyOtp({
+        const { data, error } = await supabaseReset.auth.verifyOtp({
           token_hash: tokenHash,
           type: 'recovery'
         });
@@ -234,7 +214,7 @@ function ResetPasswordContent() {
         }
         
         // Update password
-        const { error: updateError } = await supabase.auth.updateUser({
+        const { error: updateError } = await supabaseReset.auth.updateUser({
           password: values.password
         });
         
@@ -243,13 +223,18 @@ function ResetPasswordContent() {
         }
         
         // Immediately sign out to prevent persistent login
-        await supabase.auth.signOut({ scope: 'local' });
+        await supabaseReset.auth.signOut({ scope: 'local' });
       } else {
         throw new Error('Invalid token format');
       }
 
       setResetComplete(true);
       toast.success('Password updated successfully! You can now sign in with your new password.');
+      
+      // Clear the password reset flag
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('password-reset-active');
+      }
       
       // Redirect to login after success
       setTimeout(() => {
@@ -459,13 +444,6 @@ function ResetPasswordContent() {
 }
 
 export default function ResetPasswordPage() {
-  // Cleanup auth middleware when page unmounts
-  React.useEffect(() => {
-    return () => {
-      cleanupAuthMiddleware();
-    };
-  }, []);
-
   return (
     <React.Suspense fallback={
       <LandingLayout>

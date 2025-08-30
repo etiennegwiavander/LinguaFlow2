@@ -101,19 +101,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const path = window.location.pathname;
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlHash = window.location.hash;
     
-    // Check if this is a password reset flow (more comprehensive check)
-    const isPasswordReset = path === '/auth/reset-password' && (
-      urlParams.has('access_token') || 
-      urlParams.has('token_hash') ||
-      urlHash.includes('access_token') ||
-      urlHash.includes('token_hash')
-    );
-
-    // If this is a password reset flow, completely skip auth processing
-    if (isPasswordReset) {
+    // Check if password reset is active (more reliable than URL parsing)
+    const isPasswordResetActive = typeof window !== 'undefined' && 
+      window.localStorage.getItem('password-reset-active') === 'true';
+    
+    // If password reset is active, completely skip auth processing
+    if (isPasswordResetActive || path === '/auth/reset-password') {
       setLoading(false);
       return;
     }
@@ -140,22 +134,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes only if not password reset
     let subscription: any = null;
     
-    if (!isPasswordReset) {
+    if (!isPasswordResetActive && path !== '/auth/reset-password') {
       const authListener = supabase.auth.onAuthStateChange((_event, session) => {
         const currentPath = window.location.pathname;
-        const currentUrlParams = new URLSearchParams(window.location.search);
-        const currentUrlHash = window.location.hash;
         
-        // Double-check if this is a password reset flow
-        const isCurrentPasswordReset = currentPath === '/auth/reset-password' && (
-          currentUrlParams.has('access_token') || 
-          currentUrlParams.has('token_hash') ||
-          currentUrlHash.includes('access_token') ||
-          currentUrlHash.includes('token_hash')
-        );
+        // Double-check if password reset is active
+        const isCurrentPasswordResetActive = typeof window !== 'undefined' && 
+          window.localStorage.getItem('password-reset-active') === 'true';
 
-        // If this is a password reset flow, don't handle auth changes normally
-        if (isCurrentPasswordReset) {
+        // If password reset is active, don't handle auth changes normally
+        if (isCurrentPasswordResetActive || currentPath === '/auth/reset-password') {
           return;
         }
 
@@ -177,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription = authListener.data.subscription;
     }
 
-    return () => subscription.unsubscribe();
+    return () => subscription?.unsubscribe();
   }, [router]);
 
   const signIn = async (email: string, password: string) => {
