@@ -169,10 +169,10 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
           </DropdownMenu>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-9 sm:w-9 hover:bg-cyber-400/10 hover:text-cyber-400 transition-all duration-300 focus-cyber">
+          {/*<Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-9 sm:w-9 hover:bg-cyber-400/10 hover:text-cyber-400 transition-all duration-300 focus-cyber">
             <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
             <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-neon-400 animate-pulse"></span>
-          </Button>
+          </Button>*/}
 
           {/* User profile dropdown */}
           <DropdownMenu>

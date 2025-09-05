@@ -1,22 +1,84 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Languages, LogOut, Shield, Users, BarChart, AlertTriangle, Settings } from "lucide-react";
+import { LogOut, Shield, Users, BarChart, AlertTriangle, Settings, Mail, Home, ChevronRight, FileText, Server, TestTube, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 export default function AdminLayout({
+  
   children,
 }: {
   children: React.ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+
+  // Generate breadcrumbs based on current path
+  const generateBreadcrumbs = () => {
+    const pathSegments = pathname.split('/').filter(segment => segment !== '');
+    const breadcrumbs = [
+      { label: 'Admin Portal', href: '/admin-portal/dashboard', icon: Home }
+    ];
+
+    if (pathSegments.length > 1) {
+      const section = pathSegments[1];
+      switch (section) {
+        case 'dashboard':
+          breadcrumbs.push({ label: 'Dashboard', href: '/admin-portal/dashboard', icon: BarChart });
+          break;
+        case 'tutors':
+          breadcrumbs.push({ label: 'Tutors', href: '/admin-portal/tutors', icon: Users });
+          break;
+        case 'logs':
+          breadcrumbs.push({ label: 'System Logs', href: '/admin-portal/logs', icon: AlertTriangle });
+          break;
+        case 'email':
+          breadcrumbs.push({ label: 'Email Management', href: '/admin-portal/email', icon: Mail });
+          
+          // Add sub-page breadcrumbs for email management
+          if (pathSegments.length > 2) {
+            const subSection = pathSegments[2];
+            switch (subSection) {
+              case 'analytics':
+                breadcrumbs.push({ label: 'Analytics', href: '/admin-portal/email/analytics', icon: BarChart });
+                break;
+              case 'templates':
+                breadcrumbs.push({ label: 'Templates', href: '/admin-portal/email/templates', icon: FileText });
+                break;
+              case 'smtp':
+                breadcrumbs.push({ label: 'SMTP Configuration', href: '/admin-portal/email/smtp', icon: Server });
+                break;
+              case 'testing':
+                breadcrumbs.push({ label: 'Testing', href: '/admin-portal/email/testing', icon: TestTube });
+                break;
+            }
+          }
+          break;
+        case 'settings':
+          breadcrumbs.push({ label: 'Settings', href: '/admin-portal/settings', icon: Settings });
+          break;
+      }
+    }
+
+    return breadcrumbs;
+  };
+
+  // Check if user has access to email management features
+  const hasEmailManagementAccess = () => {
+    // In a real application, this would check the user's role/permissions
+    // For now, we'll assume all authenticated admin users have access
+    return isAuthenticated;
+  };
 
   useEffect(() => {
     // Check if user is authenticated
@@ -90,81 +152,218 @@ export default function AdminLayout({
     );
   }
 
-  // Admin layout with sidebar
+  // const [sidebarHovered, setSidebarHovered] = useState(false);
+  // const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+
+
+  // Admin layout with collapsible sidebar
   return (
-    <div className="min-h-screen bg-background">
-      {/* Admin Header */}
-      <header className="sticky top-0 z-30 flex h-16 w-full items-center glass-nav shadow-lg border-b border-cyber-400/20">
-        <div className="container mx-auto px-4 flex justify-between items-center">
-          <Link href="/admin-portal/dashboard" className="flex items-center space-x-2">
-            <div className="relative">
-              <Shield className="h-6 w-6 text-cyber-400" />
-              <div className="absolute inset-0 bg-cyber-400 opacity-20 blur-xl"></div>
+    <div className="min-h-screen bg-background flex">
+      {/* Collapsible Sidebar */}
+      <div 
+        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-40 ${
+          sidebarHovered || !sidebarCollapsed ? 'w-64' : 'w-16'
+        }`}
+        onMouseEnter={() => setSidebarHovered(true)}
+        onMouseLeave={() => setSidebarHovered(false)}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex h-16 items-center px-4 border-b border-gray-200">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Shield className="h-5 w-5 text-white" />
+              </div>
+              {(sidebarHovered || !sidebarCollapsed) && (
+                <h1 className="ml-3 text-xl font-semibold text-gray-900 whitespace-nowrap">
+                  Admin Portal
+                </h1>
+              )}
             </div>
-            <span className="font-bold text-lg">LinguaFlow Admin</span>
-          </Link>
+            {(sidebarHovered || !sidebarCollapsed) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
           
-          <Button variant="ghost" onClick={handleLogout} className="text-red-600 hover:text-red-700 hover:bg-red-100/50">
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
-        </div>
-      </header>
-      
-      <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
-        {/* Admin Sidebar */}
-        <aside className="w-full md:w-64 space-y-2">
-          <div className="text-sm font-medium text-muted-foreground mb-2">Navigation</div>
-          <nav className="space-y-1">
+          {/* Navigation */}
+          <nav className="flex-1 px-2 py-4 space-y-1">
             <Link 
               href="/admin-portal/dashboard" 
-              className={`flex items-center px-3 py-2 rounded-md transition-colors ${
+              className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 pathname === '/admin-portal/dashboard' 
-                  ? 'bg-primary/10 text-primary font-medium' 
-                  : 'hover:bg-muted'
+                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
-              <BarChart className="h-4 w-4 mr-2" />
-              Dashboard
+              <BarChart className={`h-5 w-5 ${pathname === '/admin-portal/dashboard' ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'}`} />
+              {(sidebarHovered || !sidebarCollapsed) && (
+                <>
+                  <span className="ml-3 whitespace-nowrap">Dashboard</span>
+                  {pathname === '/admin-portal/dashboard' && (
+                    <ChevronRight className="ml-auto h-4 w-4 text-blue-700" />
+                  )}
+                </>
+              )}
             </Link>
+            
             <Link 
               href="/admin-portal/tutors" 
-              className={`flex items-center px-3 py-2 rounded-md transition-colors ${
+              className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 pathname === '/admin-portal/tutors' 
-                  ? 'bg-primary/10 text-primary font-medium' 
-                  : 'hover:bg-muted'
+                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
-              <Users className="h-4 w-4 mr-2" />
-              Tutors
+              <Users className={`h-5 w-5 ${pathname === '/admin-portal/tutors' ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'}`} />
+              {(sidebarHovered || !sidebarCollapsed) && (
+                <>
+                  <span className="ml-3 whitespace-nowrap">Tutors</span>
+                  {pathname === '/admin-portal/tutors' && (
+                    <ChevronRight className="ml-auto h-4 w-4 text-blue-700" />
+                  )}
+                </>
+              )}
             </Link>
+            
             <Link 
               href="/admin-portal/logs" 
-              className={`flex items-center px-3 py-2 rounded-md transition-colors ${
+              className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 pathname === '/admin-portal/logs' 
-                  ? 'bg-primary/10 text-primary font-medium' 
-                  : 'hover:bg-muted'
+                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              System Logs
+              <AlertTriangle className={`h-5 w-5 ${pathname === '/admin-portal/logs' ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'}`} />
+              {(sidebarHovered || !sidebarCollapsed) && (
+                <>
+                  <span className="ml-3 whitespace-nowrap">System Logs</span>
+                  {pathname === '/admin-portal/logs' && (
+                    <ChevronRight className="ml-auto h-4 w-4 text-blue-700" />
+                  )}
+                </>
+              )}
             </Link>
+            
+            {/* Email Management Section */}
+            {hasEmailManagementAccess() && (
+              <>
+                <div className="pt-2">
+                  {(sidebarHovered || !sidebarCollapsed) && (
+                    <div className="text-xs font-medium text-gray-500 mb-2 px-3">Email System</div>
+                  )}
+                </div>
+                
+                <Link 
+                  href="/admin-portal/email" 
+                  className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    pathname.startsWith('/admin-portal/email') 
+                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <Mail className={`h-5 w-5 ${pathname.startsWith('/admin-portal/email') ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'}`} />
+                  {(sidebarHovered || !sidebarCollapsed) && (
+                    <>
+                      <span className="ml-3 whitespace-nowrap">Email Management</span>
+                      {pathname.startsWith('/admin-portal/email') && (
+                        <ChevronRight className="ml-auto h-4 w-4 text-blue-700" />
+                      )}
+                    </>
+                  )}
+                </Link>
+              </>
+            )}
+            
             <Link 
               href="/admin-portal/settings" 
-              className={`flex items-center px-3 py-2 rounded-md transition-colors ${
+              className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 pathname === '/admin-portal/settings' 
-                  ? 'bg-primary/10 text-primary font-medium' 
-                  : 'hover:bg-muted'
+                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
+              <Settings className={`h-5 w-5 ${pathname === '/admin-portal/settings' ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'}`} />
+              {(sidebarHovered || !sidebarCollapsed) && (
+                <>
+                  <span className="ml-3 whitespace-nowrap">Settings</span>
+                  {pathname === '/admin-portal/settings' && (
+                    <ChevronRight className="ml-auto h-4 w-4 text-blue-700" />
+                  )}
+                </>
+              )}
             </Link>
           </nav>
-        </aside>
+          
+          {/* Footer */}
+          {(sidebarHovered || !sidebarCollapsed) && (
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-gray-500">
+                  LinguaFlow Admin v1.0
+                </div>
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-red-600 hover:text-red-700">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Main content */}
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${(sidebarHovered || !sidebarCollapsed) ? 'ml-64' : 'ml-16'}`}>
+        {/* Top Header */}
+        <header className="sticky top-0 z-30 flex h-16 w-full items-center bg-white shadow-sm border-b border-gray-200">
+          <div className="flex items-center justify-between w-full px-6">
+            {/* Breadcrumb Navigation */}
+            <Breadcrumb>
+              <BreadcrumbList>
+                {generateBreadcrumbs().map((breadcrumb, index) => {
+                  const breadcrumbs = generateBreadcrumbs();
+                  const IconComponent = breadcrumb.icon;
+                  return (
+                    <div key={breadcrumb.href} className="flex items-center">
+                      {index > 0 && <BreadcrumbSeparator><ChevronRight className="h-4 w-4" /></BreadcrumbSeparator>}
+                      <BreadcrumbItem>
+                        {index === breadcrumbs.length - 1 ? (
+                          <BreadcrumbPage className="flex items-center space-x-1">
+                            <IconComponent className="h-4 w-4" />
+                            <span>{breadcrumb.label}</span>
+                          </BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink href={breadcrumb.href} className="flex items-center space-x-1 hover:text-primary">
+                            <IconComponent className="h-4 w-4" />
+                            <span>{breadcrumb.label}</span>
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                    </div>
+                  );
+                })}
+              </BreadcrumbList>
+            </Breadcrumb>
+            
+            {/* Mobile menu button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
+        </header>
         
         {/* Main Content */}
-        <main className="flex-1">
+        <main className="p-6">
           {children}
         </main>
       </div>

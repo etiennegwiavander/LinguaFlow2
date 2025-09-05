@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Database, Server, Shield, Key, Save, Loader2 } from "lucide-react";
+import { Settings, Database, Server, Shield, Key, Save, Loader2, Mail } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import SMTPConfigurationManager from "@/components/admin/SMTPConfigurationManager";
+import EmailTemplateManager from "@/components/admin/EmailTemplateManager";
 
 export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
@@ -98,6 +100,10 @@ export default function SettingsPage() {
           <TabsTrigger value="security" className="flex items-center space-x-2">
             <Shield className="h-4 w-4" />
             <span>Security</span>
+          </TabsTrigger>
+          <TabsTrigger value="email" className="flex items-center space-x-2">
+            <Mail className="h-4 w-4" />
+            <span>Email</span>
           </TabsTrigger>
           <TabsTrigger value="database" className="flex items-center space-x-2">
             <Database className="h-4 w-4" />
@@ -306,6 +312,28 @@ export default function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
+        </TabsContent>
+
+        {/* Email Settings */}
+        <TabsContent value="email">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Mail className="h-5 w-5 mr-2 text-primary" />
+                  SMTP Configuration
+                </CardTitle>
+                <CardDescription>
+                  Configure SMTP settings for sending emails
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SMTPConfigurationManager />
+              </CardContent>
+            </Card>
+            
+            <EmailTemplateManager />
+          </div>
         </TabsContent>
 
         {/* Database Settings */}

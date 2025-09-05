@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { supabase, supabaseRequest } from './supabase';
+import { EmailIntegrationService } from './email-integration-service';
 
 type AuthContextType = {
   user: User | null;
@@ -100,11 +101,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, refreshSessionProactively]);
 
   useEffect(() => {
-    const path = window.location.pathname;
-    
+    let path = window.location.pathname;
+    // Normalize path by removing trailing slash if it's not the root
+    if (path.endsWith('/') && path.length > 1) {
+      path = path.slice(0, -1);
+    }
+
     // CRITICAL: Completely skip auth processing for password reset
     if (path === '/auth/reset-password') {
-      console.log('🚫 Auth context: Skipping all processing for password reset page');
+      
       setLoading(false);
       setUser(null); // Ensure no user is set
       return;
@@ -145,11 +150,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let subscription: any = null;
     
     const authListener = supabase.auth.onAuthStateChange((_event, session) => {
-      const currentPath = window.location.pathname;
-      
+      let currentPath = window.location.pathname;
+      // Normalize path by removing trailing slash if it's not the root
+      if (currentPath.endsWith('/') && currentPath.length > 1) {
+        currentPath = currentPath.slice(0, -1);
+      }
       // CRITICAL: Always check if we're on password reset page
       if (currentPath === '/auth/reset-password') {
-        console.log('🚫 Auth listener: Ignoring auth change on password reset page');
         return;
       }
       
@@ -158,7 +165,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.localStorage.getItem('password-reset-active') === 'true';
 
       if (isCurrentPasswordResetActive) {
-        console.log('🚫 Auth listener: Password reset active, ignoring auth change');
         return;
       }
       
@@ -268,6 +274,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         throw new Error(`Failed to create tutor profile: ${tutorError.message}`);
+      }
+
+      // Send welcome email to new tutor using integrated email system
+      try {
+        await EmailIntegrationService.sendWelcomeEmail(email, {
+          firstName: tutorData?.first_name,
+          lastName: tutorData?.last_name,
+          userId: tutorData?.id
+        });
+      } catch (emailError) {
+        // Don't fail registration if email fails, just log it
+        console.warn('Failed to send welcome email:', emailError);
       }
 
       // Auto-login after successful registration

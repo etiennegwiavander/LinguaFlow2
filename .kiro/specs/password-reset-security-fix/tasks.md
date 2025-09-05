@@ -42,7 +42,6 @@ The current password reset implementation has several security issues that need 
 
 - [x] 5. Create comprehensive test suite for password reset security
 
-
 - [x] 5.1 Create unit tests for token validation
 
   - Test valid token scenarios (both standard and token_hash formats)
