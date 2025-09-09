@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { supabase, supabaseRequest } from './supabase';
-import { EmailIntegrationService } from './email-integration-service';
+import { SimpleWelcomeEmailService } from './simple-welcome-email';
 
 type AuthContextType = {
   user: User | null;
@@ -34,7 +34,8 @@ const UNPROTECTED_ROUTES = [
   '/auth/recover-account',
   '/calendar', // Added to prevent premature redirects during OAuth
   '/terms',
-  '/privacy'
+  '/privacy',
+  '/admin-portal/login' // Allow admin portal login page
 ];
 
 // Function to check if a path should be unprotected
@@ -46,6 +47,11 @@ const isUnprotectedRoute = (path: string): boolean => {
 
   // Check for shared lesson routes (any path starting with /shared-lesson/)
   if (path.startsWith('/shared-lesson/')) {
+    return true;
+  }
+
+  // Check for admin portal routes (any path starting with /admin-portal/)
+  if (path.startsWith('/admin-portal/')) {
     return true;
   }
 
@@ -200,21 +206,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Check if user has a tutor profile using enhanced request wrapper
-      const { data: tutorData, error: tutorError } = await supabaseRequest(async () =>
-        await supabase
-          .from('tutors')
-          .select('*')
-          .eq('id', data.user.id)
-          .maybeSingle()
-      );
+      let tutorData = null;
+      let tutorError = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        const result = await supabaseRequest(async () =>
+          await supabase
+            .from('tutors')
+            .select('*')
+            .eq('id', data.user.id)
+            .maybeSingle()
+        );
+
+        tutorData = result.data;
+        tutorError = result.error;
+
+        if (!tutorError) {
+          break; // Success!
+        }
+
+        // If it's an infinite recursion error, wait and retry
+        if (tutorError.message.includes('infinite recursion')) {
+          console.warn(`Retry ${retryCount + 1}/${maxRetries} for profile loading due to recursion error`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+          retryCount++;
+        } else {
+          break; // Different error, don't retry
+        }
+      }
 
       if (tutorError) {
-        throw tutorError;
+        await supabase.auth.signOut();
+        
+        if (tutorError.message.includes('infinite recursion')) {
+          throw new Error('Login temporarily unavailable due to system configuration. Please try again in a few minutes or contact support.');
+        }
+        
+        throw new Error(`Unable to load user profile: ${tutorError.message}. Please contact support at support@example.com`);
       }
 
       if (!tutorData) {
         await supabase.auth.signOut();
-        throw new Error('Unable to load user profile. Please contact support at support@example.com');
+        throw new Error('Unable to load user profile. Your account may be incomplete. Please contact support at support@example.com');
       }
 
       router.replace('/dashboard');
@@ -228,23 +263,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
-      // Check if email exists
-      const { data: existingUser } = await supabase
+      // First, check if there's already an auth user with this email
+      // This helps us handle the "User already registered" case
+      let existingAuthUser = null;
+      try {
+        const { data: signInAttempt } = await supabase.auth.signInWithPassword({
+          email,
+          password: 'dummy-password' // This will fail but tell us if user exists
+        });
+      } catch (signInError: any) {
+        if (signInError.message && !signInError.message.includes('Invalid login credentials')) {
+          // User exists but password is wrong, which means user is already registered
+          throw new Error('An account with this email already exists. Please login or use the forgot password option.');
+        }
+      }
+
+      // Check if email exists in tutors table
+      const { data: existingTutor } = await supabase
         .from('tutors')
-        .select('email')
+        .select('email, id')
         .eq('email', email)
         .maybeSingle();
 
-      if (existingUser) {
+      if (existingTutor) {
         throw new Error('An account with this email already exists. Please login or use a different email address.');
       }
 
+      // Attempt to create the auth user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) {
+        // Handle specific Supabase auth errors
+        if (error.message.includes('User already registered')) {
+          throw new Error('An account with this email already exists. Please login or use the forgot password option.');
+        }
         throw error;
       }
 
@@ -252,40 +307,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Failed to create user account');
       }
 
-      // Create tutor record
+      // Create tutor record with retry logic
       const tutorRecord = {
         id: data.user.id,
         email: email,
         is_admin: false,
+        first_name: null, // Will be set later when user completes profile
+        last_name: null,  // Will be set later when user completes profile
       };
 
-      const { data: tutorData, error: tutorError } = await supabase
-        .from('tutors')
-        .insert([tutorRecord])
-        .select()
-        .single();
+      let tutorData = null;
+      let tutorError = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        const result = await supabase
+          .from('tutors')
+          .insert([tutorRecord])
+          .select()
+          .single();
+
+        tutorData = result.data;
+        tutorError = result.error;
+
+        if (!tutorError) {
+          break; // Success!
+        }
+
+        // If it's an infinite recursion error, wait and retry
+        if (tutorError.message.includes('infinite recursion')) {
+          console.warn(`Retry ${retryCount + 1}/${maxRetries} for tutor creation due to recursion error`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+          retryCount++;
+        } else {
+          break; // Different error, don't retry
+        }
+      }
 
       if (tutorError) {
         // Clean up the auth user if tutor creation fails
         try {
           await supabase.auth.admin.deleteUser(data.user.id);
         } catch (cleanupError) {
-          // Error handling without console.error
+          console.warn('Failed to cleanup auth user after tutor creation failure');
+        }
+
+        if (tutorError.message.includes('infinite recursion')) {
+          throw new Error('Registration temporarily unavailable due to system configuration. Please try again in a few minutes or contact support.');
         }
 
         throw new Error(`Failed to create tutor profile: ${tutorError.message}`);
       }
 
-      // Send welcome email to new tutor using integrated email system
+      // Send welcome email to new tutor using simple email service
+      // This is now handled at the application level instead of database triggers
       try {
-        await EmailIntegrationService.sendWelcomeEmail(email, {
-          firstName: tutorData?.first_name,
-          lastName: tutorData?.last_name,
+        const emailResult = await SimpleWelcomeEmailService.sendWelcomeEmail(email, {
+          firstName: tutorData?.first_name || 'New User',
+          lastName: tutorData?.last_name || '',
           userId: tutorData?.id
         });
+        
+        if (emailResult.success) {
+          console.log('✅ Welcome email sent successfully');
+        } else {
+          console.warn('⚠️ Welcome email failed:', emailResult.error);
+        }
       } catch (emailError) {
         // Don't fail registration if email fails, just log it
         console.warn('Failed to send welcome email:', emailError);
+        // Registration should still succeed even if email fails
       }
 
       // Auto-login after successful registration

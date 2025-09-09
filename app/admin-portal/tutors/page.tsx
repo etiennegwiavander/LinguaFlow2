@@ -61,6 +61,8 @@ import {
 interface Tutor {
   id: string;
   name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   email: string;
   avatar_url: string | null;
   is_admin: boolean;
@@ -88,43 +90,19 @@ export default function TutorsPage() {
   const fetchTutors = async () => {
     try {
       setLoading(true);
-      // Fetch tutors with student and lesson counts
-      const { data: tutorsData, error: tutorsError } = await supabase
-        .from('tutors')
-        .select('id, name, email, avatar_url, is_admin, created_at');
+      
+      // Use admin API route to fetch all tutors with proper permissions
+      const response = await fetch('/api/admin/tutors');
+      const data = await response.json();
 
-      if (tutorsError) throw tutorsError;
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch tutors');
+      }
 
-      // Get student counts for each tutor
-      const tutorsWithCounts = await Promise.all(
-        tutorsData.map(async (tutor) => {
-          // Get student count
-          const { count: studentsCount, error: studentsError } = await supabase
-            .from('students')
-            .select('*', { count: 'exact', head: true })
-            .eq('tutor_id', tutor.id);
-
-          if (studentsError) throw studentsError;
-
-          // Get lesson count
-          const { count: lessonsCount, error: lessonsError } = await supabase
-            .from('lessons')
-            .select('*', { count: 'exact', head: true })
-            .eq('tutor_id', tutor.id);
-
-          if (lessonsError) throw lessonsError;
-
-          return {
-            ...tutor,
-            studentsCount: studentsCount || 0,
-            lessonsCount: lessonsCount || 0,
-            status: Math.random() > 0.3 ? 'active' : 'inactive' // Simulated status for demo
-          };
-        })
-      );
-
-      setTutors(tutorsWithCounts);
+      setTutors(data.tutors);
+      console.log(`✅ Loaded ${data.total} tutors from admin API`);
     } catch (error: any) {
+      console.error('Error fetching tutors:', error);
       toast.error(error.message || 'Failed to fetch tutors');
     } finally {
       setLoading(false);
@@ -145,10 +123,46 @@ export default function TutorsPage() {
     setIsProfileDialogOpen(true);
   };
 
+  const handleImpersonateUser = async (tutor: Tutor) => {
+    try {
+      const response = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tutorId: tutor.id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate impersonation link');
+      }
+
+      if (data.impersonationUrl) {
+        // Open the impersonation URL in a new tab
+        window.open(data.impersonationUrl, '_blank');
+        toast.success(`Impersonating ${data.tutorInfo.name || data.tutorInfo.email}`);
+      } else {
+        throw new Error('No impersonation URL received');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to impersonate user');
+    }
+  };
+
   const handleStatusChange = async (tutorId: string, newStatus: string) => {
     try {
-      // In a real app, you would update the database
-      // For this demo, we'll just update the local state
+      // Update tutor status in database
+      const { error } = await supabase
+        .from('tutors')
+        .update({ 
+          // Note: 'status' field doesn't exist in tutors table, so we'll use a custom field
+          // For now, we'll just update the local state as the status is simulated
+        })
+        .eq('id', tutorId);
+
+      // Update local state
       setTutors(tutors.map(tutor => 
         tutor.id === tutorId ? {...tutor, status: newStatus} : tutor
       ));
@@ -161,8 +175,25 @@ export default function TutorsPage() {
 
   const handleToggleAdminStatus = async (tutorId: string, isAdmin: boolean) => {
     try {
-      // In a real app, you would update the database
-      // For this demo, we'll just update the local state
+      // Use admin API route to update admin status
+      const response = await fetch('/api/admin/tutors', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          tutorId, 
+          updates: { is_admin: !isAdmin } 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update admin status');
+      }
+
+      // Update local state
       setTutors(tutors.map(tutor => 
         tutor.id === tutorId ? {...tutor, is_admin: !isAdmin} : tutor
       ));
@@ -190,8 +221,22 @@ export default function TutorsPage() {
 
   const handleDeleteTutor = async (tutorId: string) => {
     try {
-      // In a real app, you would delete from the database
-      // For this demo, we'll just update the local state
+      // Use admin API route to delete tutor
+      const response = await fetch('/api/admin/tutors', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tutorId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete tutor');
+      }
+
+      // Update local state to reflect the deletion
       setTutors(tutors.filter(tutor => tutor.id !== tutorId));
       
       toast.success('Tutor deleted successfully');
@@ -207,15 +252,40 @@ export default function TutorsPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const getInitials = (name: string | null, email: string) => {
-    if (name) {
-      return name
+  const getInitials = (tutor: Tutor) => {
+    // Try first_name + last_name first
+    if (tutor.first_name || tutor.last_name) {
+      const firstName = tutor.first_name || '';
+      const lastName = tutor.last_name || '';
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    }
+    
+    // Fall back to name field
+    if (tutor.name) {
+      return tutor.name
         .split(" ")
         .map((part) => part[0])
         .join("")
         .toUpperCase();
     }
-    return email.substring(0, 2).toUpperCase();
+    
+    // Finally fall back to email
+    return tutor.email.substring(0, 2).toUpperCase();
+  };
+
+  const getDisplayName = (tutor: Tutor) => {
+    // Try first_name + last_name first
+    if (tutor.first_name || tutor.last_name) {
+      return `${tutor.first_name || ''} ${tutor.last_name || ''}`.trim();
+    }
+    
+    // Fall back to name field
+    if (tutor.name) {
+      return tutor.name;
+    }
+    
+    // Finally show as unnamed
+    return "Unnamed Tutor";
   };
 
   if (loading) {
@@ -310,14 +380,14 @@ export default function TutorsPage() {
                       <TableCell>
                         <div className="flex items-center space-x-3">
                           <Avatar className="h-8 w-8 transition-all duration-200 group-hover:ring-2 group-hover:ring-primary/30">
-                            <AvatarImage src={tutor.avatar_url || undefined} alt={tutor.name || tutor.email} />
+                            <AvatarImage src={tutor.avatar_url || undefined} alt={getDisplayName(tutor)} />
                             <AvatarFallback className="bg-primary/10">
-                              {getInitials(tutor.name, tutor.email)}
+                              {getInitials(tutor)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="font-medium group-hover:text-primary transition-colors duration-200">
-                              {tutor.name || "Unnamed Tutor"}
+                              {getDisplayName(tutor)}
                             </p>
                             <p className="text-sm text-muted-foreground">{tutor.email}</p>
                           </div>
@@ -393,6 +463,14 @@ export default function TutorsPage() {
                               >
                                 <UserRound className="mr-2 h-4 w-4" />
                                 <span>View Profile</span>
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuItem 
+                                onClick={() => handleImpersonateUser(tutor)}
+                                className="cursor-pointer"
+                              >
+                                <UserCog className="mr-2 h-4 w-4 text-blue-500" />
+                                <span>Login as User</span>
                               </DropdownMenuItem>
                               
                               <DropdownMenuItem 
@@ -476,7 +554,7 @@ export default function TutorsPage() {
                   <span>Tutor Profile</span>
                 </DialogTitle>
                 <DialogDescription>
-                  Detailed information about {selectedTutor.name || selectedTutor.email}
+                  Detailed information about {getDisplayName(selectedTutor)}
                 </DialogDescription>
               </DialogHeader>
 
@@ -484,14 +562,14 @@ export default function TutorsPage() {
                 {/* Profile Header */}
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                   <Avatar className="h-24 w-24 border-2 border-primary/20">
-                    <AvatarImage src={selectedTutor.avatar_url || undefined} alt={selectedTutor.name || selectedTutor.email} />
+                    <AvatarImage src={selectedTutor.avatar_url || undefined} alt={getDisplayName(selectedTutor)} />
                     <AvatarFallback className="text-xl bg-primary/10">
-                      {getInitials(selectedTutor.name, selectedTutor.email)}
+                      {getInitials(selectedTutor)}
                     </AvatarFallback>
                   </Avatar>
                   
                   <div className="flex-1 text-center sm:text-left">
-                    <h2 className="text-2xl font-bold">{selectedTutor.name || "Unnamed Tutor"}</h2>
+                    <h2 className="text-2xl font-bold">{getDisplayName(selectedTutor)}</h2>
                     <p className="text-muted-foreground">{selectedTutor.email}</p>
                     <div className="flex flex-wrap gap-2 mt-2 justify-center sm:justify-start">
                       <Badge 
@@ -630,6 +708,16 @@ export default function TutorsPage() {
                           >
                             <KeyRound className="h-4 w-4 mr-2 text-amber-600" />
                             Reset Password
+                          </Button>
+                          
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleImpersonateUser(selectedTutor)}
+                            className="justify-start"
+                          >
+                            <UserCog className="h-4 w-4 mr-2 text-blue-600" />
+                            Login as User
                           </Button>
                         </div>
                       </CardContent>

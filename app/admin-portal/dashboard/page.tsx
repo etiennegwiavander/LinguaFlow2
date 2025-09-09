@@ -63,6 +63,8 @@ import {
 interface Tutor {
   id: string;
   name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   email: string;
   avatar_url: string | null;
   is_admin: boolean;
@@ -106,10 +108,10 @@ export default function AdminDashboardPage() {
   const fetchAdminData = async () => {
     try {
       setLoading(true);
-      // Fetch tutors with student and lesson counts
+      // Fetch ALL tutors with student and lesson counts (including first_name, last_name)
       const { data: tutorsData, error: tutorsError } = await supabase
         .from('tutors')
-        .select('id, name, email, avatar_url, is_admin, created_at');
+        .select('id, name, first_name, last_name, email, avatar_url, is_admin, created_at');
 
       if (tutorsError) throw tutorsError;
 
