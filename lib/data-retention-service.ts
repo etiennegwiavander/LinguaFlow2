@@ -495,8 +495,8 @@ class DataRetentionService {
 
       return {
         recordCount: count || 0,
-        oldestRecord: oldest ? new Date(oldest[dateColumn]) : undefined,
-        newestRecord: newest ? new Date(newest[dateColumn]) : undefined,
+        oldestRecord: oldest ? new Date((oldest as any)[dateColumn]) : undefined,
+        newestRecord: newest ? new Date((newest as any)[dateColumn]) : undefined,
         estimatedSize
       };
     } catch (error) {
@@ -632,5 +632,7 @@ class DataRetentionService {
   }
 }
 
-// Export singleton instance
-export const dataRetentionService = new DataRetentionService();
+// Export factory function instead of singleton to avoid build-time initialization
+export function createDataRetentionService() {
+  return new DataRetentionService();
+}

@@ -8,7 +8,7 @@ export async function GET() {
       success: true, 
       message: 'Mock data service is working!',
       emailTypes: data.emailTypes.length,
-      systemStatus: data.systemHealth.overall_status
+      systemStatus: data.systemHealth.status
     });
   } catch (error) {
     return NextResponse.json({ 

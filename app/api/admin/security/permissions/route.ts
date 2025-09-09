@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
 
     // Validate permissions
     const validPermissions = Object.values(ADMIN_PERMISSIONS);
-    const invalidPermissions = permissions.filter((perm: string) => !validPermissions.includes(perm));
+    const invalidPermissions = permissions.filter((perm: string) => !validPermissions.includes(perm as any));
     if (invalidPermissions.length > 0) {
       return NextResponse.json({
         error: `Invalid permissions: ${invalidPermissions.join(', ')}`

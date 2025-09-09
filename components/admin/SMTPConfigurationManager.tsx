@@ -5,7 +5,7 @@ import { Plus, Edit, Trash2, TestTube, CheckCircle, XCircle, AlertCircle, Eye, E
 import { EmailErrorBoundary } from './EmailErrorBoundary';
 import { EmailOperationLoading, SMTPConfigLoading } from './EmailLoadingStates';
 import { EmailErrorMessage, EmailErrorSummary } from './EmailErrorMessages';
-import { NotificationContainer, EmailConfirmationDialogs } from './EmailNotifications';
+import { NotificationContainer, EmailConfirmationDialogs, type Notification } from './EmailNotifications';
 import { ValidatedFormField, emailValidationRules, FormValidationSummary } from './EmailFormValidation';
 import { TooltipHelp, ContextualHelp, fieldHelp } from './EmailHelpSystem';
 import { useSMTPConfigHandling } from '@/hooks/useEmailErrorHandling';
@@ -515,7 +515,7 @@ function SMTPConfigurationManagerContent() {
               Are you sure you want to delete this SMTP configuration? This action cannot be undone.
               {deleteConfig?.is_active && (
                 <div className="mt-2 p-2 bg-destructive/10 rounded text-destructive text-sm">
-                  This is the active configuration. You cannot delete it while it's active.
+                  This is the active configuration. You cannot delete it while it&apos;s active.
                 </div>
               )}
             </AlertDialogDescription>
@@ -537,7 +537,7 @@ function SMTPConfigurationManagerContent() {
 }
 
 export default function SMTPConfigurationManager() {
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   
   const handleDismissNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));

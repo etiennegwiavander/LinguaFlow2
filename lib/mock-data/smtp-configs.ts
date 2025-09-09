@@ -141,7 +141,8 @@ function generateMockSMTPConfig(
   const providerConfig = SMTP_PROVIDERS[provider];
   const testStatus: SMTPConfig['test_status'] = 
     Math.random() > 0.8 ? 'failed' : 
-    Math.random() > 0.1 ? 'success' : 'pending';
+    Math.random() > 0.6 ? 'success' : 
+    Math.random() > 0.3 ? 'pending' : 'never_tested';
   
   const now = new Date();
   const createdAt = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);

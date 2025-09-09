@@ -8,7 +8,7 @@ import { validateAdminSession, hasPermission, ADMIN_PERMISSIONS } from '@/lib/ad
 import { auditLogger, AUDIT_ACTIONS, AUDIT_RESOURCES } from '@/lib/audit-logging-service';
 import { gdprService } from '@/lib/gdpr-compliance-service';
 import { unsubscribeService } from '@/lib/unsubscribe-service';
-import { dataRetentionService } from '@/lib/data-retention-service';
+import { createDataRetentionService } from '@/lib/data-retention-service';
 
 // Mock Supabase
 jest.mock('@supabase/supabase-js', () => ({
@@ -419,7 +419,7 @@ describe('Data Retention Service', () => {
       // Mock update
       mockSupabase.from().update.mockResolvedValue({ error: null });
 
-      const executions = await dataRetentionService.executeRetentionPolicies();
+      const executions = await createDataRetentionService().executeRetentionPolicies();
 
       expect(executions).toHaveLength(1);
       expect(executions[0].recordsDeleted).toBe(2);
@@ -448,7 +448,7 @@ describe('Data Retention Service', () => {
         };
       });
 
-      const inventory = await dataRetentionService.getDataInventory();
+      const inventory = await createDataRetentionService().getDataInventory();
 
       expect(inventory).toEqual(
         expect.arrayContaining([

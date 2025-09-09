@@ -9,20 +9,39 @@ const nextConfig = {
   },
   // Configure for deployment
   trailingSlash: true,
-  // Disable SWC minification to avoid build issues
+  // Completely disable all minification
   swcMinify: false,
+  // Disable compiler optimizations that might cause issues
+  compiler: {
+    removeConsole: false,
+  },
   // Output configuration for Netlify
   // output: 'standalone', // Removed - not compatible with Netlify
-  // Basic webpack configuration
+  // Aggressive webpack configuration to disable minification
   webpack: (config, { isServer, dev }) => {
     // Suppress warnings for dynamic requires
     config.module = config.module || {};
     config.module.exprContextCritical = false;
     
-    // Disable Terser minification in production
-    if (!dev && !isServer) {
-      config.optimization = config.optimization || {};
+    // Completely disable all minification and optimization
+    config.optimization = config.optimization || {};
+    config.optimization.minimize = false;
+    config.optimization.minimizer = [];
+    
+    // Disable Terser plugin completely
+    if (config.optimization.minimizer) {
+      config.optimization.minimizer = config.optimization.minimizer.filter(
+        plugin => plugin.constructor.name !== 'TerserPlugin'
+      );
+    }
+    
+    // Force disable minification in all environments
+    config.mode = dev ? 'development' : 'production';
+    if (!dev) {
+      // Override any minification settings
       config.optimization.minimize = false;
+      config.optimization.usedExports = false;
+      config.optimization.sideEffects = false;
     }
     
     // Add fallbacks for Node.js modules on client side
@@ -48,9 +67,19 @@ const nextConfig = {
     
     return config;
   },
+  // Disable problematic features for Netlify
+  productionBrowserSourceMaps: false,
+  
   // Experimental features
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    // Disable features that might cause build issues
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
+  },
+  
+  // Environment-specific configuration
+  env: {
+    CUSTOM_KEY: 'my-value',
   },
 };
 

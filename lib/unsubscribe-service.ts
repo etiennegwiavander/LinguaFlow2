@@ -529,7 +529,7 @@ class UnsubscribeService {
         activePreferences: preferences?.length || 0
       };
 
-      preferences?.forEach(pref => {
+      preferences?.forEach((pref: any) => {
         if (pref.unsubscribed_at) {
           stats.totalUnsubscribes++;
         }

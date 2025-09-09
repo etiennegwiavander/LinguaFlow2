@@ -339,7 +339,7 @@ export function getMockDashboardDataWithUpdates(): DashboardData {
   
   // Simulate some real-time updates
   data.quickStats.pending_emails = Math.floor(Math.random() * 25);
-  data.systemHealth.last_check = new Date().toISOString();
+  data.systemHealth.lastHealthCheck = new Date().toISOString();
   
   return data;
 }
@@ -357,10 +357,10 @@ export function getMockSystemStatus(): {
   last_incident?: string;
 } {
   const services = [
-    { name: 'Email Delivery', status: 'operational' as const, uptime: 99.8 },
-    { name: 'SMTP Service', status: 'operational' as const, uptime: 99.5 },
-    { name: 'Template Engine', status: 'operational' as const, uptime: 99.9 },
-    { name: 'Analytics', status: 'operational' as const, uptime: 99.7 }
+    { name: 'Email Delivery', status: 'operational' as 'operational' | 'degraded' | 'outage', uptime: 99.8 },
+    { name: 'SMTP Service', status: 'operational' as 'operational' | 'degraded' | 'outage', uptime: 99.5 },
+    { name: 'Template Engine', status: 'operational' as 'operational' | 'degraded' | 'outage', uptime: 99.9 },
+    { name: 'Analytics', status: 'operational' as 'operational' | 'degraded' | 'outage', uptime: 99.7 }
   ];
 
   // Randomly degrade one service

@@ -3,6 +3,13 @@
  * Central export point for all email management mock data services
  */
 
+// Import functions for internal use
+import { generateMockEmailAnalytics } from './email-analytics';
+import { generateMockEmailTemplates } from './email-templates';
+import { generateMockSMTPConfigs } from './smtp-configs';
+import { generateMockEmailLogs } from './email-logs';
+import { generateMockDashboardData } from './dashboard-data';
+
 // Email Analytics
 export {
   generateMockEmailAnalytics,

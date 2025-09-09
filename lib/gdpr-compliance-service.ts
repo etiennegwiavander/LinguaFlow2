@@ -95,7 +95,11 @@ class GDPRComplianceService {
 
     // Extract placeholders from template
     const placeholderRegex = /\{\{([^}]+)\}\}/g;
-    const placeholders = [...templateContent.matchAll(placeholderRegex)].map(match => match[1].trim());
+    const placeholders: string[] = [];
+    let match;
+    while ((match = placeholderRegex.exec(templateContent)) !== null) {
+      placeholders.push(match[1].trim());
+    }
 
     // Check for personal data fields
     for (const placeholder of placeholders) {
@@ -466,8 +470,8 @@ class GDPRComplianceService {
 
       return {
         summary: {
-          totalEmailLogs: emailLogs?.reduce((sum, item) => sum + item.count, 0) || 0,
-          totalTemplates: templates?.reduce((sum, item) => sum + item.count, 0) || 0,
+          totalEmailLogs: emailLogs?.reduce((sum: number, item: any) => sum + item.count, 0) || 0,
+          totalTemplates: templates?.reduce((sum: number, item: any) => sum + item.count, 0) || 0,
           activeRetentionPolicies: retentionStatus?.length || 0,
           lastComplianceCheck: new Date().toISOString()
         },

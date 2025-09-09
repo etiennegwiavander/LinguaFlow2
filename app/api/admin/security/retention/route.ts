@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { validateAdminSession, getClientIP, ADMIN_PERMISSIONS, hasPermission } from '@/lib/admin-auth-middleware';
-import { dataRetentionService } from '@/lib/data-retention-service';
+import { createDataRetentionService } from '@/lib/data-retention-service';
 import { logSecurityEvent, logDataOperation, AUDIT_ACTIONS } from '@/lib/audit-logging-service';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -46,13 +46,13 @@ export async function GET(request: NextRequest) {
     const includeReport = searchParams.get('includeReport') === 'true';
 
     // Get retention policies
-    const policies = await dataRetentionService.getRetentionPolicies();
+    const policies = await createDataRetentionService().getRetentionPolicies();
 
     let response: any = { policies };
 
     // Include compliance report if requested
     if (includeReport) {
-      const complianceReport = await dataRetentionService.getRetentionComplianceReport();
+      const complianceReport = await createDataRetentionService().getRetentionComplianceReport();
       response = { ...response, ...complianceReport };
     }
 
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create retention policy
-    const policy = await dataRetentionService.createRetentionPolicy({
+    const policy = await createDataRetentionService().createRetentionPolicy({
       dataType,
       retentionDays,
       autoDelete: autoDelete || false,
@@ -165,7 +165,7 @@ export async function PUT(request: NextRequest) {
     const { policyIds, dryRun = false } = body;
 
     // Execute retention policies
-    const executions = await dataRetentionService.executeRetentionPolicies(policyIds);
+    const executions = await createDataRetentionService().executeRetentionPolicies(policyIds);
 
     // Calculate totals
     const totalRecordsDeleted = executions.reduce((sum, exec) => sum + exec.recordsDeleted, 0);

@@ -349,7 +349,7 @@ class AuditLoggingService {
 
       const stats: Record<string, number> = {};
       
-      data?.forEach(log => {
+      data?.forEach((log: any) => {
         const key = `${log.resource}:${log.action}`;
         stats[key] = (stats[key] || 0) + 1;
       });

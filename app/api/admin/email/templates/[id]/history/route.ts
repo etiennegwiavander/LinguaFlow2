@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Initialize Supabase client lazily
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 // Check if user is admin
 async function isAdminUser(request: NextRequest): Promise<boolean> {
@@ -13,12 +15,12 @@ async function isAdminUser(request: NextRequest): Promise<boolean> {
   if (!authHeader) return false;
   
   const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error } = await supabase.auth.getUser(token);
+  const { data: { user }, error } = await getSupabaseClient().auth.getUser(token);
   
   if (error || !user) return false;
   
   // Check if user has admin role
-  const { data: adminCheck } = await supabase
+  const { data: adminCheck } = await getSupabaseClient()
     .from('email_settings')
     .select('setting_value')
     .eq('setting_key', 'admin_emails')
@@ -44,7 +46,7 @@ export async function GET(
     }
 
     // First verify the template exists
-    const { data: template, error: templateError } = await supabase
+    const { data: template, error: templateError } = await getSupabaseClient()
       .from('email_templates')
       .select('id, name, type')
       .eq('id', params.id)
@@ -59,7 +61,7 @@ export async function GET(
     }
     
     // Get template history with user information
-    const { data: history, error } = await supabase
+    const { data: history, error } = await getSupabaseClient()
       .from('email_template_history')
       .select(`
         *,
@@ -128,7 +130,7 @@ export async function POST(
     }
     
     // Get the historical version
-    const { data: historicalVersion, error: historyError } = await supabase
+    const { data: historicalVersion, error: historyError } = await getSupabaseClient()
       .from('email_template_history')
       .select('*')
       .eq('template_id', params.id)
@@ -146,11 +148,11 @@ export async function POST(
     // Get current user for the rollback
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token!);
+    const { data: { user } } = await getSupabaseClient().auth.getUser(token!);
     
     // Update the current template with the historical version data
     // This will trigger the history creation via database trigger
-    const { data: updatedTemplate, error: updateError } = await supabase
+    const { data: updatedTemplate, error: updateError } = await getSupabaseClient()
       .from('email_templates')
       .update({
         subject: historicalVersion.subject,
