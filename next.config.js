@@ -9,39 +9,27 @@ const nextConfig = {
   },
   // Configure for deployment
   trailingSlash: true,
-  // Completely disable all minification
+  // Disable SWC minification to avoid build issues
   swcMinify: false,
-  // Disable compiler optimizations that might cause issues
-  compiler: {
-    removeConsole: false,
-  },
   // Output configuration for Netlify
   // output: 'standalone', // Removed - not compatible with Netlify
-  // Aggressive webpack configuration to disable minification
+  // Simple webpack configuration to disable minification
   webpack: (config, { isServer, dev }) => {
     // Suppress warnings for dynamic requires
     config.module = config.module || {};
     config.module.exprContextCritical = false;
     
-    // Completely disable all minification and optimization
-    config.optimization = config.optimization || {};
-    config.optimization.minimize = false;
-    config.optimization.minimizer = [];
-    
-    // Disable Terser plugin completely
-    if (config.optimization.minimizer) {
-      config.optimization.minimizer = config.optimization.minimizer.filter(
-        plugin => plugin.constructor.name !== 'TerserPlugin'
-      );
-    }
-    
-    // Force disable minification in all environments
-    config.mode = dev ? 'development' : 'production';
+    // Disable minification only
     if (!dev) {
-      // Override any minification settings
+      config.optimization = config.optimization || {};
       config.optimization.minimize = false;
-      config.optimization.usedExports = false;
-      config.optimization.sideEffects = false;
+      
+      // Remove Terser plugin specifically
+      if (config.optimization.minimizer) {
+        config.optimization.minimizer = config.optimization.minimizer.filter(
+          plugin => plugin.constructor.name !== 'TerserPlugin'
+        );
+      }
     }
     
     // Add fallbacks for Node.js modules on client side
@@ -67,19 +55,9 @@ const nextConfig = {
     
     return config;
   },
-  // Disable problematic features for Netlify
-  productionBrowserSourceMaps: false,
-  
   // Experimental features
   experimental: {
     optimizePackageImports: ['lucide-react'],
-    // Disable features that might cause build issues
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
-  },
-  
-  // Environment-specific configuration
-  env: {
-    CUSTOM_KEY: 'my-value',
   },
 };
 
