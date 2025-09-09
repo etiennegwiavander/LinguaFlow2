@@ -5,9 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import LandingLayout from "@/components/landing/LandingLayout";
+import InteractiveFeaturesSection from "@/components/landing/InteractiveFeaturesSection";
+import TrustSecuritySection from "@/components/landing/TrustSecuritySection";
+import ComparisonSlider from "@/components/landing/ComparisonSlider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Brain,
   Zap,
@@ -33,6 +37,9 @@ import {
   X,
   Calendar,
   MousePointer2,
+  Building,
+  Briefcase,
+
 } from "lucide-react";
 
 export default function HomePage() {
@@ -52,7 +59,7 @@ export default function HomePage() {
 
   const handleWatchDemo = () => {
     setShowDemoVideo(!showDemoVideo);
-    
+
     // If showing video, scroll to it after a short delay to ensure it's rendered
     if (!showDemoVideo) {
       setTimeout(() => {
@@ -69,9 +76,9 @@ export default function HomePage() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <img 
-              src="/linguaflowfavicon.png" 
-              alt="LinguaFlow Logo" 
+            <img
+              src="/linguaflowfavicon.png"
+              alt="LinguaFlow Logo"
               className="h-12 w-12 animate-pulse"
             />
           </div>
@@ -92,75 +99,92 @@ export default function HomePage() {
   const features = [
     {
       icon: Brain,
-      title: "AI-Powered Lesson Generation",
-      description: "Create personalized lesson plans in seconds using advanced AI that understands each student's unique learning style and needs.",
+      title: "Advanced AI Lesson Generation",
+      description: "Generate complete lesson plans with interactive exercises, discussion topics, and vocabulary flashcards in under 30 seconds using AI that understands 15+ student profile factors.",
       color: "text-cyber-400",
       bgColor: "bg-cyber-400/10",
     },
     {
       icon: Target,
-      title: "Hyper-Personalized Content",
-      description: "Every lesson is tailored to individual student profiles, addressing specific weaknesses and building on strengths.",
+      title: "True Hyper-Personalization",
+      description: "AI analyzes individual learning styles, strengths, weaknesses, and cultural background to create lessons that adapt to each student's unique journey and goals.",
       color: "text-neon-400",
       bgColor: "bg-neon-400/10",
     },
     {
-      icon: Calendar,
-      title: "Google Calendar Integration",
-      description: "Seamlessly sync with your Google Calendar to view upcoming lessons, manage your schedule, and never miss a session.",
-      color: "text-emerald-400",
-      bgColor: "bg-emerald-400/10",
-    },
-    {
-      icon: MousePointer2,
-      title: "Instant Translation",
-      description: "Double-click any word or select text to instantly translate, eliminating the need for external translation tools during lessons.",
+      icon: MessageSquare,
+      title: "AI Discussion Topics Generator",
+      description: "Generate unlimited conversation starters with follow-up questions, cultural context, and difficulty adjustments tailored to student interests and proficiency level.",
       color: "text-purple-400",
       bgColor: "bg-purple-400/10",
     },
     {
-      icon: Clock,
-      title: "Real-Time Adaptation",
-      description: "Lessons automatically adjust based on student progress and performance analytics.",
+      icon: BookOpen,
+      title: "Infinite Vocabulary Flashcards",
+      description: "AI creates vocabulary sets with semantic relationships, pronunciation guides, and contextual examples. Never run out of relevant words to teach.",
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-400/10",
+    },
+    {
+      icon: Calendar,
+      title: "Smart Calendar Integration",
+      description: "Seamlessly sync with Google Calendar, automatically generate lessons for upcoming sessions, and send personalized reminders to students.",
+      color: "text-blue-400",
+      bgColor: "bg-blue-400/10",
+    },
+    {
+      icon: MousePointer2,
+      title: "Instant Translation & Context",
+      description: "Double-click any word for instant translation with cultural context, pronunciation, and usage examples - eliminating the need for external tools.",
       color: "text-orange-400",
       bgColor: "bg-orange-400/10",
     },
     {
-      icon: BarChart3,
-      title: "Advanced Analytics",
-      description: "Track student progress with detailed insights and performance metrics to optimize learning outcomes.",
-      color: "text-blue-400",
-      bgColor: "bg-blue-400/10",
+      icon: TrendingUp,
+      title: "Adaptive Learning Analytics",
+      description: "Track student progress with detailed insights showing engagement patterns, skill development, and learning velocity to optimize outcomes.",
+      color: "text-teal-400",
+      bgColor: "bg-teal-400/10",
+    },
+    {
+      icon: Shield,
+      title: "Enterprise Security & Privacy",
+      description: "GDPR compliant, SOC 2 certified platform with AES-256 encryption, ensuring your student data is protected with bank-level security.",
+      color: "text-indigo-400",
+      bgColor: "bg-indigo-400/10",
     },
   ];
 
   const stats = [
-    { number: "50K+", label: "Lessons Generated", icon: BookOpen },
-    { number: "2.5K+", label: "Active Tutors", icon: Users },
-    { number: "15K+", label: "Students Taught", icon: GraduationCap },
-    { number: "98%", label: "Satisfaction Rate", icon: Star },
+    { number: "95%", label: "Less Prep Time", icon: Clock, color: "text-emerald-400" },
+    { number: "85%", label: "Higher Engagement", icon: TrendingUp, color: "text-blue-400" },
+    { number: "2.5K+", label: "Active Educators", icon: Users, color: "text-purple-400" },
+    { number: "50+", label: "Countries Served", icon: Globe, color: "text-cyan-400" },
   ];
 
   const testimonials = [
     {
       name: "Sarah Chen",
-      role: "ESL Teacher",
+      role: "ESL Teacher, International Language Academy",
       avatar: "https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2",
-      content: "LinguaFlow has revolutionized my teaching. I can create personalized lessons for 20+ students in minutes instead of hours.",
+      content: "My lesson prep time dropped from 3 hours to 15 minutes. Student engagement increased 85% with the interactive discussion topics and vocabulary flashcards.",
+      metrics: "85% engagement increase",
       rating: 5,
     },
     {
       name: "Miguel Rodriguez",
-      role: "Language School Director",
+      role: "Language School Director, 200+ students",
       avatar: "https://images.pexels.com/photos/1043473/pexels-photo-1043473.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2",
-      content: "The AI understands cultural nuances and creates content that resonates with students from different backgrounds.",
+      content: "LinguaFlow's AI creates culturally relevant content that resonates with students from 15+ countries. Our retention rate improved by 40% since implementation.",
+      metrics: "40% retention improvement",
       rating: 5,
     },
     {
       name: "Emma Thompson",
-      role: "Private Tutor",
+      role: "Private Tutor, Business English Specialist",
       avatar: "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2",
-      content: "My students are more engaged than ever. The interactive lessons keep them motivated and excited to learn.",
+      content: "The vocabulary flashcards with semantic relationships help my corporate clients learn 3x faster. They love the personalized content that matches their industry.",
+      metrics: "3x faster learning",
       rating: 5,
     },
   ];
@@ -174,7 +198,7 @@ export default function HomePage() {
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-br from-neural-50 via-cyber-50/30 to-neon-50/20 dark:from-neural-900 dark:via-neural-800 dark:to-neural-900"></div>
         <div className="absolute inset-0 grid-background opacity-30"></div>
-        
+
         {/* Floating Elements */}
         <div className="absolute top-20 left-10 w-20 h-20 bg-cyber-400/20 rounded-full blur-xl animate-float"></div>
         <div className="absolute top-40 right-20 w-32 h-32 bg-neon-400/20 rounded-full blur-xl animate-float" style={{ animationDelay: '2s' }}></div>
@@ -186,20 +210,20 @@ export default function HomePage() {
               <Sparkles className="w-3 h-3 mr-1" />
               Built for Private One-on-One Language Tutors
             </Badge>
-            
+
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="gradient-text">Hyper-Personalized</span>
+              <span className="gradient-text">AI-Powered Teaching</span>
               <br />
-              <span className="text-foreground">Language Lessons</span>
+              <span className="text-foreground">That Adapts to Every</span>
               <br />
-              <span className="text-foreground/80">in Seconds</span>
+              <span className="text-foreground/80">Student in 30 Seconds</span>
             </h1>
-            
-            <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-              Create engaging, AI-powered lesson plans tailored to each student's unique learning style. 
-              Sync with Google Calendar and translate on-the-fly to transform your teaching experience.
+
+            <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-4xl mx-auto leading-relaxed">
+              Create engaging lesson plans with interactive discussion topics, vocabulary flashcards,
+              and adaptive exercises. Reduce prep time by 95% while increasing student engagement by 85%.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
               <Link href="/auth/signup">
                 <Button size="lg" className="bg-gradient-to-r from-cyber-400 to-neon-400 hover:from-cyber-500 hover:to-neon-500 text-white border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300 group px-8 py-6 text-lg">
@@ -208,9 +232,9 @@ export default function HomePage() {
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                 </Button>
               </Link>
-              <Button 
-                variant="outline" 
-                size="lg" 
+              <Button
+                variant="outline"
+                size="lg"
                 className="border-cyber-400/30 text-cyber-600 dark:text-cyber-400 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300 px-8 py-6 text-lg"
                 onClick={handleWatchDemo}
               >
@@ -228,45 +252,52 @@ export default function HomePage() {
               </Button>
             </div>
 
-{/* Demo Video Section */}
-{showDemoVideo && (
-  <div 
-    ref={videoSectionRef} 
-    className="w-full max-w-4xl mx-auto mb-12 animate-scale-in"
-    id="demo-video-section"
-  >
-    <div className="relative rounded-lg overflow-hidden shadow-xl border border-cyber-400/30">
-      <div className="aspect-video">
-        <iframe 
-          src="https://www.youtube.com/embed/haCKxBlcc6E?si=xVLIN0p4iGD9iwuf&autoplay=1" 
-          title="YouTube video player"
-          className="w-full h-full"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-          referrerPolicy="strict-origin-when-cross-origin"
-          allowFullScreen
-        ></iframe>
-      </div>
-    </div>
-  </div>
-)}
+            {/* Demo Video Section */}
+            {showDemoVideo && (
+              <div
+                ref={videoSectionRef}
+                className="w-full max-w-4xl mx-auto mb-12 animate-scale-in"
+                id="demo-video-section"
+              >
+                <div className="relative rounded-lg overflow-hidden shadow-xl border border-cyber-400/30">
+                  <div className="aspect-video">
+                    <iframe
+                      src="https://www.youtube.com/embed/haCKxBlcc6E?si=xVLIN0p4iGD9iwuf&autoplay=1"
+                      title="YouTube video player"
+                      className="w-full h-full"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                </div>
+              </div>
+            )}
+
+
 
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mt-16">
               {stats.map((stat, index) => (
                 <div key={index} className="text-center animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
                   <div className="flex justify-center mb-2">
-                    <stat.icon className="w-6 h-6 text-cyber-400" />
+                    <div className={`w-12 h-12 rounded-full bg-gradient-to-r from-cyber-400/20 to-neon-400/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                      <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                    </div>
                   </div>
-                  <div className="text-2xl md:text-3xl font-bold gradient-text">{stat.number}</div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  <div className="text-3xl md:text-4xl font-bold gradient-text">{stat.number}</div>
+                  <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </section>
+
+      {/* Interactive Features Section */}
+      <InteractiveFeaturesSection />
 
       {/* Features Section */}
       <section id="features" className="py-24 bg-muted/30 relative overflow-hidden">
@@ -282,7 +313,7 @@ export default function HomePage() {
               <span className="gradient-text"> Transform Teaching</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Our AI-powered platform provides all the tools you need to create engaging, 
+              Our AI-powered platform provides all the tools you need to create engaging,
               personalized language lessons that adapt to each student's learning journey.
             </p>
           </div>
@@ -309,6 +340,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Comparison Slider Section */}
+      <ComparisonSlider />
+
       {/* How It Works Section */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-cyber-50/30 to-neon-50/20 dark:from-cyber-900/20 dark:to-neon-900/10"></div>
@@ -323,7 +357,7 @@ export default function HomePage() {
               <span className="gradient-text"> Perfect Lesson</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Our intelligent system transforms student information into engaging, 
+              Our intelligent system transforms student information into engaging,
               personalized lessons in just three simple steps.
             </p>
           </div>
@@ -383,6 +417,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Trust & Security Section */}
+      <TrustSecuritySection />
+
       {/* Testimonials Section */}
       <section className="py-24 bg-muted/30 relative overflow-hidden">
         <div className="absolute inset-0 grid-background opacity-20"></div>
@@ -410,9 +447,19 @@ export default function HomePage() {
                       <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
                     ))}
                   </div>
-                  <p className="text-muted-foreground mb-6 leading-relaxed">
+                  <p className="text-muted-foreground mb-4 leading-relaxed">
                     "{testimonial.content}&quot;
                   </p>
+
+                  {testimonial.metrics && (
+                    <div className="mb-4">
+                      <Badge className="bg-gradient-to-r from-emerald-400/20 to-blue-400/20 text-emerald-600 dark:text-emerald-400 border-emerald-400/30">
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        {testimonial.metrics}
+                      </Badge>
+                    </div>
+                  )}
+
                   <div className="flex items-center">
                     <img
                       src={testimonial.avatar}
@@ -435,11 +482,90 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Use Cases Section */}
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-cyber-50/30 to-neon-50/20 dark:from-cyber-900/20 dark:to-neon-900/10"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="mb-6 bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30">
+              <Users className="w-3 h-3 mr-1" />
+              Perfect For Every Educator
+            </Badge>
+
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+              Designed for
+              <span className="gradient-text"> Every Teaching Style</span>
+            </h2>
+
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Whether you're a private tutor, language school, or corporate trainer,
+              LinguaFlow adapts to your specific needs and teaching methodology.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                title: "Private Language Tutors",
+                description: "Create personalized lessons for each student's unique learning journey with individual profiles and adaptive content.",
+                features: ["Individual student profiles", "Adaptive difficulty levels", "Progress tracking", "Flexible scheduling"],
+                icon: Users,
+                color: "text-cyber-400",
+                bgColor: "bg-cyber-400/10",
+                borderColor: "border-cyber-400/30",
+              },
+              {
+                title: "Language Schools",
+                description: "Scale personalized education across hundreds of students while maintaining quality and consistency.",
+                features: ["Bulk student management", "Curriculum alignment", "Teacher collaboration", "Performance analytics"],
+                icon: Building,
+                color: "text-neon-400",
+                bgColor: "bg-neon-400/10",
+                borderColor: "border-neon-400/30",
+              },
+              {
+                title: "Corporate Training",
+                description: "Business-focused language learning for professional development with industry-specific content.",
+                features: ["Industry-specific vocabulary", "Business scenarios", "ROI tracking", "Custom branding"],
+                icon: Briefcase,
+                color: "text-purple-400",
+                bgColor: "bg-purple-400/10",
+                borderColor: "border-purple-400/30",
+              },
+            ].map((useCase, index) => (
+              <Card key={index} className={`floating-card glass-effect border-0 hover:${useCase.borderColor} transition-all duration-300 group`}>
+                <CardHeader>
+                  <div className={`w-16 h-16 rounded-full ${useCase.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    <useCase.icon className={`w-8 h-8 ${useCase.color}`} />
+                  </div>
+                  <CardTitle className="text-xl group-hover:text-cyber-400 transition-colors duration-300">
+                    {useCase.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CardDescription className="text-base leading-relaxed">
+                    {useCase.description}
+                  </CardDescription>
+                  <div className="space-y-2">
+                    {useCase.features.map((feature, featureIndex) => (
+                      <div key={featureIndex} className="flex items-center text-sm">
+                        <CheckCircle className="w-4 h-4 text-emerald-500 mr-2 flex-shrink-0" />
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-cyber-900 via-neon-900 to-purple-900"></div>
         <div className="absolute inset-0 grid-background opacity-30"></div>
-        
+
         {/* Floating Elements */}
         <div className="absolute top-10 left-10 w-32 h-32 bg-cyber-400/20 rounded-full blur-xl animate-float"></div>
         <div className="absolute bottom-10 right-10 w-40 h-40 bg-neon-400/20 rounded-full blur-xl animate-float" style={{ animationDelay: '3s' }}></div>
@@ -447,19 +573,20 @@ export default function HomePage() {
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
           <Badge className="mb-6 bg-white/10 text-white border-white/20 hover:bg-white/20 transition-all duration-300">
             <Shield className="w-3 h-3 mr-1" />
-            Trusted by 2,500+ Educators
+            Trusted by 2,500+ Educators in 50+ Countries
           </Badge>
-          
+
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
-            Ready to Transform Your
-            <span className="gradient-text"> Teaching Experience?</span>
+            Ready to Save 95% of Your
+            <span className="gradient-text"> Prep Time?</span>
           </h2>
-          
-          <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto leading-relaxed">
-            Join thousands of educators who are already creating amazing, personalized lessons with LinguaFlow. 
-            Start your free trial today and see the difference AI can make.
+
+          <p className="text-xl text-white/80 mb-8 max-w-3xl mx-auto leading-relaxed">
+            Join thousands of educators who&apos;ve transformed their teaching with AI.
+            Create personalized, engaging lessons in 30 seconds instead of 3 hours.
+            Start your free trial today - no credit card required.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <Link href="/auth/signup">
               <Button size="lg" className="bg-white text-cyber-900 hover:bg-white/90 border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300 group px-8 py-6 text-lg font-semibold">
@@ -468,16 +595,15 @@ export default function HomePage() {
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
             </Link>
-<Link href="/pricing">
-  <Button 
-    variant="outline" 
-    size="lg" 
-    className="border-white/30 hover:bg-white/10 hover:border-white transition-all duration-300 px-8 py-6 text-lg text-black dark:text-white"
-  >
-    View Pricing
-  </Button>
-</Link>
-
+            <Link href="/pricing">
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-white/30 hover:bg-white/10 hover:border-white transition-all duration-300 px-8 py-6 text-lg text-white"
+              >
+                View Pricing
+              </Button>
+            </Link>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-6 text-sm text-white/60">

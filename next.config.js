@@ -14,10 +14,16 @@ const nextConfig = {
   // Output configuration for Netlify
   // output: 'standalone', // Removed - not compatible with Netlify
   // Basic webpack configuration
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     // Suppress warnings for dynamic requires
     config.module = config.module || {};
     config.module.exprContextCritical = false;
+    
+    // Disable Terser minification in production
+    if (!dev && !isServer) {
+      config.optimization = config.optimization || {};
+      config.optimization.minimize = false;
+    }
     
     // Add fallbacks for Node.js modules on client side
     if (!isServer) {
