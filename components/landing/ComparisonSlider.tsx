@@ -20,41 +20,7 @@ import {
 } from "lucide-react";
 
 export default function ComparisonSlider() {
-  const [showAfter, setShowAfter] = useState(false);
-
-  const traditionalMethods = [
-    {
-      icon: Clock,
-      text: "3+ hours per lesson",
-      subtext: "Manual research and planning",
-      color: "text-red-500",
-    },
-    {
-      icon: FileText,
-      text: "Generic, one-size-fits-all content",
-      subtext: "Same materials for all students",
-      color: "text-red-500",
-    },
-    {
-      icon: User,
-      text: "Manual student tracking",
-      subtext: "Spreadsheets and paper notes",
-      color: "text-red-500",
-    },
-    {
-      icon: RefreshCw,
-      text: "Static lessons, no adaptation",
-      subtext: "Fixed content regardless of progress",
-      color: "text-red-500",
-    },
-    {
-      icon: AlertCircle,
-      text: "Limited engagement tools",
-      subtext: "Basic worksheets and exercises",
-      color: "text-red-500",
-    },
-  ];
-
+  const [showAfter, setShowAfter] = useState(true);
   const linguaFlowMethods = [
     {
       icon: Zap,
@@ -91,7 +57,42 @@ export default function ComparisonSlider() {
       color: "text-emerald-500",
       highlight: "85% more engagement",
     },
+  ];  
+
+  const traditionalMethods = [
+    {
+      icon: Clock,
+      text: "3+ hours per lesson",
+      subtext: "Manual research and planning",
+      color: "text-red-500",
+    },
+    {
+      icon: FileText,
+      text: "Generic, one-size-fits-all content",
+      subtext: "Same materials for all students",
+      color: "text-red-500",
+    },
+    {
+      icon: User,
+      text: "Manual student tracking",
+      subtext: "Spreadsheets and paper notes",
+      color: "text-red-500",
+    },
+    {
+      icon: RefreshCw,
+      text: "Static lessons, no adaptation",
+      subtext: "Fixed content regardless of progress",
+      color: "text-red-500",
+    },
+    {
+      icon: AlertCircle,
+      text: "Limited engagement tools",
+      subtext: "Basic worksheets and exercises",
+      color: "text-red-500",
+    },
   ];
+
+
 
   return (
     <section className="py-24 relative overflow-hidden">
@@ -111,22 +112,26 @@ export default function ComparisonSlider() {
           </h2>
           
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            See the dramatic difference AI makes in lesson preparation time, 
+            See the dramatic difference Lingua Flow makes in lesson preparation time, 
             personalization, and student engagement.
           </p>
           
           <div className="flex items-center justify-center space-x-4 mb-8">
-            <span className={`font-medium transition-colors duration-300 ${!showAfter ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Traditional Method
+
+
+            <span className={`font-medium transition-colors duration-300 ${showAfter ? 'text-foreground' : 'text-muted-foreground'}`}>
+              With LinguaFlow
             </span>
+
             <Switch
               checked={showAfter}
               onCheckedChange={setShowAfter}
               className="data-[state=checked]:bg-emerald-400"
             />
-            <span className={`font-medium transition-colors duration-300 ${showAfter ? 'text-foreground' : 'text-muted-foreground'}`}>
-              With LinguaFlow
+            <span className={`font-medium transition-colors duration-300 ${!showAfter ? 'text-foreground' : 'text-muted-foreground'}`}>
+              Traditional Method
             </span>
+
           </div>
         </div>
 

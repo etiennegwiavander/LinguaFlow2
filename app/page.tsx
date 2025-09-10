@@ -99,21 +99,21 @@ export default function HomePage() {
   const features = [
     {
       icon: Brain,
-      title: "Advanced AI Lesson Generation",
-      description: "Generate complete lesson plans with interactive exercises, discussion topics, and vocabulary flashcards in under 30 seconds using AI that understands 15+ student profile factors.",
+      title: "Advanced Lesson Generation",
+      description: "Create complete lesson plans with interactive exercises, discussion topics, and vocabulary flashcards in under 30 seconds using AI that understands 15+ student profile factors.",
       color: "text-cyber-400",
       bgColor: "bg-cyber-400/10",
     },
     {
       icon: Target,
       title: "True Hyper-Personalization",
-      description: "AI analyzes individual learning styles, strengths, weaknesses, and cultural background to create lessons that adapt to each student's unique journey and goals.",
+      description: "Advanced analysis of individual learning styles, strengths, weaknesses, and cultural background to create lessons that adapt to each student's unique journey and goals.",
       color: "text-neon-400",
       bgColor: "bg-neon-400/10",
     },
     {
       icon: MessageSquare,
-      title: "AI Discussion Topics Generator",
+      title: "Instant Discussion Topics Generator",
       description: "Generate unlimited conversation starters with follow-up questions, cultural context, and difficulty adjustments tailored to student interests and proficiency level.",
       color: "text-purple-400",
       bgColor: "bg-purple-400/10",
@@ -121,7 +121,7 @@ export default function HomePage() {
     {
       icon: BookOpen,
       title: "Infinite Vocabulary Flashcards",
-      description: "AI creates vocabulary sets with semantic relationships, pronunciation guides, and contextual examples. Never run out of relevant words to teach.",
+      description: "Lingua Flow creates vocabulary sets with semantic relationships, pronunciation guides, and contextual examples. Never run out of relevant words to teach.",
       color: "text-emerald-400",
       bgColor: "bg-emerald-400/10",
     },
@@ -175,7 +175,7 @@ export default function HomePage() {
       name: "Miguel Rodriguez",
       role: "Language School Director, 200+ students",
       avatar: "https://images.pexels.com/photos/1043473/pexels-photo-1043473.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2",
-      content: "LinguaFlow's AI creates culturally relevant content that resonates with students from 15+ countries. Our retention rate improved by 40% since implementation.",
+      content: "LinguaFlow creates culturally relevant content that resonates with students from 15+ countries. Our retention rate improved by 40% since implementation.",
       metrics: "40% retention improvement",
       rating: 5,
     },
@@ -206,21 +206,21 @@ export default function HomePage() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="animate-slide-up">
-            <Badge className="mb-6 bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30 hover:bg-gradient-to-r hover:from-cyber-400/30 hover:to-neon-400/30 transition-all duration-300">
+            <Badge className="mb-6 bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-800 dark:text-cyber-200 border-cyber-400/30 hover:bg-gradient-to-r hover:from-cyber-400/30 hover:to-neon-400/30 transition-all duration-300">
               <Sparkles className="w-3 h-3 mr-1" />
               Built for Private One-on-One Language Tutors
             </Badge>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="gradient-text">AI-Powered Teaching</span>
+              <span className="gradient-text">Hyper-Personalized Lessons</span>
               <br />
               <span className="text-foreground">That Adapts to Every</span>
               <br />
-              <span className="text-foreground/80">Student in 30 Seconds</span>
+              <span className="text-foreground/80">Student in Seconds</span>
             </h1>
 
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-4xl mx-auto leading-relaxed">
-              Create engaging lesson plans with interactive discussion topics, vocabulary flashcards,
+              Create engaging personalized interactive lesson materials with interactive discussion topics, vocabulary flashcards,
               and adaptive exercises. Reduce prep time by 95% while increasing student engagement by 85%.
             </p>
 
@@ -235,7 +235,7 @@ export default function HomePage() {
               <Button
                 variant="outline"
                 size="lg"
-                className="border-cyber-400/30 text-cyber-600 dark:text-cyber-400 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300 px-8 py-6 text-lg"
+                className="border-cyber-400/30 text-cyber-600 dark:text-cyber-400 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all  hover:text-cyber-400 duration-300 px-8 py-6 text-lg"
                 onClick={handleWatchDemo}
               >
                 {showDemoVideo ? (
@@ -304,7 +304,7 @@ export default function HomePage() {
         <div className="absolute inset-0 grid-background opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-gradient-to-r from-purple-400/20 to-pink-400/20 text-purple-600 dark:text-purple-400 border-purple-400/30">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-400/20 to-pink-400/20 text-purple-200 dark:text-purple-800 border-purple-400/30">
               <Lightbulb className="w-3 h-3 mr-1" />
               Powerful Features
             </Badge>
@@ -313,7 +313,7 @@ export default function HomePage() {
               <span className="gradient-text"> Transform Teaching</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Our AI-powered platform provides all the tools you need to create engaging,
+              Lingua Flow provides all the tools you need to create engaging,
               personalized language lessons that adapt to each student's learning journey.
             </p>
           </div>
@@ -348,7 +348,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-cyber-50/30 to-neon-50/20 dark:from-cyber-900/20 dark:to-neon-900/10"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 text-emerald-600 dark:text-emerald-400 border-emerald-400/30">
+            <Badge className="mb-4 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 text-emerald-800 dark:text-emerald-100 border-emerald-400/30">
               <Zap className="w-3 h-3 mr-1" />
               Simple Process
             </Badge>
@@ -367,15 +367,15 @@ export default function HomePage() {
               {
                 step: "01",
                 title: "Add Student Profile",
-                description: "Input student details, learning goals, strengths, and areas for improvement. Our AI analyzes this data to understand their unique learning needs.",
+                description: "Input student details, learning goals, strengths, and areas for improvement. Our system analyzes this data to understand their unique learning needs.",
                 icon: Users,
                 color: "text-cyber-400",
                 bgColor: "bg-cyber-400/10",
               },
               {
                 step: "02",
-                title: "AI Generates Content",
-                description: "Our advanced AI creates personalized lesson plans with interactive exercises, vocabulary, and activities tailored to the student's profile.",
+                title: "Automated Content Generation",
+                description: "Our intelligent system creates personalized lesson plans with interactive exercises, vocabulary, and activities tailored to the student's profile.",
                 icon: Brain,
                 color: "text-neon-400",
                 bgColor: "bg-neon-400/10",
@@ -425,7 +425,7 @@ export default function HomePage() {
         <div className="absolute inset-0 grid-background opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 text-yellow-600 dark:text-yellow-400 border-yellow-400/30">
+            <Badge className="mb-4 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 text-yellow-900 dark:text-yellow-400 border-yellow-400/30">
               <Star className="w-3 h-3 mr-1" />
               Testimonials
             </Badge>
@@ -453,7 +453,7 @@ export default function HomePage() {
 
                   {testimonial.metrics && (
                     <div className="mb-4">
-                      <Badge className="bg-gradient-to-r from-emerald-400/20 to-blue-400/20 text-emerald-600 dark:text-emerald-400 border-emerald-400/30">
+                      <Badge className="bg-gradient-to-r from-emerald-400/20 to-blue-400/20 text-emerald-100 dark:text-emerald-400 border-emerald-400/30">
                         <TrendingUp className="w-3 h-3 mr-1" />
                         {testimonial.metrics}
                       </Badge>
@@ -487,47 +487,47 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-cyber-50/30 to-neon-50/20 dark:from-cyber-900/20 dark:to-neon-900/10"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <Badge className="mb-6 bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30">
+            <Badge className="mb-6 bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-900 dark:text-cyber-100 border-cyber-400/30">
               <Users className="w-3 h-3 mr-1" />
-              Perfect For Every Educator
+              Built for Private Tutors
             </Badge>
 
             <h2 className="text-3xl md:text-5xl font-bold mb-6">
               Designed for
-              <span className="gradient-text"> Every Teaching Style</span>
+              <span className="gradient-text"> One-on-One Teaching</span>
             </h2>
 
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Whether you're a private tutor, language school, or corporate trainer,
-              LinguaFlow adapts to your specific needs and teaching methodology.
+              LinguaFlow was specifically built for private language tutors who provide personalized,
+              one-on-one instruction and need to adapt to each student&apos;s ever-evolving learning needs.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                title: "Private Language Tutors",
-                description: "Create personalized lessons for each student's unique learning journey with individual profiles and adaptive content.",
-                features: ["Individual student profiles", "Adaptive difficulty levels", "Progress tracking", "Flexible scheduling"],
-                icon: Users,
+                title: "Beginner Students",
+                description: "Perfect for students just starting their language journey. Create foundational lessons with basic vocabulary, pronunciation guides, and simple conversation starters.",
+                features: ["Basic vocabulary flashcards", "Pronunciation practice", "Simple grammar exercises", "Cultural introductions"],
+                icon: GraduationCap,
                 color: "text-cyber-400",
                 bgColor: "bg-cyber-400/10",
                 borderColor: "border-cyber-400/30",
               },
               {
-                title: "Language Schools",
-                description: "Scale personalized education across hundreds of students while maintaining quality and consistency.",
-                features: ["Bulk student management", "Curriculum alignment", "Teacher collaboration", "Performance analytics"],
-                icon: Building,
+                title: "Intermediate Learners",
+                description: "Adapt to students building confidence with more complex conversations, grammar structures, and real-world scenarios tailored to their interests.",
+                features: ["Advanced discussion topics", "Complex grammar patterns", "Role-play scenarios", "Personalized content"],
+                icon: TrendingUp,
                 color: "text-neon-400",
                 bgColor: "bg-neon-400/10",
                 borderColor: "border-neon-400/30",
               },
               {
-                title: "Corporate Training",
-                description: "Business-focused language learning for professional development with industry-specific content.",
-                features: ["Industry-specific vocabulary", "Business scenarios", "ROI tracking", "Custom branding"],
-                icon: Briefcase,
+                title: "Advanced Speakers",
+                description: "Challenge fluent students with nuanced discussions, professional vocabulary, and specialized content that matches their career or academic goals.",
+                features: ["Professional vocabulary", "Academic discussions", "Industry-specific content", "Cultural nuances"],
+                icon: Target,
                 color: "text-purple-400",
                 bgColor: "bg-purple-400/10",
                 borderColor: "border-purple-400/30",
@@ -582,7 +582,7 @@ export default function HomePage() {
           </h2>
 
           <p className="text-xl text-white/80 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Join thousands of educators who&apos;ve transformed their teaching with AI.
+            Join thousands of educators who&apos;ve transformed their teaching with Lingua Flow.
             Create personalized, engaging lessons in 30 seconds instead of 3 hours.
             Start your free trial today - no credit card required.
           </p>
@@ -599,7 +599,7 @@ export default function HomePage() {
               <Button
                 variant="outline"
                 size="lg"
-                className="border-white/30 hover:bg-white/10 hover:border-white transition-all duration-300 px-8 py-6 text-lg text-white"
+                className="border-white/30 hover:bg-white hover:text-cyber-900 hover:border-white transition-all duration-300 px-8 py-6 text-lg text-white bg-white/10"
               >
                 View Pricing
               </Button>

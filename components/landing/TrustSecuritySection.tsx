@@ -62,7 +62,7 @@ export default function TrustSecuritySection() {
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <Badge className="mb-6 bg-gradient-to-r from-cyber-400/20 to-emerald-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30">
+          <Badge className="mb-6 bg-gradient-to-r from-cyber-400/20 to-emerald-400/20 text-cyber-900 dark:text-cyber-200 border-cyber-400/30">
             <Shield className="w-3 h-3 mr-1" />
             Enterprise-Grade Security
           </Badge>

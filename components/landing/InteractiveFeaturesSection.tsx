@@ -19,7 +19,7 @@ export default function InteractiveFeaturesSection() {
       icon: MessageSquare,
       title: "AI Discussion Topics Generator",
       description: "Generate unlimited conversation starters tailored to student interests, level, and learning goals. Each topic includes follow-up questions and cultural context.",
-      demo: "Try it: 'Business English, B2 level, Marketing professional'",
+      
       color: "text-purple-400",
       bgColor: "bg-purple-400/10",
       borderColor: "border-purple-400/30",
@@ -29,7 +29,7 @@ export default function InteractiveFeaturesSection() {
       icon: BookOpen,
       title: "Infinite Vocabulary Flashcards",
       description: "AI creates vocabulary sets with semantic relationships, example sentences, and pronunciation guides. Never run out of relevant words to teach.",
-      demo: "Example: 'Travel vocabulary for A2 students visiting London'",
+      
       color: "text-emerald-400",
       bgColor: "bg-emerald-400/10",
       borderColor: "border-emerald-400/30",
@@ -39,7 +39,7 @@ export default function InteractiveFeaturesSection() {
       icon: TrendingUp,
       title: "Adaptive Learning Paths",
       description: "Lessons automatically adjust difficulty and focus areas based on student performance and engagement analytics.",
-      demo: "Student struggling with past tense? AI emphasizes grammar practice.",
+      
       color: "text-blue-400",
       bgColor: "bg-blue-400/10",
       borderColor: "border-blue-400/30",
@@ -58,7 +58,7 @@ export default function InteractiveFeaturesSection() {
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <Badge className="mb-6 bg-gradient-to-r from-purple-400/20 to-emerald-400/20 text-purple-600 dark:text-purple-400 border-purple-400/30">
+          <Badge className="mb-6 bg-gradient-to-r from-purple-400/20 to-emerald-400/20 text-purple-600 dark:text-purple-900 border-purple-400/30">
             <Sparkles className="w-3 h-3 mr-1" />
             Interactive Learning Tools
           </Badge>
@@ -71,7 +71,7 @@ export default function InteractiveFeaturesSection() {
           </h2>
           
           <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
-            Our AI doesn't just create static lesson plans. It generates dynamic, interactive learning experiences 
+            Lingua Flow doesn't just create static lesson plans. It generates dynamic, interactive learning experiences 
             that adapt to each student's progress and keep them engaged throughout their learning journey.
           </p>
         </div>
@@ -99,18 +99,18 @@ export default function InteractiveFeaturesSection() {
                   {feature.description}
                 </CardDescription>
                 
-                <div className={`p-3 rounded-lg ${feature.bgColor} border ${feature.borderColor}`}>
+                {/* <div className={`p-3 rounded-lg ${feature.bgColor} border ${feature.borderColor}`}>
                   <p className="text-sm font-medium text-foreground/80">
                     {feature.demo}
                   </p>
-                </div>
+                </div> */}
                 
                 <div className="flex flex-wrap gap-2">
                   {feature.features.map((feat, featIndex) => (
                     <Badge 
                       key={featIndex}
                       variant="secondary"
-                      className="text-xs bg-background/50 hover:bg-background/80 transition-colors duration-200"
+                      className="text-xs bg-background/50 dark:text-cyber-400 hover:bg-background/80 transition-colors duration-200 dark:bg-background/80"
                     >
                       {feat}
                     </Badge>
@@ -128,7 +128,7 @@ export default function InteractiveFeaturesSection() {
             <span>These features are available in all plans</span>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Experience the full power of AI-driven language education. 
+            Experience the full power of true personalization in your students language learning journey. <br /><br />
             Start your free trial and see how interactive learning transforms student engagement.
           </p>
         </div>
