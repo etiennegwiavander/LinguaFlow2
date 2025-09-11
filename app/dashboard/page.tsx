@@ -381,7 +381,7 @@ export default function DashboardPage() {
               Quick Stats
             </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {stats.map((stat, index) => (
               <div key={stat.id} className="animate-scale-in" style={{ animationDelay: `${0.2 + index * 0.1}s` }}>
                 <StatsCard stat={stat} />
