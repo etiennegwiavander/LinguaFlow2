@@ -302,7 +302,7 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
             variant="outline"
             size="sm"
             className={cn(
-              "w-full flex items-center justify-center btn-ghost-cyber transition-all duration-300",
+              "w-full hover:dark:text-cyber-50 flex items-center justify-center btn-ghost-cyber transition-all duration-300",
               sidebarCollapsed && "p-0 h-8 w-8 sm:h-9 sm:w-9"
             )}
             onClick={toggleSidebar}

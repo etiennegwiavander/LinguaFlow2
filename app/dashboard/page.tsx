@@ -415,7 +415,7 @@ export default function DashboardPage() {
                     size="sm"
                     onClick={handleRefreshCalendar}
                     disabled={isSyncingCalendar}
-                    className="text-xs border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all duration-300 btn-ghost-cyber"
+                    className="text-xs border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all hover:dark:text-cyber-50 hover:text-cyan-950 duration-300 btn-ghost-cyber"
                   >
                     <RefreshCcw className={`h-3 w-3 mr-1.5 ${isSyncingCalendar ? 'animate-spin' : ''}`} />
                     {isSyncingCalendar ? 'Refreshing...' : 'Refresh Calendar'}
