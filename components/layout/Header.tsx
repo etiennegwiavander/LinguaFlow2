@@ -177,7 +177,7 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
           {/* User profile dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="p-1 flex items-center space-x-2 h-8 sm:h-9 hover:bg-cyber-400/10 transition-all duration-300 group focus-cyber">
+              <Button variant="ghost" className="p-1 flex items-center space-x-2 h-8 sm:h-9 hover:bg-cyber-400/10 hover:dark:text-cyber-50 hover:text-cyan-950 transition-all duration-300 group focus-cyber">
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-cyber-400/20 group-hover:ring-cyber-400/50 transition-all duration-300">
                   <AvatarImage 
                     src={tutorProfile?.avatar_url || undefined} 
@@ -188,8 +188,8 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden md:flex flex-col items-start">
-                  <span className="text-sm font-medium">{getDisplayName()}</span>
-                  <span className="text-xs text-muted-foreground">Tutor</span>
+                  <span className="text-sm font-medium hover:dark:text-cyber-50 hover:text-cyan-950">{getDisplayName()}</span>
+                  <span className="text-xs text-muted-foreground ">Tutor</span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-cyber-400 transition-colors duration-300" />
               </Button>
