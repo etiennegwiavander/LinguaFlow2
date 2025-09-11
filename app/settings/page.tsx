@@ -18,11 +18,6 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import AccountDeletionDialog from "@/components/settings/AccountDeletionDialog";
 import { useRouter } from "next/navigation";
-import { 
-  genderOptions, 
-  commonTeachingLanguages
-} from "@/lib/onboarding-options";
-import { type Gender } from "@/lib/onboarding-validation";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -35,14 +30,6 @@ export default function SettingsPage() {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
   const [saveSuccess, setSaveSuccess] = useState(false);
-  
-  // Onboarding data fields
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [gender, setGender] = useState<Gender | undefined>(undefined);
-  const [primaryTeachingLanguage, setPrimaryTeachingLanguage] = useState("");
-  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
-  const [isCustomLanguage, setIsCustomLanguage] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -54,12 +41,7 @@ export default function SettingsPage() {
           .select(`
             name, 
             email, 
-            avatar_url,
-            first_name,
-            last_name,
-            gender,
-            primary_teaching_language,
-            profile_picture_url
+            avatar_url
           `)
           .eq('id', user.id)
           .maybeSingle();
@@ -67,45 +49,9 @@ export default function SettingsPage() {
         if (error) throw error;
 
         if (data) {
-          // Set legacy fields
           setName(data.name || "");
           setEmail(data.email || "");
           setAvatarUrl(data.avatar_url);
-          
-          // Set onboarding fields
-          setFirstName(data.first_name || "");
-          setLastName(data.last_name || "");
-          setGender(data.gender as Gender | undefined);
-          setPrimaryTeachingLanguage(data.primary_teaching_language || "");
-          setProfilePictureUrl(data.profile_picture_url);
-          
-          // Use profile picture from onboarding if available, fallback to avatar_url
-          if (data.profile_picture_url) {
-            setAvatarUrl(data.profile_picture_url);
-          }
-          
-          // If we have first_name and last_name but no name, construct it
-          if (data.first_name && data.last_name && !data.name) {
-            const fullName = `${data.first_name} ${data.last_name}`;
-            setName(fullName);
-          }
-          
-          // Set primary teaching language as selected language if available
-          if (data.primary_teaching_language) {
-            // Check if it's a common language or custom
-            const isCommonLanguage = commonTeachingLanguages.some(lang => 
-              lang.value === data.primary_teaching_language
-            );
-            setIsCustomLanguage(!isCommonLanguage);
-            
-            // Try to find matching language code from the languages array for legacy support
-            const matchingLanguage = languages.find(lang => 
-              lang.name.toLowerCase() === data.primary_teaching_language.toLowerCase()
-            );
-            if (matchingLanguage) {
-              setSelectedLanguage(matchingLanguage.code);
-            }
-          }
         }
       } catch (error: any) {
         toast.error(error.message);
@@ -120,16 +66,9 @@ export default function SettingsPage() {
 
     setLoading(true);
     try {
-      // Construct full name from first and last name if they exist
-      const fullName = firstName && lastName ? `${firstName} ${lastName}` : name;
-      
-      const updateData: any = {
-        name: fullName,
-        email,
-        first_name: firstName || null,
-        last_name: lastName || null,
-        gender: gender || null,
-        primary_teaching_language: primaryTeachingLanguage || null
+      const updateData = {
+        name,
+        email
       };
 
       const { error } = await supabase
@@ -160,31 +99,29 @@ export default function SettingsPage() {
 
     setLoading(true);
     try {
-      // Upload image to profile-pictures bucket (from onboarding setup)
+      // Upload image to avatars bucket
       const { error: uploadError } = await supabase.storage
-        .from('profile-pictures')
+        .from('avatars')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('profile-pictures')
+        .from('avatars')
         .getPublicUrl(filePath);
 
-      // Update profile with both avatar_url and profile_picture_url for consistency
+      // Update profile with avatar_url
       const { error: updateError } = await supabase
         .from('tutors')
         .update({ 
-          avatar_url: publicUrl,
-          profile_picture_url: publicUrl 
+          avatar_url: publicUrl
         })
         .eq('id', user.id);
 
       if (updateError) throw updateError;
 
       setAvatarUrl(publicUrl);
-      setProfilePictureUrl(publicUrl);
       toast.success('Profile picture updated successfully');
     } catch (error: any) {
       toast.error(error.message);
@@ -246,11 +183,6 @@ export default function SettingsPage() {
   };
 
   const getInitials = (name: string) => {
-    // Use first and last name if available, otherwise fall back to full name or email
-    if (firstName && lastName) {
-      return `${firstName[0]}${lastName[0]}`.toUpperCase();
-    }
-    
     if (name) {
       return name
         .split(" ")
@@ -322,7 +254,7 @@ export default function SettingsPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-20 w-20 ring-2 ring-cyber-400/30 hover:ring-cyber-400/50 transition-all duration-300">
-                    <AvatarImage src={avatarUrl || undefined} alt={firstName && lastName ? `${firstName} ${lastName}` : name} />
+                    <AvatarImage src={avatarUrl || undefined} alt={name} />
                     <AvatarFallback className="bg-gradient-to-br from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 font-semibold">
                       {getInitials(name || email)}
                     </AvatarFallback>
@@ -366,25 +298,14 @@ export default function SettingsPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="name">Full Name</Label>
                     <Input
-                      id="firstName"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                       disabled={loading}
                       className="input-cyber focus-cyber"
-                      placeholder="Enter your first name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      disabled={loading}
-                      className="input-cyber focus-cyber"
-                      placeholder="Enter your last name"
+                      placeholder="Enter your full name"
                     />
                   </div>
                   <div className="space-y-2">
@@ -396,26 +317,6 @@ export default function SettingsPage() {
                       disabled={loading}
                       className="input-cyber focus-cyber"
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Gender (Optional)</Label>
-                    <Select 
-                      value={gender || "none"} 
-                      onValueChange={(value) => setGender(value === "none" ? undefined : value as Gender)}
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="input-cyber focus-cyber">
-                        <SelectValue placeholder="Select gender (optional)" />
-                      </SelectTrigger>
-                      <SelectContent className="glass-effect border-cyber-400/30">
-                        <SelectItem value="none">Prefer not to specify</SelectItem>
-                        {genderOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               </CardContent>
@@ -493,99 +394,7 @@ export default function SettingsPage() {
               </CardFooter>
             </Card>
 
-            <Card className="cyber-card border-cyber-400/30 overflow-hidden">
-              <CardHeader className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyber-400/10 to-neon-400/10 opacity-50"></div>
-                <div className="relative z-10">
-                  <CardTitle className="flex items-center">
-                    <Languages className="mr-2 h-5 w-5 text-cyber-400" />
-                    Primary Teaching Language
-                  </CardTitle>
-                  <CardDescription>
-                    Select your main language for teaching
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Label htmlFor="primary-teaching-language">Teaching Language</Label>
-                  {isCustomLanguage ? (
-                    <div className="space-y-2">
-                      <Input
-                        id="custom-language"
-                        value={primaryTeachingLanguage}
-                        onChange={(e) => setPrimaryTeachingLanguage(e.target.value)}
-                        disabled={loading}
-                        className="input-cyber focus-cyber"
-                        placeholder="Enter your teaching language"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setIsCustomLanguage(false);
-                          setPrimaryTeachingLanguage("");
-                        }}
-                        className="btn-ghost-cyber text-xs"
-                      >
-                        Choose from list instead
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Select 
-                        value={primaryTeachingLanguage} 
-                        onValueChange={(value) => {
-                          if (value === "Other") {
-                            setIsCustomLanguage(true);
-                            setPrimaryTeachingLanguage("");
-                          } else {
-                            setPrimaryTeachingLanguage(value);
-                          }
-                        }}
-                        disabled={loading}
-                      >
-                        <SelectTrigger className="input-cyber focus-cyber">
-                          <SelectValue placeholder="Select your primary teaching language" />
-                        </SelectTrigger>
-                        <SelectContent className="glass-effect border-cyber-400/30">
-                          {commonTeachingLanguages.map((language) => (
-                            <SelectItem key={language.value} value={language.value}>
-                              {language.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end space-x-2 border-t border-cyber-400/20 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm p-4">
-                <Button 
-                  variant="outline"
-                  className="btn-ghost-cyber"
-                  onClick={() => {
-                    // Reset to original values
-                    window.location.reload();
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleProfileUpdate}
-                  disabled={loading || saveSuccess}
-                  className="btn-cyber"
-                >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : saveSuccess ? (
-                    <Check className="h-4 w-4 mr-2 text-green-500" />
-                  ) : null}
-                  {loading ? "Saving..." : saveSuccess ? "Saved!" : "Save Changes"}
-                </Button>
-              </CardFooter>
-            </Card>
+
           </TabsContent>
           
           <TabsContent value="notifications" className="space-y-6">

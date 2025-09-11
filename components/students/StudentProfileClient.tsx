@@ -24,7 +24,6 @@ import {
   CheckCircle,
   Play,
   Clock,
-  Lightbulb,
   X,
   BookOpen,
   Globe,
@@ -109,7 +108,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
   const [upcomingLesson, setUpcomingLesson] = useState<UpcomingLesson | null>(null);
   const [loadingUpcomingLesson, setLoadingUpcomingLesson] = useState(true);
   const [generationProgress, setGenerationProgress] = useState("");
-  const [showOnboarding, setShowOnboarding] = useState(false);
+
   const [hasGeneratedBefore, setHasGeneratedBefore] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const searchParams = useSearchParams();
@@ -206,16 +205,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         setUpcomingLesson(null);
       }
 
-      // Check if user has generated lessons before (for onboarding)
-      const { data: allLessons } = await supabase
-        .from('lessons')
-        .select('generated_lessons')
-        .eq('tutor_id', user.id)
-        .not('generated_lessons', 'is', null);
 
-      if (!allLessons || allLessons.length === 0) {
-        setShowOnboarding(true);
-      }
     } catch (error) {
       // Handle error
     } finally {
@@ -360,7 +350,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       if (result.success && result.lessons) {
         setGeneratedLessons(result.lessons);
         setHasGeneratedBefore(true);
-        setShowOnboarding(false);
+
 
         // If we updated an existing lesson, refresh the upcoming lesson data
         if (result.updated && upcomingLesson) {
@@ -743,42 +733,13 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                 <CardTitle className="flex items-center">
                   <Sparkles className="mr-2 h-5 w-5 text-cyber-400" />
                   AI Lesson Architect
-                  {showOnboarding && (
-                    <Badge variant="secondary" className="ml-2 animate-pulse">
-                      <Lightbulb className="w-3 h-3 mr-1" />
-                      New!
-                    </Badge>
-                  )}
                 </CardTitle>
                 <CardDescription>
                   Generate personalized lesson plans with focused sub-topics based on {student.name}&apos;s profile and learning history
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Onboarding Alert for First-Time Users */}
-                {showOnboarding && !hasGeneratedBefore && (
-                  <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-                    <Lightbulb className="h-4 w-4 text-blue-600" />
-                    <AlertDescription className="text-blue-800 dark:text-blue-200">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <strong>Welcome to AI Lesson Architect!</strong>
-                          <p className="mt-1 text-sm">
-                            Instantly create tailored lesson plans with focused sub-topics for {student.name}! Our AI analyzes their profile to suggest objectives, activities, materials, and specific sub-topics you can turn into interactive lessons.
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowOnboarding(false)}
-                          className="ml-2 h-6 w-6 p-0 text-blue-600 hover:text-blue-800"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                )}
+
 
                 {/* Responsive Card Layout - Row on large screens, Column on mobile */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
