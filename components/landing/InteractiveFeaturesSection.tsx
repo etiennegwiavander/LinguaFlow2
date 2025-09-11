@@ -17,8 +17,8 @@ export default function InteractiveFeaturesSection() {
   const interactiveFeatures = [
     {
       icon: MessageSquare,
-      title: "AI Discussion Topics Generator",
-      description: "Generate unlimited conversation starters tailored to student interests, level, and learning goals. Each topic includes follow-up questions and cultural context.",
+      title: "Discussion Topics Generator",
+      description: "Generate unlimited conversation starters tailored to students' interests, level, and learning goals. Each topic includes follow-up questions and cultural contexts.",
       
       color: "text-purple-400",
       bgColor: "bg-purple-400/10",
@@ -28,7 +28,7 @@ export default function InteractiveFeaturesSection() {
     {
       icon: BookOpen,
       title: "Infinite Vocabulary Flashcards",
-      description: "AI creates vocabulary sets with semantic relationships, example sentences, and pronunciation guides. Never run out of relevant words to teach.",
+      description: "Lingua Flow creates vocabulary sets with semantic relationships, example sentences, and pronunciation guides. Never run out of relevant words to teach.",
       
       color: "text-emerald-400",
       bgColor: "bg-emerald-400/10",
@@ -72,7 +72,7 @@ export default function InteractiveFeaturesSection() {
           
           <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
             Lingua Flow doesn't just create static lesson plans. It generates dynamic, interactive learning experiences 
-            that adapt to each student's progress and keep them engaged throughout their learning journey.
+            that adapt to each student's progress and keeps them engaged throughout their learning journey.
           </p>
         </div>
 
@@ -128,8 +128,8 @@ export default function InteractiveFeaturesSection() {
             <span>These features are available in all plans</span>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Experience the full power of true personalization in your students language learning journey. <br /><br />
-            Start your free trial and see how interactive learning transforms student engagement.
+            Experience the full power of true personalization in your students language learning journey. 
+  
           </p>
         </div>
       </div>

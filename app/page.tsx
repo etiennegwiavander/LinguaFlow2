@@ -99,22 +99,22 @@ export default function HomePage() {
   const features = [
     {
       icon: Brain,
-      title: "Advanced Lesson Generation",
-      description: "Create complete lesson plans with interactive exercises, discussion topics, and vocabulary flashcards in under 30 seconds using AI that understands 15+ student profile factors.",
+      title: "Quick Lesson Creation",
+      description: "Create complete lesson plans with interactive exercises, discussion topics, and vocabulary flashcards in under 30 seconds that understands 15+ student profile factors.",
       color: "text-cyber-400",
       bgColor: "bg-cyber-400/10",
     },
     {
       icon: Target,
-      title: "True Hyper-Personalization",
-      description: "Advanced analysis of individual learning styles, strengths, weaknesses, and cultural background to create lessons that adapt to each student's unique journey and goals.",
+      title: "True Personalization",
+      description: "In-depth analysis of students' individual learning styles, strengths, weaknesses, and cultural background creating lessons that adapt to each student's needs.",
       color: "text-neon-400",
       bgColor: "bg-neon-400/10",
     },
     {
       icon: MessageSquare,
-      title: "Instant Discussion Topics Generator",
-      description: "Generate unlimited conversation starters with follow-up questions, cultural context, and difficulty adjustments tailored to student interests and proficiency level.",
+      title: "Instant Discussion Topics",
+      description: "Unlimited conversation starters with follow-up questions, in different cultural contexts tailored to each student interests and proficiency level.",
       color: "text-purple-400",
       bgColor: "bg-purple-400/10",
     },
@@ -127,15 +127,15 @@ export default function HomePage() {
     },
     {
       icon: Calendar,
-      title: "Smart Calendar Integration",
-      description: "Seamlessly sync with Google Calendar, automatically generate lessons for upcoming sessions, and send personalized reminders to students.",
+      title: "Calendar Integration",
+      description: "Seamlessly sync your Google Calendar and automatically generate lessons for upcoming sessions.",
       color: "text-blue-400",
       bgColor: "bg-blue-400/10",
     },
     {
       icon: MousePointer2,
       title: "Instant Translation & Context",
-      description: "Double-click any word for instant translation with cultural context, pronunciation, and usage examples - eliminating the need for external tools.",
+      description: "Double-click any word for instant translation with cultural context - eliminating the need for external tools.",
       color: "text-orange-400",
       bgColor: "bg-orange-400/10",
     },
@@ -149,7 +149,7 @@ export default function HomePage() {
     {
       icon: Shield,
       title: "Enterprise Security & Privacy",
-      description: "GDPR compliant, SOC 2 certified platform with AES-256 encryption, ensuring your student data is protected with bank-level security.",
+      description: "GDPR compliant, SOC 2 certified platform with AES-256 encryption, ensuring your student's data is protected with bank-level security.",
       color: "text-indigo-400",
       bgColor: "bg-indigo-400/10",
     },
@@ -309,12 +309,12 @@ export default function HomePage() {
               Powerful Features
             </Badge>
             <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Everything You Need to
-              <span className="gradient-text"> Transform Teaching</span>
+              Revitalize Your
+              <span className="gradient-text"> Teaching Experience</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Lingua Flow provides all the tools you need to create engaging,
-              personalized language lessons that adapt to each student's learning journey.
+              Lingua Flow provides vital tools you need to create engaging,
+              personalized language lessons that adapt to each student's learning goals.
             </p>
           </div>
 
@@ -516,7 +516,7 @@ export default function HomePage() {
               },
               {
                 title: "Intermediate Learners",
-                description: "Adapt to students building confidence with more complex conversations, grammar structures, and real-world scenarios tailored to their interests.",
+                description: "Adapt to students, building confidence with more complex conversations, grammar structures, and real-world scenarios tailored to their interests.",
                 features: ["Advanced discussion topics", "Complex grammar patterns", "Role-play scenarios", "Personalized content"],
                 icon: TrendingUp,
                 color: "text-neon-400",

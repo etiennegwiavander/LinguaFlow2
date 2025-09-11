@@ -51,7 +51,7 @@ export default function Footer() {
               <span className="text-xl font-bold gradient-text">LinguaFlow</span>
             </Link>
             <p className="text-gray-300 mb-6 max-w-sm">
-              Revolutionizing language learning with AI-powered personalized lessons. 
+              Revolutionizing language learning with truly personalized lessons. 
               Create engaging, interactive lesson materials tailored to each student&apos;s unique learning journey.
             </p>
             <div className="flex space-x-4">

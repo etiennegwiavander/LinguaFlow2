@@ -108,7 +108,7 @@ export default function ComparisonSlider() {
           
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
             Traditional Planning vs
-            <span className="gradient-text"> LinguaFlow AI</span>
+            <span className="gradient-text"> LinguaFlow</span>
           </h2>
           
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
