@@ -1,10 +1,18 @@
 /**
  * Test script for OpenRouter API key validation
  * Tests basic API connectivity and response using Deepseek model
+ * Reads API key from environment variable
  */
 
-const OPENROUTER_API_KEY = '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';
+require('dotenv').config({ path: '.env.local' });
+
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+if (!OPENROUTER_API_KEY) {
+  console.error('❌ OPENROUTER_API_KEY not found in .env.local');
+  process.exit(1);
+}
 
 async function testDeepseekAPI() {
   console.log('🔍 Testing OpenRouter API key with Deepseek model...\n');

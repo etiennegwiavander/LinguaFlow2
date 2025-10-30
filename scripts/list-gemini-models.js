@@ -2,7 +2,7 @@
  * List available Gemini models
  */
 
-const GEMINI_API_KEY = 'AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || require('dotenv').config({ path: '.env.local' }) && process.env.GEMINI_API_KEY;
 
 async function listModels() {
   console.log('🔍 LISTING AVAILABLE GEMINI MODELS');
