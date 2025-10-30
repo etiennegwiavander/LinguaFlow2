@@ -23,7 +23,7 @@ Your `.env.local` file has the key, but Edge Functions run in Supabase's cloud a
 
 4. **Add new secret:**
    - Name: `GEMINI_API_KEY`
-   - Value: `AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8`
+   - Value: `your_gemini_api_key_from_env_local`
 
 5. **Save** (function will auto-redeploy)
 
@@ -32,8 +32,8 @@ Your `.env.local` file has the key, but Edge Functions run in Supabase's cloud a
 ### Option 2: Supabase CLI
 
 ```bash
-# Set the secret
-supabase secrets set GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
+# Set the secret (get the key from your .env.local file)
+supabase secrets set GEMINI_API_KEY=your_gemini_api_key
 
 # Deploy the function
 supabase functions deploy generate-lesson-plan

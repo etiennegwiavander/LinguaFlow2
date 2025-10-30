@@ -5,7 +5,7 @@ Fix the lesson generation to use AI instead of fallback templates.
 
 ## 📋 Prerequisites
 - Access to Supabase Dashboard
-- Your Gemini API key: `AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8`
+- Your Gemini API key (found in `.env.local`)
 
 ---
 
@@ -57,12 +57,12 @@ Fix the lesson generation to use AI instead of fallback templates.
    **If GEMINI_API_KEY doesn't exist:**
    - Click **"Add Secret"** or **"New Secret"** button
    - Name: `GEMINI_API_KEY`
-   - Value: `AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8`
+   - Value: `your_gemini_api_key_from_env_local`
    - Click **"Save"** or **"Add"**
 
    **If GEMINI_API_KEY already exists:**
    - Click **"Edit"** or the pencil icon
-   - Update the value to: `AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8`
+   - Update the value to: `your_gemini_api_key_from_env_local`
    - Click **"Save"**
 
 5. **Redeploy the function** (if needed):

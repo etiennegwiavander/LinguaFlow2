@@ -28,6 +28,14 @@ yarn-error.log*
 .env
 .env*.local
 
+# Temporary security files (contain actual keys or sensitive info)
+UPDATE-SUPABASE-SECRETS.md
+NEXT-STEPS.md
+SECURITY-FIX-COMPLETE.md
+SECURITY-FIX-SUMMARY.md
+API-KEY-SECURITY-COMPLETE.md
+QUICK-FIX-LESSON-GENERATION.md
+
 # vercel
 .vercel
 

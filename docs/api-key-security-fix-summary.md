@@ -7,8 +7,9 @@ The old `OPENROUTER_API_KEY` was exposed in a previous commit and was disabled b
 
 ### 1. Updated Supabase Secret ✅
 ```bash
-supabase secrets set OPENROUTER_API_KEY=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
+supabase secrets set OPENROUTER_API_KEY=your_new_openrouter_api_key
 ```
+**Note:** The actual key has been rotated and is stored securely in Supabase secrets and `.env.local`.
 
 ### 2. Verified .gitignore ✅
 Confirmed that `.env*.local` is already excluded from Git commits.
@@ -50,9 +51,9 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY; // ✅ From environment
 
 ### ⚠️ Important Notes
 
-1. **Old Key is Revoked**: The old OpenRouter key (`sk-or-v1-b6a563b1...`) has been disabled by OpenRouter and should not be used.
+1. **Old Key is Revoked**: The old OpenRouter key has been disabled by OpenRouter and should not be used.
 
-2. **New Key is Active**: The new key (`sk-or-v1-54c71bbd...`) is now configured and working.
+2. **New Key is Active**: The new key is now configured and working in Supabase secrets and `.env.local`.
 
 3. **Git History**: The old keys may still exist in Git history. Consider:
    - Using `git filter-branch` or BFG Repo-Cleaner to remove them

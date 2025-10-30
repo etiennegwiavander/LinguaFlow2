@@ -73,7 +73,7 @@ The Edge Function runs in Supabase's cloud environment, which is **separate** fr
 
 5. **Add the GEMINI_API_KEY secret**
    - Name: `GEMINI_API_KEY`
-   - Value: `AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8`
+   - Value: `your_gemini_api_key_from_env_local`
    - Click "Add Secret" or "Save"
 
 6. **Redeploy the function** (if needed)
@@ -85,8 +85,8 @@ The Edge Function runs in Supabase's cloud environment, which is **separate** fr
 If you have Supabase CLI installed:
 
 ```bash
-# Set the secret
-supabase secrets set GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
+# Set the secret (get the key from your .env.local file)
+supabase secrets set GEMINI_API_KEY=your_gemini_api_key
 
 # Redeploy the function
 supabase functions deploy generate-lesson-plan

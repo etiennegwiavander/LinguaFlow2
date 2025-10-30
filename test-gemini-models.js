@@ -3,7 +3,13 @@
  * This will test various Gemini models and report their status
  */
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8';
+require('dotenv').config({ path: '.env.local' });
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+if (!GEMINI_API_KEY) {
+  console.error('❌ Error: GEMINI_API_KEY not found in .env.local');
+  process.exit(1);
+}
 
 // Models to test
 const MODELS_TO_TEST = [

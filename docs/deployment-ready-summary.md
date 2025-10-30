@@ -39,7 +39,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=[configured]
 SERVICE_ROLE_KEY=[configured]
 
 # Gemini AI Configuration
-GEMINI_API_KEY=AIzaSyBqbeFAUBgIgpvxp9MBrAW7G6iDWqEfoZ8
+GEMINI_API_KEY=[configured]
 
 # Google OAuth
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=[configured]
