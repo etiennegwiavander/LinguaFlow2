@@ -21,7 +21,8 @@ export class VocabularyPerformanceMonitor {
 
   static getInstance(): VocabularyPerformanceMonitor {
     if (!VocabularyPerformanceMonitor.instance) {
-      VocabularyPerformanceMonitor.instance = new VocabularyPerformanceMonitor();
+      VocabularyPerformanceMonitor.instance =
+        new VocabularyPerformanceMonitor();
     }
     return VocabularyPerformanceMonitor.instance;
   }
@@ -123,7 +124,7 @@ export class VocabularyPerformanceMonitor {
    * Get current memory usage (if available)
    */
   getMemoryUsage(): number {
-    if ('memory' in performance) {
+    if ("memory" in performance) {
       return (performance as any).memory.usedJSHeapSize / 1024 / 1024; // MB
     }
     return 0;
@@ -134,11 +135,11 @@ export class VocabularyPerformanceMonitor {
    */
   getMetrics(): VocabularyPerformanceMetrics {
     return {
-      renderTime: this.getAverageDuration('card-render'),
+      renderTime: this.getAverageDuration("card-render"),
       cacheHitRate: this.getCacheHitRate(),
       prefetchSuccess: this.getPrefetchSuccessRate(),
-      animationFrameRate: this.getAverageDuration('animation-frame'),
-      memoryUsage: this.getMemoryUsage()
+      animationFrameRate: this.getAverageDuration("animation-frame"),
+      memoryUsage: this.getMemoryUsage(),
     };
   }
 
@@ -146,14 +147,18 @@ export class VocabularyPerformanceMonitor {
    * Log performance summary to console (development only)
    */
   logPerformanceSummary(): void {
-    if (process.env.NODE_ENV !== 'development') return;
+    if (process.env.NODE_ENV !== "development") return;
 
     const metrics = this.getMetrics();
-    console.group('🚀 Vocabulary Flashcards Performance Metrics');
+    console.group("🚀 Vocabulary Flashcards Performance Metrics");
     console.log(`📊 Average render time: ${metrics.renderTime.toFixed(2)}ms`);
     console.log(`💾 Cache hit rate: ${metrics.cacheHitRate.toFixed(1)}%`);
-    console.log(`⚡ Prefetch success rate: ${metrics.prefetchSuccess.toFixed(1)}%`);
-    console.log(`🎬 Animation frame rate: ${metrics.animationFrameRate.toFixed(2)}ms`);
+    console.log(
+      `⚡ Prefetch success rate: ${metrics.prefetchSuccess.toFixed(1)}%`
+    );
+    console.log(
+      `🎬 Animation frame rate: ${metrics.animationFrameRate.toFixed(2)}ms`
+    );
     console.log(`🧠 Memory usage: ${metrics.memoryUsage.toFixed(2)}MB`);
     console.groupEnd();
   }
@@ -173,10 +178,7 @@ export class VocabularyPerformanceMonitor {
   /**
    * Monitor React component render performance
    */
-  withRenderTiming<T extends any>(
-    Component: T,
-    componentName: string
-  ): T {
+  withRenderTiming<T extends any>(Component: T, componentName: string): T {
     // Note: This method would need proper React imports to work
     // For now, return the component as-is to avoid build errors
     return Component;
@@ -184,12 +186,13 @@ export class VocabularyPerformanceMonitor {
 }
 
 // Export singleton instance
-export const vocabularyPerformanceMonitor = VocabularyPerformanceMonitor.getInstance();
+export const vocabularyPerformanceMonitor =
+  VocabularyPerformanceMonitor.getInstance();
 
 // Development-only performance logging
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === "development") {
   // Log performance summary every 30 seconds
   setInterval(() => {
     vocabularyPerformanceMonitor.logPerformanceSummary();
-  }, 30000);
+  }, 30000000);
 }

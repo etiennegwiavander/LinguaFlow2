@@ -211,7 +211,7 @@ async function generatePersonalizedQuestions(student: Student, topicTitle: strin
     const topicSpecificPrompt = createTopicSpecificPrompt(topicTitle, student);
     
     // Call Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
+    
     // Check if we have Gemini API key
     const geminiApiKey = process.env.GEMINI_API_KEY;
     if (!geminiApiKey) {

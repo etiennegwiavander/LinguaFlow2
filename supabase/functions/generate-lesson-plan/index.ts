@@ -82,47 +82,34 @@ async function generateHyperPersonalizedLessons(student: Student, supabaseClient
     const selectedTemplates = selectOptimalTemplates(student, templates);
     console.log(`✅ Selected ${selectedTemplates.length} optimal templates`);
 
-    // Step 3: Generate AI-powered personalized content for each template with duplicate prevention
-    const lessons = [];
-    const allExistingSubTopics: string[] = [];
+    // Step 3: Generate AI-powered personalized content for each template in PARALLEL for speed
+    console.log(`🚀 Generating ${Math.min(5, selectedTemplates.length)} lessons in parallel...`);
     
+    const lessonPromises = [];
     for (let i = 0; i < Math.min(5, selectedTemplates.length); i++) {
       const template = selectedTemplates[i];
-      console.log(`🤖 Generating lesson ${i + 1} using template: ${template.name}`);
-      console.log(`🔍 Avoiding ${allExistingSubTopics.length} existing sub-topics`);
-      
-      const personalizedLesson = await generatePersonalizedLessonContent(student, template, i + 1, allExistingSubTopics);
-      lessons.push(personalizedLesson);
-      
-      // Track sub-topics to prevent duplicates in next lessons
-      if (personalizedLesson.sub_topics) {
-        const newSubTopics = personalizedLesson.sub_topics.map(st => st.title);
-        allExistingSubTopics.push(...newSubTopics);
-        console.log(`📝 Added ${newSubTopics.length} sub-topics to duplicate prevention list`);
-      }
+      console.log(`🤖 Queuing lesson ${i + 1} using template: ${template.name}`);
+      lessonPromises.push(generatePersonalizedLessonContent(student, template, i + 1, []));
     }
 
-    // If we have fewer than 5 templates, fill with additional personalized lessons
-    while (lessons.length < 5) {
-      console.log(`🤖 Generating additional lesson ${lessons.length + 1}`);
-      console.log(`🔍 Avoiding ${allExistingSubTopics.length} existing sub-topics`);
-      
-      const additionalLesson = await generateAdditionalPersonalizedLesson(student, lessons.length + 1, allExistingSubTopics);
-      lessons.push(additionalLesson);
-      
-      // Track sub-topics to prevent duplicates
-      if (additionalLesson.sub_topics) {
-        const newSubTopics = additionalLesson.sub_topics.map(st => st.title);
-        allExistingSubTopics.push(...newSubTopics);
-        console.log(`📝 Added ${newSubTopics.length} sub-topics to duplicate prevention list`);
-      }
+    // Fill remaining slots with additional lessons
+    while (lessonPromises.length < 5) {
+      console.log(`🤖 Queuing additional lesson ${lessonPromises.length + 1}`);
+      lessonPromises.push(generateAdditionalPersonalizedLesson(student, lessonPromises.length + 1, []));
     }
+
+    // Wait for all lessons to complete in parallel
+    const lessons = await Promise.all(lessonPromises);
+    console.log(`✅ All ${lessons.length} lessons generated successfully`)
 
     console.log(`✅ Generated ${lessons.length} hyper-personalized lessons`);
     return { lessons };
 
   } catch (error) {
     console.error('❌ Error in hyper-personalized generation:', error);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    console.log('🔄 Falling back to basic generation');
     // Fallback to basic generation
     return generateBasicLessons(student);
   }
@@ -388,62 +375,106 @@ const rateLimiter = {
   }
 };
 
-// Gemini AI integration
+// AI integration - Using DeepSeek via OpenRouter
 async function callGeminiAPI(prompt: string) {
-  const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+  const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
   
-  if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY not configured');
+  if (!OPENROUTER_API_KEY) {
+    throw new Error('OPENROUTER_API_KEY not configured');
   }
 
   // Wait for rate limit slot
   await rateLimiter.waitForSlot();
   
-  console.log(`🚀 Making Gemini API call (${rateLimiter.requests.length}/${rateLimiter.maxRequests} used this minute)`);
+  console.log(`🚀 Making DeepSeek API call via OpenRouter (${rateLimiter.requests.length}/${rateLimiter.maxRequests} used this minute)`);
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
+      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://linguaflow.online',
+      'X-Title': 'LinguaFlow'
     },
     body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 2048,
-      }
+      model: 'deepseek/deepseek-chat',
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 2048,
     })
   });
 
   if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status}`);
+    const errorText = await response.text();
+    console.error(`❌ DeepSeek API HTTP Error: ${response.status}`);
+    console.error(`❌ Error response: ${errorText}`);
+    throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
   
-  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-    throw new Error('Invalid response from Gemini API');
+  // OpenRouter/DeepSeek response structure validation
+  if (!data.choices) {
+    console.error('❌ No choices in DeepSeek API response');
+    console.error('❌ Full response:', JSON.stringify(data).substring(0, 1000));
+    throw new Error('Invalid response from DeepSeek API: no choices');
   }
 
-  const generatedText = data.candidates[0].content.parts[0].text;
+  if (!data.choices[0]) {
+    console.error('❌ No first choice in DeepSeek API response');
+    console.error('❌ Choices:', JSON.stringify(data.choices));
+    throw new Error('Invalid response from DeepSeek API: empty choices array');
+  }
+
+  if (!data.choices[0].message) {
+    console.error('❌ No message in first choice');
+    console.error('❌ Choice:', JSON.stringify(data.choices[0]));
+    throw new Error('Invalid response from DeepSeek API: no message in choice');
+  }
+
+  const generatedText = data.choices[0].message.content;
+  
+  if (!generatedText) {
+    console.error('❌ No content in message');
+    console.error('❌ Message:', JSON.stringify(data.choices[0].message));
+    throw new Error('Invalid response from DeepSeek API: no content in message');
+  }
+
+  console.log(`📝 AI response length: ${generatedText.length} characters`);
+  console.log(`📝 Response preview: ${generatedText.substring(0, 200)}...`);
   
   try {
-    // Parse the JSON response
-    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    // Try to extract JSON from markdown code blocks first
+    let jsonMatch = generatedText.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+    if (!jsonMatch) {
+      // Try without json tag
+      jsonMatch = generatedText.match(/```\s*(\{[\s\S]*?\})\s*```/);
+    }
+    if (!jsonMatch) {
+      // Try to find raw JSON
+      jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    }
+    
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const jsonStr = jsonMatch[1] || jsonMatch[0];
+      const parsed = JSON.parse(jsonStr);
+      console.log(`✅ Successfully parsed JSON with ${parsed.sub_topics?.length || 0} sub-topics`);
+      return parsed;
     } else {
+      console.error('❌ No JSON found in AI response');
+      console.error('❌ Full response text:', generatedText);
       throw new Error('No JSON found in response');
     }
   } catch (parseError) {
     console.error('❌ Failed to parse AI response:', parseError);
-    throw new Error('Failed to parse AI response as JSON');
+    console.error('❌ Parse error message:', parseError.message);
+    console.error('❌ Full response text:', generatedText);
+    throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
   }
 }
 
