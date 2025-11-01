@@ -30,6 +30,7 @@ const UNPROTECTED_ROUTES = [
   '/auth/signup',
   '/auth/forgot-password',
   '/auth/reset-password',
+  '/auth/reset-password-simple',
   '/auth/deletion-scheduled',
   '/auth/recover-account',
   '/calendar', // Added to prevent premature redirects during OAuth
@@ -114,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // CRITICAL: Completely skip auth processing for password reset
-    if (path === '/auth/reset-password') {
+    if (path === '/auth/reset-password' || path === '/auth/reset-password-simple') {
       
       setLoading(false);
       setUser(null); // Ensure no user is set
@@ -162,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         currentPath = currentPath.slice(0, -1);
       }
       // CRITICAL: Always check if we're on password reset page
-      if (currentPath === '/auth/reset-password') {
+      if (currentPath === '/auth/reset-password' || currentPath === '/auth/reset-password-simple') {
         return;
       }
       
