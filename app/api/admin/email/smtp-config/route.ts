@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { encryptPassword } from '@/lib/email-encryption';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+// Supabase client moved inside functions
 
 // GET /api/admin/email/smtp-config - Retrieve all SMTP configurations
 export async function GET(request: NextRequest) {
+  // Create Supabase client inside the function
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   try {
     const { searchParams } = new URL(request.url);
     const provider = searchParams.get('provider');
@@ -68,6 +74,12 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/email/smtp-config - Create new SMTP configuration
 export async function POST(request: NextRequest) {
+  // Create Supabase client inside the function
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   try {
     const configData = await request.json();
     

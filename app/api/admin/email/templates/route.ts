@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+// Supabase client moved inside functions
 
 // GET /api/admin/email/templates - List all templates
 export async function GET(request: NextRequest) {
+  // Create Supabase client inside the function
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
@@ -73,6 +79,12 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/email/templates - Create new template
 export async function POST(request: NextRequest) {
+  // Create Supabase client inside the function
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   try {
     const templateData = await request.json();
     
