@@ -35,6 +35,15 @@ SECURITY-FIX-COMPLETE.md
 SECURITY-FIX-SUMMARY.md
 API-KEY-SECURITY-COMPLETE.md
 QUICK-FIX-LESSON-GENERATION.md
+LESSON-GENERATION-AI-FIX-COMPLETE.md
+DEPLOYMENT-SUMMARY-LESSON-GENERATION-FIX.md
+
+# Test scripts that may contain sensitive data
+test-ai-generation-direct.js
+regenerate-etienne-lessons.js
+check-etienne-lessons.js
+regenerate-all-fallback-lessons.js
+verify-all-students-ai-generation.js
 
 # vercel
 .vercel

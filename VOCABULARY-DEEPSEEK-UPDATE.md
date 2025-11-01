@@ -180,8 +180,10 @@ The updated function includes:
 **Solution:**
 
 ```bash
-supabase secrets set OPENROUTER_API_KEY=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
+supabase secrets set OPENROUTER_API_KEY="[YOUR_OPENROUTER_API_KEY]"
 ```
+
+Replace `[YOUR_OPENROUTER_API_KEY]` with your actual key from `.env.local`
 
 ### Issue: Edge Function not found
 
@@ -254,7 +256,7 @@ If you need to revert to Gemini:
 
 1. Restore the previous Edge Function code (use git history)
 2. Deploy: `supabase functions deploy generate-vocabulary-words`
-3. Set secret: `supabase secrets set GEMINI_API_KEY=your_gemini_key`
+3. Set secret: `supabase secrets set GEMINI_API_KEY="[YOUR_GEMINI_API_KEY]"`
 
 ## 📞 Support
 
@@ -300,9 +302,11 @@ After successful deployment:
 
 ```bash
 supabase functions deploy generate-vocabulary-words
-supabase secrets set OPENROUTER_API_KEY=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
+supabase secrets set OPENROUTER_API_KEY="[YOUR_OPENROUTER_API_KEY]"
 node scripts/test-vocabulary-deepseek.js
 ```
+
+**Note:** Replace `[YOUR_OPENROUTER_API_KEY]` with your actual key from `.env.local`
 
 ---
 
