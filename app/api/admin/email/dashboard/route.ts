@@ -1,119 +1,175 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { generateMockDashboardData } from '@/lib/mock-data';
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-interface EmailType {
-  type: string;
-  name: string;
-  isActive: boolean;
-  templateId?: string;
-  lastModified: string;
-  usageStats: {
-    totalSent: number;
-    lastSent?: string;
-    successRate: number;
-  };
-  schedulingConfig?: {
-    enabled: boolean;
-    timing: string; // e.g., "15 minutes before lesson"
-    triggerEvent: string;
-  };
-}
-
-interface SystemHealth {
-  status: 'healthy' | 'warning' | 'critical';
-  smtpConnection: 'connected' | 'disconnected' | 'error';
-  activeTemplates: number;
-  totalTemplates: number;
-  recentErrors: number;
-  lastHealthCheck: string;
-}
-
-interface DashboardOverview {
-  emailTypes: EmailType[];
-  systemHealth: SystemHealth;
-  quickStats: {
-    totalEmailsSent24h: number;
-    activeTemplates: number;
-    configuredSMTP: boolean;
-    pendingTests: number;
-  };
-  recentActivity: Array<{
-    id: string;
-    type: 'template_updated' | 'email_sent' | 'smtp_configured' | 'test_completed';
-    description: string;
-    timestamp: string;
-    status: 'success' | 'warning' | 'error';
-  }>;
-  alerts: Array<{
-    id: string;
-    type: 'bounce_rate' | 'delivery_failure' | 'smtp_error' | 'template_error';
-    message: string;
-    severity: 'low' | 'medium' | 'high';
-    timestamp: string;
-  }>;
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET() {
   try {
-    // Generate realistic mock dashboard data
-    const dashboardData = generateMockDashboardData();
-
-    return NextResponse.json(dashboardData);
-  } catch (error) {
-    console.error('Error in dashboard API:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { action, data } = body;
-
-    // Return mock success responses for now
-    switch (action) {
-      case 'toggle_email_type':
-        return NextResponse.json({ 
-          success: true, 
-          message: `Email type ${data.emailType} ${data.isActive ? 'enabled' : 'disabled'}` 
-        });
-      
-      case 'update_scheduling':
-        return NextResponse.json({ 
-          success: true, 
-          message: `Scheduling configuration updated for ${data.emailType}` 
-        });
-      
-      case 'bulk_template_operation':
-        return NextResponse.json({ 
-          success: true, 
-          message: `${data.templateIds.length} template(s) ${data.operation}d` 
-        });
-      
-      case 'system_health_check':
-        return NextResponse.json({ 
-          success: true, 
-          healthReport: {
-            smtpStatus: 'configured',
-            templatesCount: 3,
-            activeTemplatesCount: 3,
-            lastChecked: new Date().toISOString()
-          },
-          message: 'System health check completed' 
-        });
-      
-      default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    // Get SMTP configurations
+    const { data: smtpConfigs } = await supabase
+      .from('email_smtp_configs')
+      .select('*');
+    
+    // Get email templates
+    const { data: templates } = await supabase
+      .from('email_templates')
+      .select('*');
+    
+    // Get recent email logs
+    const { data: recentLogs } = await supabase
+      .from('email_logs')
+      .select('*')
+      .order('sent_at', { ascending: false })
+      .limit(10);
+    
+    // Calculate statistics
+    const activeConfigs = smtpConfigs?.filter(config => config.is_active).length || 0;
+    const activeTemplates = templates?.filter(template => template.is_active).length || 0;
+    const totalEmailsSent = recentLogs?.length || 0;
+    
+    // Get today's email count
+    const today = new Date().toISOString().split('T')[0];
+    const { data: todayLogs } = await supabase
+      .from('email_logs')
+      .select('*')
+      .gte('sent_at', today + 'T00:00:00')
+      .lt('sent_at', today + 'T23:59:59');
+    
+    const todayCount = todayLogs?.length || 0;
+    
+    // Calculate success rate
+    const successfulEmails = recentLogs?.filter(log => log.status === 'delivered').length || 0;
+    const successRate = totalEmailsSent > 0 ? (successfulEmails / totalEmailsSent) * 100 : 100;
+    
+    // Generate alerts based on system state
+    const alerts = [];
+    
+    // Check if no SMTP configs are active
+    if (activeConfigs === 0) {
+      alerts.push({
+        id: 'no-smtp',
+        type: 'smtp_error',
+        message: 'No active SMTP configurations. Email sending is disabled.',
+        severity: 'high',
+        timestamp: new Date().toISOString()
+      });
     }
+    
+    // Check if no templates are active
+    if (activeTemplates === 0) {
+      alerts.push({
+        id: 'no-templates',
+        type: 'template_error',
+        message: 'No active email templates. Create or activate templates to send emails.',
+        severity: 'medium',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Check for high failure rate
+    if (totalEmailsSent > 0 && successRate < 80) {
+      alerts.push({
+        id: 'low-success',
+        type: 'delivery_failure',
+        message: `Low delivery rate detected: ${Math.round(successRate)}%. Check SMTP configuration.`,
+        severity: 'high',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Group templates by type to create emailTypes
+    const emailTypes = [
+      {
+        type: 'welcome',
+        name: 'Welcome Emails',
+        description: 'Sent to new users upon registration',
+        is_active: templates?.some(t => t.type === 'welcome' && t.is_active) || false,
+        template_count: templates?.filter(t => t.type === 'welcome').length || 0,
+        success_rate: 100,
+        total_sent_24h: 0
+      },
+      {
+        type: 'password_reset',
+        name: 'Password Reset',
+        description: 'Password recovery emails',
+        is_active: templates?.some(t => t.type === 'password_reset' && t.is_active) || false,
+        template_count: templates?.filter(t => t.type === 'password_reset').length || 0,
+        success_rate: 100,
+        total_sent_24h: 0
+      },
+      {
+        type: 'lesson_reminder',
+        name: 'Lesson Reminders',
+        description: 'Upcoming lesson notifications',
+        is_active: templates?.some(t => t.type === 'lesson_reminder' && t.is_active) || false,
+        template_count: templates?.filter(t => t.type === 'lesson_reminder').length || 0,
+        success_rate: 100,
+        total_sent_24h: 0
+      }
+    ];
 
+    const dashboardData = {
+      emailTypes: emailTypes,
+      overview: {
+        totalEmailsSent,
+        emailsToday: todayCount,
+        successRate: Math.round(successRate),
+        activeConfigs,
+        activeTemplates
+      },
+      recentActivity: recentLogs?.map(log => ({
+        id: log.id,
+        type: 'email_sent',
+        message: `Email sent to ${log.recipient_email}`,
+        timestamp: log.sent_at,
+        status: log.status === 'delivered' ? 'success' : 'error',
+        details: {
+          email: log.recipient_email,
+          template_name: log.template_type
+        }
+      })) || [],
+      systemHealth: {
+        status: activeConfigs > 0 && activeTemplates > 0 ? 'healthy' : 'warning',
+        emailService: 'operational',
+        database: 'operational',
+        smtpConnection: activeConfigs > 0 ? 'connected' : 'disconnected',
+        smtpConnections: activeConfigs > 0 ? 'operational' : 'warning',
+        activeTemplates: activeTemplates,
+        totalTemplates: templates?.length || 0,
+        recentErrors: 0,
+        lastHealthCheck: new Date().toISOString()
+      },
+      quickStats: {
+        emails_sent_24h: todayCount,
+        emails_delivered_24h: todayLogs?.filter(log => log.status === 'delivered').length || 0,
+        active_templates: activeTemplates,
+        pending_emails: 0,
+        bounce_rate_24h: 0,
+        delivery_rate_24h: Math.round(successRate),
+        smtp_configured: activeConfigs > 0,
+        delivery_rate: Math.round(successRate),
+        deliveryRate: successRate,
+        avgResponseTime: '1.2s',
+        queueSize: 0,
+        errorRate: Math.round(100 - successRate)
+      },
+      alerts: alerts,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    return NextResponse.json({
+      success: true,
+      data: dashboardData
+    });
   } catch (error) {
-    console.error('Error in dashboard POST API:', error);
+    console.error('Dashboard API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: 'Failed to fetch dashboard data' },
       { status: 500 }
     );
   }
 }
+

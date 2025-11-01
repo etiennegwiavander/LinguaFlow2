@@ -1,31 +1,66 @@
-/**
- * SMTP Configuration Management API
- * Simplified version that returns mock data until database is properly configured
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { generateMockSMTPConfigs, getMockSMTPConfigsWithFilters, createMockSMTPConfig } from '@/lib/mock-data';
+import { createClient } from '@supabase/supabase-js';
+import { encryptPassword } from '@/lib/email-encryption';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // GET /api/admin/email/smtp-config - Retrieve all SMTP configurations
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const provider = searchParams.get('provider');
-    const active = searchParams.get('active');
     const status = searchParams.get('status');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
 
-    // Get filtered SMTP configs using mock data service
-    const configs = getMockSMTPConfigsWithFilters({
-      provider: provider || undefined,
-      active: active ? active === 'true' : undefined,
-      status: status || undefined
+    let query = supabase.from('email_smtp_configs').select('*', { count: 'exact' });
+    
+    // Apply filters
+    if (provider) {
+      query = query.eq('provider', provider);
+    }
+    
+    if (status === 'active') {
+      query = query.eq('is_active', true);
+    } else if (status === 'inactive') {
+      query = query.eq('is_active', false);
+    }
+    
+    // Apply pagination
+    const offset = (page - 1) * limit;
+    query = query.range(offset, offset + limit - 1);
+    
+    const { data: configs, error, count } = await query;
+    
+    if (error) {
+      throw error;
+    }
+    
+    const totalPages = Math.ceil((count || 0) / limit);
+    
+    return NextResponse.json({
+      success: true,
+      data: configs || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      },
+      filters: {
+        provider,
+        status
+      }
     });
-
-    return NextResponse.json({ configs });
   } catch (error) {
-    console.error('Unexpected error in GET /api/admin/email/smtp-config:', error);
+    console.error('SMTP Config API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: 'Failed to fetch SMTP configurations' },
       { status: 500 }
     );
   }
@@ -34,35 +69,60 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/email/smtp-config - Create new SMTP configuration
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { provider, host, port, username, encryption, is_active } = body;
-
-    // Validate required fields
-    if (!provider || !host || !port || !username || !encryption) {
-      return NextResponse.json(
-        { error: 'Missing required fields: provider, host, port, username, encryption' },
-        { status: 400 }
-      );
+    const configData = await request.json();
+    
+    // If this config should be active, deactivate all other configs first
+    if (configData.is_active) {
+      const { error: deactivateError } = await supabase
+        .from('email_smtp_configs')
+        .update({ is_active: false })
+        .eq('is_active', true);
+      
+      if (deactivateError) {
+        console.error('Error deactivating existing configs:', deactivateError);
+        // Continue anyway - the constraint will handle it
+      }
     }
-
-    // Create SMTP config using mock data service
-    const config = createMockSMTPConfig({
-      provider,
-      host,
-      port: parseInt(port),
-      username,
-      encryption,
-      is_active
-    });
-
-    return NextResponse.json({ 
-      config,
-      warnings: []
+    
+    // Encrypt the password before storing
+    const encryptedPassword = encryptPassword(configData.password);
+    
+    const { data: newConfig, error } = await supabase
+      .from('email_smtp_configs')
+      .insert({
+        name: configData.name,
+        provider: configData.provider,
+        host: configData.host,
+        port: configData.port,
+        username: configData.username,
+        password_encrypted: encryptedPassword,
+        from_email: configData.from_email,
+        from_name: configData.from_name,
+        encryption: configData.encryption || 'tls',
+        is_active: configData.is_active ?? true,
+        is_default: configData.is_default ?? false,
+        priority: configData.priority || 1
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw error;
+    }
+    
+    return NextResponse.json({
+      success: true,
+      data: newConfig,
+      message: 'SMTP configuration created successfully'
     }, { status: 201 });
-  } catch (error) {
-    console.error('Unexpected error in POST /api/admin/email/smtp-config:', error);
+  } catch (error: any) {
+    console.error('Create SMTP config error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        success: false, 
+        error: error?.message || 'Failed to create SMTP configuration',
+        details: error?.details || error?.hint || undefined
+      },
       { status: 500 }
     );
   }

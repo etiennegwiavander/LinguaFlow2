@@ -75,7 +75,7 @@ function SMTPConfigurationManagerContent() {
   const [deleteConfig, setDeleteConfig] = useState<SMTPConfig | null>(null);
   const [testingConfig, setTestingConfig] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // Enhanced error handling
   const {
     errors,
@@ -86,7 +86,7 @@ function SMTPConfigurationManagerContent() {
     testSMTPConnection,
     saveSMTPConfig
   } = useSMTPConfigHandling();
-  
+
   const [formData, setFormData] = useState<SMTPConfigForm>({
     provider: 'custom',
     host: '',
@@ -106,7 +106,7 @@ function SMTPConfigurationManagerContent() {
       const response = await fetch('/api/admin/email/smtp-config');
       if (response.ok) {
         const data = await response.json();
-        setConfigs(data.configs || []);
+        setConfigs(data.data || []);
       } else {
         toast.error('Failed to fetch SMTP configurations');
       }
@@ -129,12 +129,12 @@ function SMTPConfigurationManagerContent() {
 
   const handleSubmit = async () => {
     try {
-      const url = editingConfig 
+      const url = editingConfig
         ? `/api/admin/email/smtp-config/${editingConfig.id}`
         : '/api/admin/email/smtp-config';
-      
+
       const method = editingConfig ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -245,7 +245,7 @@ function SMTPConfigurationManagerContent() {
     if (!config.test_status) {
       return <Badge variant="secondary">Not Tested</Badge>;
     }
-    
+
     switch (config.test_status) {
       case 'success':
         return <Badge variant="default" className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Working</Badge>;
@@ -266,16 +266,16 @@ function SMTPConfigurationManagerContent() {
     <div className="space-y-6">
       {/* Error Summary */}
       {errors.length > 0 && (
-        <EmailErrorSummary 
-          errors={errors} 
+        <EmailErrorSummary
+          errors={errors}
           onClearErrors={clearErrors}
         />
       )}
 
       {/* Operation Loading */}
       {operationLoading && (
-        <EmailOperationLoading 
-          operation="smtp-test" 
+        <EmailOperationLoading
+          operation="smtp-test"
           message="Processing SMTP operation..."
         />
       )}
@@ -316,6 +316,15 @@ function SMTPConfigurationManagerContent() {
                   <div className="flex items-center space-x-2">
                     <CardTitle className="text-base capitalize">{config.provider}</CardTitle>
                     {config.is_active && <Badge>Active</Badge>}
+                    {config.provider === 'resend' ? (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        HTTP API
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                        SMTP
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center space-x-2">
                     {getStatusBadge(config)}
@@ -331,9 +340,9 @@ function SMTPConfigurationManagerContent() {
                     <Button variant="outline" size="sm" onClick={() => handleEdit(config)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setDeleteConfig(config)}
                       disabled={config.is_active}
                     >
@@ -401,12 +410,22 @@ function SMTPConfigurationManagerContent() {
                   <SelectItem value="gmail">Gmail</SelectItem>
                   <SelectItem value="sendgrid">SendGrid</SelectItem>
                   <SelectItem value="aws-ses">AWS SES</SelectItem>
+                  <SelectItem value="resend">Resend</SelectItem>
                   <SelectItem value="custom">Custom SMTP</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {getProviderHelpText(formData.provider)}
               </p>
+              {formData.provider === 'resend' && (
+                <div className="flex items-start space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                  <div className="text-xs text-blue-800">
+                    <strong>HTTP API Mode:</strong> Resend will use their HTTP API instead of SMTP for better reliability and performance.
+                    Enter your Resend API key in the Password field.
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -441,7 +460,9 @@ function SMTPConfigurationManagerContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">
+                {formData.provider === 'resend' ? 'API Key' : 'Password'}
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -466,7 +487,7 @@ function SMTPConfigurationManagerContent() {
               <Label htmlFor="encryption">Encryption</Label>
               <Select
                 value={formData.encryption}
-                onValueChange={(value: 'tls' | 'ssl' | 'none') => 
+                onValueChange={(value: 'tls' | 'ssl' | 'none') =>
                   setFormData({ ...formData, encryption: value })
                 }
               >
@@ -481,13 +502,20 @@ function SMTPConfigurationManagerContent() {
               </Select>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-              />
-              <Label htmlFor="is_active">Set as active configuration</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                />
+                <Label htmlFor="is_active">Set as active configuration</Label>
+              </div>
+              {formData.is_active && !editingConfig && (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  Note: Only one configuration can be active at a time. Setting this as active will deactivate any existing active configuration.
+                </p>
+              )}
             </div>
           </div>
 
@@ -522,7 +550,7 @@ function SMTPConfigurationManagerContent() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteConfig?.is_active}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -538,7 +566,7 @@ function SMTPConfigurationManagerContent() {
 
 export default function SMTPConfigurationManager() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  
+
   const handleDismissNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
@@ -547,10 +575,10 @@ export default function SMTPConfigurationManager() {
     <EmailErrorBoundary>
       <div className="relative">
         <SMTPConfigurationManagerContent />
-        <NotificationContainer 
-          notifications={notifications} 
-          onDismiss={handleDismissNotification} 
-          position="top-right" 
+        <NotificationContainer
+          notifications={notifications}
+          onDismiss={handleDismissNotification}
+          position="top-right"
         />
       </div>
     </EmailErrorBoundary>

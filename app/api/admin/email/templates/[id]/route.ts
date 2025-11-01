@@ -1,50 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-// GET /api/admin/email/templates/[id] - Get specific template
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// GET /api/admin/email/templates/[id] - Get single template
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Return mock template data based on ID
-    const mockTemplates: Record<string, any> = {
-      'welcome-001': {
-        id: 'welcome-001',
-        type: 'welcome',
-        name: 'Welcome Email Template',
-        subject: 'Welcome to {{app_name}}!',
-        html_content: '<html><body><h1>Welcome {{user_name}}!</h1><p>Thank you for joining {{app_name}}.</p></body></html>',
-        text_content: 'Welcome {{user_name}}! Thank you for joining {{app_name}}.',
-        placeholders: ['user_name', 'app_name', 'user_email'],
-        is_active: true,
-        version: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      'reminder-001': {
-        id: 'reminder-001',
-        type: 'lesson_reminder',
-        name: 'Lesson Reminder Template',
-        subject: 'Your lesson with {{tutor_name}} starts in 15 minutes',
-        html_content: '<html><body><h2>Lesson Reminder</h2><p>Hi {{student_name}}, your lesson starts in 15 minutes!</p></body></html>',
-        text_content: 'Hi {{student_name}}, your lesson with {{tutor_name}} starts in 15 minutes!',
-        placeholders: ['student_name', 'tutor_name', 'lesson_time'],
-        is_active: true,
-        version: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    };
+    const { data: template, error } = await supabase
+      .from('email_templates')
+      .select('*')
+      .eq('id', params.id)
+      .single();
 
-    const template = mockTemplates[params.id];
-    if (!template) {
-      return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(
+          { success: false, error: 'Template not found' },
+          { status: 404 }
+        );
+      }
+      throw error;
     }
-    
-    return NextResponse.json({ template });
+
+    return NextResponse.json({ 
+      success: true,
+      data: template 
+    });
   } catch (error) {
-    console.error('Error in GET /api/admin/email/templates/[id]:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error fetching template:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -54,28 +47,39 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
-    const { name, subject, htmlContent, textContent, placeholders, isActive } = body;
+    const templateData = await request.json();
     
-    // Return mock updated template
-    const updatedTemplate = {
-      id: params.id,
-      type: 'welcome', // Mock type
-      name: name || 'Updated Template',
-      subject: subject || 'Updated Subject',
-      html_content: htmlContent || '<html><body>Updated content</body></html>',
-      text_content: textContent || 'Updated text content',
-      placeholders: Array.isArray(placeholders) ? placeholders : [],
-      is_active: isActive !== undefined ? isActive : true,
-      version: 2,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    const { data: updatedTemplate, error } = await supabase
+      .from('email_templates')
+      .update({
+        name: templateData.name,
+        type: templateData.type,
+        subject: templateData.subject,
+        html_content: templateData.html_content,
+        text_content: templateData.text_content,
+        placeholders: JSON.stringify(templateData.placeholders || []),
+        is_active: templateData.is_active ?? true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', params.id)
+      .select()
+      .single();
     
-    return NextResponse.json({ template: updatedTemplate });
+    if (error) {
+      throw error;
+    }
+    
+    return NextResponse.json({
+      success: true,
+      data: updatedTemplate,
+      message: 'Template updated successfully'
+    });
   } catch (error) {
-    console.error('Error in PUT /api/admin/email/templates/[id]:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Update template error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update template' },
+      { status: 500 }
+    );
   }
 }
 
@@ -85,10 +89,24 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Return mock success response
-    return NextResponse.json({ message: 'Template deleted successfully' });
+    const { error } = await supabase
+      .from('email_templates')
+      .delete()
+      .eq('id', params.id);
+    
+    if (error) {
+      throw error;
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Template deleted successfully'
+    });
   } catch (error) {
-    console.error('Error in DELETE /api/admin/email/templates/[id]:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Delete template error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete template' },
+      { status: 500 }
+    );
   }
 }

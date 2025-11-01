@@ -1,114 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMockEmailLogsWithFilters, getMockEmailLogStats } from '@/lib/mock-data';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 interface EmailLogFilters {
-  startDate?: string;
-  endDate?: string;
-  emailType?: string;
   status?: string;
-  recipientEmail?: string;
-  isTest?: boolean;
-  page?: number;
-  limit?: number;
-  sortBy?: 'sent_at' | 'delivered_at' | 'status' | 'template_type';
-  sortOrder?: 'asc' | 'desc';
-}
-
-interface EmailLogResponse {
-  logs: Array<{
-    id: string;
-    templateId: string | null;
-    templateType: string;
-    recipientEmail: string;
-    subject: string;
-    status: string;
-    sentAt: string;
-    deliveredAt: string | null;
-    errorCode: string | null;
-    errorMessage: string | null;
-    isTest: boolean;
-    metadata: any;
-  }>;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  summary: {
-    totalSent: number;
-    totalDelivered: number;
-    totalFailed: number;
-    totalBounced: number;
-    totalPending: number;
-  };
+  type?: string;
+  recipient?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page: number;
+  limit: number;
 }
 
 export async function GET(request: NextRequest) {
   try {
-    // Parse query parameters
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const templateType = searchParams.get('template_type');
-    const status = searchParams.get('status');
-    const recipientEmail = searchParams.get('recipient_email');
-    const startDate = searchParams.get('start_date');
-    const endDate = searchParams.get('end_date');
-
-    // Get filtered logs using mock data service
-    const { logs, total } = getMockEmailLogsWithFilters({
-      template_type: templateType || undefined,
-      status: status || undefined,
-      recipient_email: recipientEmail || undefined,
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
-      limit,
-      offset: (page - 1) * limit
-    });
-
-    // Get summary stats
-    const stats = getMockEmailLogStats({
-      template_type: templateType || undefined,
-      start_date: startDate || undefined,
-      end_date: endDate || undefined
-    });
-
-    const response: EmailLogResponse = {
-      logs: logs.map(log => ({
-        id: log.id,
-        templateId: log.template_id,
-        templateType: log.template_type,
-        recipientEmail: log.recipient_email,
-        subject: log.subject,
-        status: log.status,
-        sentAt: log.sent_at,
-        deliveredAt: log.delivered_at || null,
-        errorCode: null,
-        errorMessage: log.error_message || null,
-        isTest: false,
-        metadata: log.metadata || {}
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      },
-      summary: {
-        totalSent: stats.total_sent,
-        totalDelivered: stats.delivered,
-        totalFailed: stats.failed,
-        totalBounced: stats.bounced,
-        totalPending: stats.pending
-      }
+    
+    const filters: EmailLogFilters = {
+      status: searchParams.get('status') || undefined,
+      type: searchParams.get('type') || undefined,
+      recipient: searchParams.get('recipient') || undefined,
+      dateFrom: searchParams.get('dateFrom') || undefined,
+      dateTo: searchParams.get('dateTo') || undefined,
+      page: parseInt(searchParams.get('page') || '1'),
+      limit: parseInt(searchParams.get('limit') || '20')
     };
 
-    return NextResponse.json(response);
+    let query = supabase.from('email_logs').select('*', { count: 'exact' });
+    
+    // Apply filters
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    
+    if (filters.type) {
+      query = query.eq('template_type', filters.type);
+    }
+    
+    if (filters.recipient) {
+      query = query.ilike('recipient_email', `%${filters.recipient}%`);
+    }
+    
+    if (filters.dateFrom) {
+      query = query.gte('sent_at', filters.dateFrom);
+    }
+    
+    if (filters.dateTo) {
+      query = query.lte('sent_at', filters.dateTo);
+    }
+    
+    // Apply pagination and ordering
+    const offset = (filters.page - 1) * filters.limit;
+    query = query
+      .order('sent_at', { ascending: false })
+      .range(offset, offset + filters.limit - 1);
+    
+    const { data: logs, error, count } = await query;
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Get stats
+    const { data: allLogs } = await supabase
+      .from('email_logs')
+      .select('status, template_type');
+    
+    const stats = {
+      total: allLogs?.length || 0,
+      delivered: allLogs?.filter(log => log.status === 'delivered').length || 0,
+      failed: allLogs?.filter(log => log.status === 'failed').length || 0,
+      pending: allLogs?.filter(log => log.status === 'pending').length || 0,
+      bounced: allLogs?.filter(log => log.status === 'bounced').length || 0
+    };
+    
+    const totalPages = Math.ceil((count || 0) / filters.limit);
+    
+    return NextResponse.json({
+      success: true,
+      data: {
+        logs: logs || [],
+        pagination: {
+          page: filters.page,
+          limit: filters.limit,
+          total: count || 0,
+          totalPages,
+          hasNext: filters.page < totalPages,
+          hasPrev: filters.page > 1
+        },
+        stats,
+        filters
+      }
+    });
   } catch (error) {
-    console.error('Error in email logs API:', error);
+    console.error('Email logs API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: 'Failed to fetch email logs' },
       { status: 500 }
     );
   }

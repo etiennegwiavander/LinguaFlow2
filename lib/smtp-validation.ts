@@ -3,7 +3,7 @@
  * Provider-specific validation logic for SMTP configurations
  */
 
-export type SMTPProvider = 'gmail' | 'sendgrid' | 'aws-ses' | 'custom';
+export type SMTPProvider = 'gmail' | 'sendgrid' | 'aws-ses' | 'resend' | 'custom';
 
 export interface SMTPConfig {
   provider: SMTPProvider;
@@ -44,6 +44,14 @@ const PROVIDER_CONFIGS = {
     encryption: 'tls' as const,
     usernamePattern: /^[A-Z0-9]{20}$/,
     requiresAccessKey: true,
+  },
+  resend: {
+    host: 'smtp.resend.com',
+    port: 465,
+    encryption: 'ssl' as const,
+    usernamePattern: /^resend$/,
+    requiresApiKey: true,
+    usesHttpApi: true, // Special flag for HTTP API mode
   },
   custom: {
     // No specific validation for custom providers
@@ -91,6 +99,9 @@ export function validateSMTPConfig(config: SMTPConfig): ValidationResult {
       break;
     case 'aws-ses':
       validateAWSSESConfig(config, result);
+      break;
+    case 'resend':
+      validateResendConfig(config, result);
       break;
     case 'custom':
       validateCustomConfig(config, result);
@@ -175,6 +186,17 @@ function validateAWSSESConfig(config: SMTPConfig, result: ValidationResult): voi
   }
 }
 
+function validateResendConfig(config: SMTPConfig, result: ValidationResult): void {
+  const resendConfig = PROVIDER_CONFIGS.resend;
+
+  // Note: Resend uses HTTP API, so SMTP validation is minimal
+  if (!config.password.startsWith('re_')) {
+    result.warnings.push('Resend API key should start with "re_"');
+  }
+
+  result.warnings.push('Resend will use HTTP API instead of SMTP for better reliability');
+}
+
 function validateCustomConfig(config: SMTPConfig, result: ValidationResult): void {
   // Basic validation for custom providers
   if (config.host.includes('gmail') && config.provider !== 'gmail') {
@@ -214,6 +236,8 @@ export function getProviderHelpText(provider: SMTPProvider): string {
       return 'For SendGrid, use "apikey" as username and your SendGrid API key as password. Create API keys in your SendGrid dashboard.';
     case 'aws-ses':
       return 'For AWS SES, use SMTP credentials (not regular AWS keys). Generate SMTP credentials in the AWS SES console for your region.';
+    case 'resend':
+      return 'Resend uses HTTP API for sending emails. Enter your Resend API key (starts with "re_") in the password field. Get your API key from the Resend dashboard.';
     case 'custom':
       return 'For custom SMTP providers, enter the settings provided by your email service provider. Contact your provider if you need assistance.';
     default:
@@ -243,6 +267,13 @@ export function getProviderDefaults(provider: SMTPProvider): Partial<SMTPConfig>
       return {
         port: 587,
         encryption: PROVIDER_CONFIGS['aws-ses'].encryption,
+      };
+    case 'resend':
+      return {
+        host: PROVIDER_CONFIGS.resend.host,
+        port: PROVIDER_CONFIGS.resend.port,
+        encryption: PROVIDER_CONFIGS.resend.encryption,
+        username: 'resend',
       };
     case 'custom':
       return {

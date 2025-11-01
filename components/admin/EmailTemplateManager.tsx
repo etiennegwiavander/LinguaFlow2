@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Mail, 
   Plus, 
@@ -61,6 +61,126 @@ const TEMPLATE_TYPES = [
   { value: 'custom', label: 'Custom Template' }
 ];
 
+// Simple Template Form Component
+const TemplateForm = ({ template, onSave, onCancel }: {
+  template: EmailTemplate | null;
+  onSave: (data: Partial<EmailTemplate>) => void;
+  onCancel: () => void;
+}) => {
+  const [name, setName] = React.useState(template?.name || '');
+  const [type, setType] = React.useState(template?.type || 'custom');
+  const [subject, setSubject] = React.useState(template?.subject || '');
+  const [htmlContent, setHtmlContent] = React.useState(template?.html_content || '');
+  const [textContent, setTextContent] = React.useState(template?.text_content || '');
+  const [isActive, setIsActive] = React.useState(template?.is_active ?? true);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    onSave({
+      name,
+      type,
+      subject,
+      html_content: htmlContent,
+      text_content: textContent,
+      placeholders: [],
+      is_active: isActive
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Template Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md"
+            placeholder="e.g., Welcome Email"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Template Type</label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md"
+            required
+          >
+            {TEMPLATE_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Subject Line</label>
+        <input
+          type="text"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          className="w-full px-3 py-2 border rounded-md"
+          placeholder="e.g., Welcome to LinguaFlow!"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">HTML Content</label>
+        <textarea
+          value={htmlContent}
+          onChange={(e) => setHtmlContent(e.target.value)}
+          className="w-full px-3 py-2 border rounded-md font-mono text-sm"
+          rows={10}
+          placeholder="<html><body>...</body></html>"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Plain Text (Optional)</label>
+        <textarea
+          value={textContent}
+          onChange={(e) => setTextContent(e.target.value)}
+          className="w-full px-3 py-2 border rounded-md"
+          rows={5}
+          placeholder="Plain text version..."
+        />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="is_active"
+          checked={isActive}
+          onChange={(e) => setIsActive(e.target.checked)}
+          className="rounded"
+        />
+        <label htmlFor="is_active" className="text-sm font-medium">
+          Active
+        </label>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="button" onClick={(e) => {
+          const form = e.currentTarget.closest('div')?.querySelector('input[required]');
+          if (form) {
+            handleSubmit({ preventDefault: () => {} } as React.FormEvent<HTMLFormElement>);
+          }
+        }}>
+          {template ? 'Update' : 'Create'}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export default function EmailTemplateManager() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,8 +202,9 @@ export default function EmailTemplateManager() {
         throw new Error('Failed to fetch templates');
       }
       
-      const data = await response.json();
-      setTemplates(data.templates || []);
+      const result = await response.json();
+      // API returns { success: true, data: [...] }
+      setTemplates(result.data || result.templates || []);
     } catch (error) {
       console.error('Error fetching templates:', error);
       toast.error('Failed to load email templates');
@@ -98,7 +219,8 @@ export default function EmailTemplateManager() {
   };
 
   const handleCreateTemplate = () => {
-    toast.info('Template creation feature coming soon!');
+    setSelectedTemplate(null);
+    setIsEditDialogOpen(true);
   };
 
   const handleViewTemplate = (template: EmailTemplate) => {
@@ -109,6 +231,44 @@ export default function EmailTemplateManager() {
   const handleEditTemplate = (template: EmailTemplate) => {
     setSelectedTemplate(template);
     setIsEditDialogOpen(true);
+  };
+
+  const handleSaveTemplate = async (templateData: Partial<EmailTemplate>) => {
+    try {
+      if (selectedTemplate) {
+        // Update existing template
+        const response = await fetch(`/api/admin/email/templates/${selectedTemplate.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(templateData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update template');
+        }
+
+        toast.success('Template updated successfully');
+      } else {
+        // Create new template
+        const response = await fetch('/api/admin/email/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(templateData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create template');
+        }
+
+        toast.success('Template created successfully');
+      }
+
+      setIsEditDialogOpen(false);
+      fetchTemplates(); // Refresh the list
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast.error('Failed to save template');
+    }
   };
 
   const handleCopyTemplate = (template: EmailTemplate) => {
@@ -135,9 +295,16 @@ export default function EmailTemplateManager() {
     }
 
     try {
-      // For now, just show success message since we're using mock data
-      toast.success('Template deleted successfully (Demo mode)');
-      // In real implementation, you would call the API here
+      const response = await fetch(`/api/admin/email/templates/${template.id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete template');
+      }
+
+      toast.success('Template deleted successfully');
+      fetchTemplates(); // Refresh the list
     } catch (error: any) {
       console.error('Error deleting template:', error);
       toast.error('Failed to delete template');
@@ -151,10 +318,19 @@ export default function EmailTemplateManager() {
 
   const handleToggleStatus = async (template: EmailTemplate) => {
     try {
-      // For now, just show success message since we're using mock data
       const newStatus = !template.is_active;
-      toast.success(`Template ${newStatus ? 'activated' : 'deactivated'} successfully (Demo mode)`);
-      // In real implementation, you would call the API here
+      const response = await fetch(`/api/admin/email/templates/${template.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...template, is_active: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update template status');
+      }
+
+      toast.success(`Template ${newStatus ? 'activated' : 'deactivated'} successfully`);
+      fetchTemplates(); // Refresh the list
     } catch (error: any) {
       console.error('Error updating template status:', error);
       toast.error('Failed to update template status');
@@ -357,21 +533,22 @@ export default function EmailTemplateManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Template Dialog */}
+      {/* Edit/Create Template Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Template: {selectedTemplate?.name}</DialogTitle>
+            <DialogTitle>
+              {selectedTemplate ? `Edit Template: ${selectedTemplate.name}` : 'Create New Template'}
+            </DialogTitle>
             <DialogDescription>
-              Template editing feature coming soon!
+              {selectedTemplate ? 'Update template details and content' : 'Create a new email template'}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground">
-              The template editor is currently under development. You can view template details 
-              and copy the HTML content for now.
-            </p>
-          </div>
+          <TemplateForm 
+            template={selectedTemplate}
+            onSave={handleSaveTemplate}
+            onCancel={() => setIsEditDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 

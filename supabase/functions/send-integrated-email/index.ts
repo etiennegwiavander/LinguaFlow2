@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Resend } from 'npm:resend@2.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,45 +45,53 @@ serve(async (req) => {
       userId
     }: EmailRequest = await req.json()
 
-    // Get SMTP configuration
-    const { data: smtpConfig, error: smtpError } = await supabaseClient
-      .from('email_smtp_configs')
-      .select('*')
-      .eq('id', smtpConfigId)
-      .eq('is_active', true)
-      .single()
-
-    if (smtpError || !smtpConfig) {
-      throw new Error('SMTP configuration not found or inactive')
+    // Try to get SMTP configuration from database (optional)
+    let fromEmail = 'noreply@linguaflow.online' // Default sender
+    
+    try {
+      const { data: smtpConfig } = await supabaseClient
+        .from('email_smtp_configs')
+        .select('username')
+        .eq('id', smtpConfigId)
+        .eq('is_active', true)
+        .single()
+      
+      if (smtpConfig && smtpConfig.username) {
+        fromEmail = smtpConfig.username
+      }
+    } catch (error) {
+      console.log('No SMTP config found, using default sender:', fromEmail)
     }
 
-    // Decrypt SMTP password (simplified - in production use proper decryption)
-    const smtpPassword = smtpConfig.password_encrypted // TODO: Implement proper decryption
-
-    // Create email log entry
-    const { data: emailLog, error: logError } = await supabaseClient
-      .from('email_logs')
-      .insert({
-        template_id: templateId,
-        template_type: templateData.templateType || 'unknown',
-        recipient_email: recipientEmail,
-        subject: subject,
-        status: scheduledFor ? 'scheduled' : 'pending',
-        sent_at: scheduledFor ? null : new Date().toISOString(),
-        scheduled_for: scheduledFor,
-        is_test: false,
-        metadata: {
-          smtp_config_id: smtpConfigId,
-          template_data: templateData,
-          priority: priority,
-          user_id: userId
-        }
-      })
-      .select()
-      .single()
-
-    if (logError) {
-      throw new Error(`Failed to create email log: ${logError.message}`)
+    // Try to create email log entry (optional)
+    let emailLogId = null
+    try {
+      const { data: emailLog } = await supabaseClient
+        .from('email_logs')
+        .insert({
+          template_id: templateId,
+          template_type: templateData.templateType || 'unknown',
+          recipient_email: recipientEmail,
+          subject: subject,
+          status: scheduledFor ? 'scheduled' : 'pending',
+          sent_at: scheduledFor ? null : new Date().toISOString(),
+          scheduled_for: scheduledFor,
+          is_test: false,
+          metadata: {
+            smtp_config_id: smtpConfigId,
+            template_data: templateData,
+            priority: priority,
+            user_id: userId
+          }
+        })
+        .select()
+        .single()
+      
+      if (emailLog) {
+        emailLogId = emailLog.id
+      }
+    } catch (error) {
+      console.log('Could not create email log (table may not exist):', error)
     }
 
     // If scheduled for future, return success without sending
@@ -90,7 +99,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          logId: emailLog.id,
+          logId: emailLogId,
           message: 'Email scheduled successfully'
         }),
         { 
@@ -100,71 +109,68 @@ serve(async (req) => {
       )
     }
 
-    // Send email immediately
+    // Send email immediately using Resend API
     try {
-      // Configure SMTP transport based on provider
-      let smtpTransport;
-      
-      if (smtpConfig.provider === 'gmail') {
-        smtpTransport = {
-          host: 'smtp.gmail.com',
-          port: 587,
-          secure: false,
-          auth: {
-            user: smtpConfig.username,
-            pass: smtpPassword
-          }
-        }
-      } else if (smtpConfig.provider === 'sendgrid') {
-        smtpTransport = {
-          host: 'smtp.sendgrid.net',
-          port: 587,
-          secure: false,
-          auth: {
-            user: 'apikey',
-            pass: smtpPassword
-          }
-        }
-      } else {
-        // Custom SMTP
-        smtpTransport = {
-          host: smtpConfig.host,
-          port: smtpConfig.port,
-          secure: smtpConfig.encryption === 'ssl',
-          auth: {
-            user: smtpConfig.username,
-            pass: smtpPassword
-          }
-        }
+      // Initialize Resend with API key from environment
+      const resendApiKey = Deno.env.get('RESEND_API_KEY')
+      if (!resendApiKey) {
+        throw new Error('RESEND_API_KEY environment variable is not set')
       }
 
-      // For this implementation, we'll use a simple fetch to a mail service
-      // In production, you'd use a proper SMTP library like nodemailer
-      const emailPayload = {
+      const resend = new Resend(resendApiKey)
+
+      console.log('Sending email via Resend:', {
+        from: fromEmail,
+        to: recipientEmail,
+        subject: subject,
+        provider: 'resend'
+      })
+
+      // Send email using Resend API
+      const { data: resendData, error: resendError } = await resend.emails.send({
+        from: fromEmail,
         to: recipientEmail,
         subject: subject,
         html: htmlContent,
         text: textContent || htmlContent.replace(/<[^>]*>/g, ''),
-        from: smtpConfig.username
+      })
+
+      if (resendError) {
+        console.error('Resend API error:', resendError)
+        throw new Error(`Resend error: ${resendError.message}`)
       }
 
-      // Simulate email sending (replace with actual SMTP sending)
-      console.log('Sending email:', emailPayload)
+      console.log('Email sent successfully via Resend:', resendData)
       
-      // Update email log with success
-      await supabaseClient
-        .from('email_logs')
-        .update({
-          status: 'sent',
-          delivered_at: new Date().toISOString()
-        })
-        .eq('id', emailLog.id)
+      // Update email log with success (if it exists)
+      if (emailLogId) {
+        try {
+          await supabaseClient
+            .from('email_logs')
+            .update({
+              status: 'sent',
+              delivered_at: new Date().toISOString(),
+              metadata: {
+                smtp_config_id: smtpConfigId,
+                template_data: templateData,
+                priority: priority,
+                user_id: userId,
+                resend_id: resendData?.id,
+                provider: 'resend'
+              }
+            })
+            .eq('id', emailLogId)
+        } catch (error) {
+          console.log('Could not update email log:', error)
+        }
+      }
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          logId: emailLog.id,
-          message: 'Email sent successfully'
+          logId: emailLogId,
+          resendId: resendData?.id,
+          message: 'Email sent successfully via Resend'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -173,15 +179,23 @@ serve(async (req) => {
       )
 
     } catch (sendError: any) {
-      // Update email log with failure
-      await supabaseClient
-        .from('email_logs')
-        .update({
-          status: 'failed',
-          error_message: sendError.message,
-          error_code: 'SMTP_ERROR'
-        })
-        .eq('id', emailLog.id)
+      console.error('Email sending error:', sendError)
+      
+      // Update email log with failure (if it exists)
+      if (emailLogId) {
+        try {
+          await supabaseClient
+            .from('email_logs')
+            .update({
+              status: 'failed',
+              error_message: sendError.message,
+              error_code: 'RESEND_ERROR'
+            })
+            .eq('id', emailLogId)
+        } catch (error) {
+          console.log('Could not update email log:', error)
+        }
+      }
 
       throw new Error(`Failed to send email: ${sendError.message}`)
     }

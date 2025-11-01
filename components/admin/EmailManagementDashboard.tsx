@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  Mail, 
-  Server, 
-  FileText, 
-  TestTube, 
-  BarChart3, 
-  Settings, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Mail,
+  Server,
+  FileText,
+  TestTube,
+  BarChart3,
+  Settings,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
   Clock,
   TrendingUp,
   Activity,
@@ -94,8 +94,9 @@ export default function EmailManagementDashboard() {
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
       }
-      const data = await response.json();
-      setDashboardData(data);
+      const result = await response.json();
+      // API returns { success: true, data: dashboardData }
+      setDashboardData(result.data || result);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
@@ -251,16 +252,16 @@ export default function EmailManagementDashboard() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleRefresh}
             disabled={refreshing}
           >
             <Activity className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleSystemHealthCheck}
           >
             <Shield className="h-4 w-4 mr-2" />
@@ -270,11 +271,11 @@ export default function EmailManagementDashboard() {
       </div>
 
       {/* System Alerts */}
-      {dashboardData.alerts.length > 0 && (
+      {dashboardData.alerts && dashboardData.alerts.length > 0 && (
         <div className="space-y-2">
           {dashboardData.alerts.map((alert) => (
-            <Alert 
-              key={alert.id} 
+            <Alert
+              key={alert.id}
               variant={alert.severity === 'high' ? 'destructive' : 'default'}
             >
               <AlertTriangle className="h-4 w-4" />
@@ -394,11 +395,11 @@ export default function EmailManagementDashboard() {
                   <span className="text-sm font-medium">{dashboardData.systemHealth.recentErrors}</span>
                 </div>
                 <div className="pt-2">
-                  <Progress 
-                    value={dashboardData.systemHealth.totalTemplates > 0 ? 
+                  <Progress
+                    value={dashboardData.systemHealth.totalTemplates > 0 ?
                       (dashboardData.systemHealth.activeTemplates / dashboardData.systemHealth.totalTemplates) * 100 : 0
-                    } 
-                    className="h-2" 
+                    }
+                    className="h-2"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Template activation rate

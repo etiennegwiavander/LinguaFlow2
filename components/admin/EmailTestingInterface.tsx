@@ -52,7 +52,7 @@ interface EmailTemplate {
   name: string;
   subject: string;
   placeholders: string[];
-  isActive: boolean;
+  is_active: boolean;
 }
 
 interface TestResult {
@@ -94,7 +94,7 @@ export default function EmailTestingInterface({ className }: EmailTestingInterfa
       const response = await fetch('/api/admin/email/templates');
       if (response.ok) {
         const data = await response.json();
-        setTemplates(data.templates || []);
+        setTemplates(data.data || []);
       } else {
         toast.error('Failed to load email templates');
       }
@@ -349,7 +349,7 @@ export default function EmailTestingInterface({ className }: EmailTestingInterfa
                           <Badge variant="outline" className="text-xs">
                             {template.type}
                           </Badge>
-                          {!template.isActive && (
+                          {!template.is_active && (
                             <Badge variant="secondary" className="text-xs">
                               Inactive
                             </Badge>

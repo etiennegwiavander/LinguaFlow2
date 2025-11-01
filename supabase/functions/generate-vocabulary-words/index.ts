@@ -78,8 +78,8 @@ async function generateAIPersonalizedVocabulary(
   );
 
   try {
-    // Call Gemini API for vocabulary generation
-    const aiResponse = await callGeminiForVocabulary(prompt);
+    // Call DeepSeek API via OpenRouter for vocabulary generation
+    const aiResponse = await callDeepSeekForVocabulary(prompt);
 
     if (aiResponse && aiResponse.length > 0) {
       return aiResponse;
@@ -130,7 +130,7 @@ For each word, provide:
 - definition: clear, level-appropriate definition
 - exampleSentences: 6 natural, contextually relevant example sentences that relate to the student's learning goals and real-life situations they might encounter. Use different tenses (present, past, future, present perfect, past perfect, future perfect). Create scenarios that connect to their goals (${goals}) and address their conversational barriers (${conversationalBarriers}). Use the student's name sparingly - only in 1-2 sentences when it feels natural and personal
 
-Return ONLY a valid JSON array of vocabulary objects. No additional text or explanation.
+CRITICAL: Return ONLY a valid JSON array of vocabulary objects. Do not wrap it in markdown code blocks or add any explanatory text. Just the raw JSON array starting with [ and ending with ].
 
 Example format:
 [
@@ -151,58 +151,84 @@ Example format:
 ]`;
 }
 
-// Call Gemini API for vocabulary generation
-async function callGeminiForVocabulary(
+// Call OpenRouter DeepSeek API for vocabulary generation
+async function callDeepSeekForVocabulary(
   prompt: string
 ): Promise<VocabularyCardData[]> {
-  const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+  const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
 
-  if (!geminiApiKey) {
-    throw new Error("Gemini API key not configured");
+  if (!openRouterApiKey) {
+    throw new Error("OpenRouter API key not configured");
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`,
+    "https://openrouter.ai/api/v1/chat/completions",
     {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${openRouterApiKey}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://linguaflow.online",
+        "X-Title": "LinguaFlow Vocabulary Generator",
       },
       body: JSON.stringify({
-        contents: [
+        model: "deepseek/deepseek-chat",
+        messages: [
           {
-            parts: [
-              {
-                text: `You are an expert English language teacher who creates personalized vocabulary lessons. Always respond with valid JSON only.\n\n${prompt}`,
-              },
-            ],
+            role: "system",
+            content: "You are an expert English language teacher who creates personalized vocabulary lessons. Always respond with valid JSON only. Do not include any markdown formatting, code blocks, or explanatory text - only return the raw JSON array."
           },
+          {
+            role: "user",
+            content: prompt
+          }
         ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 4000,
-          responseMimeType: "application/json",
-        },
+        temperature: 0.7,
+        max_tokens: 4000,
+        response_format: { type: "json_object" }
       }),
     }
   );
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error("OpenRouter API error:", errorText);
     throw new Error(
-      `Gemini API error: ${response.status} ${response.statusText}`
+      `OpenRouter API error: ${response.status} ${response.statusText}`
     );
   }
 
   const data = await response.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const content = data.choices?.[0]?.message?.content;
 
   if (!content) {
-    throw new Error("No content received from Gemini");
+    throw new Error("No content received from DeepSeek");
   }
 
   try {
     // Parse the JSON response
-    const vocabularyWords = JSON.parse(content);
+    let vocabularyWords;
+    
+    // Try to parse as direct JSON
+    try {
+      vocabularyWords = JSON.parse(content);
+    } catch (e) {
+      // If it's wrapped in a JSON object with a key, try to extract the array
+      const parsed = JSON.parse(content);
+      if (parsed.words && Array.isArray(parsed.words)) {
+        vocabularyWords = parsed.words;
+      } else if (parsed.vocabulary && Array.isArray(parsed.vocabulary)) {
+        vocabularyWords = parsed.vocabulary;
+      } else {
+        // Try to find any array in the response
+        const arrayMatch = content.match(/\[[\s\S]*\]/);
+        if (arrayMatch) {
+          vocabularyWords = JSON.parse(arrayMatch[0]);
+        } else {
+          throw new Error("Could not find vocabulary array in response");
+        }
+      }
+    }
 
     // Validate the response format
     if (!Array.isArray(vocabularyWords)) {
@@ -224,7 +250,7 @@ async function callGeminiForVocabulary(
     
     return validWords;
   } catch (parseError) {
-    console.error("Failed to parse Gemini response:", parseError);
+    console.error("Failed to parse DeepSeek response:", parseError);
     console.error("Raw content:", content);
     throw new Error("Failed to parse AI response");
   }

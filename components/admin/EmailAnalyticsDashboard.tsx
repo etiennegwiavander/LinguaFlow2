@@ -190,8 +190,9 @@ const EmailAnalyticsDashboard: React.FC = () => {
         throw new Error('Failed to fetch analytics');
       }
       
-      const data = await response.json();
-      setAnalytics(data);
+      const result = await response.json();
+      // API returns { success: true, data: analytics }
+      setAnalytics(result.data || result);
     } catch (error) {
       console.error('Error fetching analytics:', error);
       toast.error('Failed to load email analytics');
@@ -405,13 +406,15 @@ const EmailAnalyticsDashboard: React.FC = () => {
   }
 
   // Prepare chart data
-  const emailTypeData = Object.entries(analytics.emailTypeBreakdown).map(([type, stats]) => ({
-    name: type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-    sent: stats.sent,
-    delivered: stats.delivered,
-    failed: stats.failed,
-    bounced: stats.bounced
-  }));
+  const emailTypeData = analytics.emailTypeBreakdown 
+    ? Object.entries(analytics.emailTypeBreakdown).map(([type, stats]) => ({
+        name: type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        sent: stats.sent,
+        delivered: stats.delivered,
+        failed: stats.failed,
+        bounced: stats.bounced
+      }))
+    : [];
 
   const pieData = [
     { name: 'Delivered', value: analytics.totalDelivered, color: pieColors[0] },
@@ -726,7 +729,7 @@ const EmailAnalyticsDashboard: React.FC = () => {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : logs && logs.logs.length > 0 ? (
+          ) : logs && logs.logs && logs.logs.length > 0 ? (
             <>
               <div className="rounded-md border">
                 <Table>
