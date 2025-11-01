@@ -8,10 +8,21 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   console.log('🔐 Updating password...');
   
+  // Support both environment variable names (dev vs production)
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
+  
+  if (!serviceRoleKey) {
+    console.error('❌ No service role key found in environment');
+    return NextResponse.json(
+      { error: 'Server configuration error' },
+      { status: 500 }
+    );
+  }
+  
   // Create admin client with service role key to bypass RLS
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    serviceRoleKey,
     {
       auth: {
         autoRefreshToken: false,

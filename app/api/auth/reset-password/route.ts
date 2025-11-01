@@ -7,27 +7,46 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   console.log('🔵 Password reset API called');
-  
-  // Create admin client with service role key to bypass RLS
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    }
-  );
-  
-  // Create regular client for Edge Function calls
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  console.log('🔵 Environment check:', {
+    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasServiceKey: !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY),
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
+  });
   
   try {
+    // Support both environment variable names (dev vs production)
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
+    
+    if (!serviceRoleKey) {
+      console.error('❌ No service role key found in environment');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+    
+    // Create admin client with service role key to bypass RLS
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      serviceRoleKey,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+    
+    // Create regular client for Edge Function calls
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      serviceRoleKey
+    );
+    
+    console.log('🔵 Supabase clients created successfully');
+
     const { email } = await request.json();
+    console.log('🔵 Email received:', email ? 'Yes' : 'No');
     console.log('📧 Email received:', email);
 
     if (!email) {
@@ -161,10 +180,22 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('❌ Password reset error:', error);
-    console.error('❌ Stack trace:', error.stack);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('❌ Error message:', error?.message);
+    console.error('❌ Stack trace:', error?.stack);
+    
+    // Ensure we always return valid JSON
+    try {
+      return NextResponse.json(
+        { 
+          error: 'Internal server error',
+          details: error?.message || 'Unknown error'
+        },
+        { status: 500 }
+      );
+    } catch (jsonError) {
+      console.error('❌ Failed to return JSON response:', jsonError);
+      // Fallback to plain text response
+      return new NextResponse('Internal server error', { status: 500 });
+    }
   }
 }
