@@ -6,6 +6,7 @@
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
   NODE_OPTIONS = "--max-old-space-size=4096"
+  NEXT_PUBLIC_APP_URL = "https://linguaflow.online"
 
 # Next.js specific configuration
 [[plugins]]
