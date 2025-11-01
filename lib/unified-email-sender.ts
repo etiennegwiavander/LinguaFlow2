@@ -47,14 +47,18 @@ async function sendViaResendAPI(
 
     const from = options.from || `${config.from_name} <${config.from_email}>`;
     
-    const result = await resend.emails.send({
+    // Build email payload with only defined properties
+    const emailPayload: any = {
       from,
       to: Array.isArray(options.to) ? options.to : [options.to],
       subject: options.subject,
-      html: options.html,
-      text: options.text,
-      reply_to: options.replyTo,
-    });
+    };
+
+    if (options.html) emailPayload.html = options.html;
+    if (options.text) emailPayload.text = options.text;
+    if (options.replyTo) emailPayload.replyTo = options.replyTo;
+    
+    const result = await resend.emails.send(emailPayload);
 
     if (result.error) {
       return {
@@ -89,7 +93,7 @@ async function sendViaSMTP(
   try {
     const password = decryptPassword(config.password_encrypted);
 
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: config.host,
       port: config.port,
       secure: config.encryption === 'ssl',
@@ -161,7 +165,7 @@ export async function testEmailConnection(config: EmailConfig): Promise<EmailRes
   try {
     const password = decryptPassword(config.password_encrypted);
 
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: config.host,
       port: config.port,
       secure: config.encryption === 'ssl',
