@@ -10,7 +10,7 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, firstName?: string) => Promise<void>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -262,7 +262,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, firstName?: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
     try {
       // First, check if there's already an auth user with this email
       // This helps us handle the "User already registered" case
@@ -314,7 +314,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: email,
         is_admin: false,
         first_name: firstName || null,
-        last_name: null,
+        last_name: lastName || null,
       };
 
       let tutorData = null;

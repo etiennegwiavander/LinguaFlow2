@@ -106,8 +106,8 @@ serve(async (req) => {
       user_name: displayName,
       user_email: email,
       app_name: "LinguaFlow",
-      login_url: "https://linguaflow.online/dashboard",
-      dashboard_url: "https://linguaflow.online/dashboard",
+      login_url: "https://linguaflow.online/auth/login",
+      dashboard_url: "https://linguaflow.online/auth/login",
       support_email: "support@linguaflow.online",
     };
 
@@ -245,8 +245,8 @@ function generateTutorWelcomeHTML(displayName: string, email?: string): string {
                             <table width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="center" style="padding: 20px 0;">
-                                        <a href="https://linguaflow.online/dashboard" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                                            Access Your Dashboard
+                                        <a href="https://linguaflow.online/auth/login" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                                            Log In to Your Dashboard
                                         </a>
                                     </td>
                                 </tr>
