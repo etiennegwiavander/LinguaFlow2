@@ -205,12 +205,23 @@ export class GoogleCalendarService {
       throw new Error("Not authenticated");
     }
 
+    // Get the current session to include auth token
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      throw new Error("No active session");
+    }
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/sync-calendar`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
         },
         body: JSON.stringify({
           tutor_id: user.id,
