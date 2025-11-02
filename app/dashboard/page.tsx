@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MainLayout from "@/components/main-layout";
@@ -49,27 +49,34 @@ export default function DashboardPage() {
   const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date>(new Date());
 
-  useEffect(() => {
+  const fetchCalendarEvents = useCallback(async () => {
+    // Add null check for user at the beginning of the function
     if (!user) return;
 
-    fetchDashboardData();
+    try {
+      // Fetch calendar events for the next 48 hours
+      const now = new Date();
+      const fortyEightHoursFromNow = addHours(now, 48);
 
-    // Set up automatic refresh every 30 minutes
-    const refreshInterval = setInterval(() => {
-      if (isCalendarConnected) {
-        handleRefreshCalendar();
+      const { data: calendarData, error: calendarError } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('tutor_id', user.id)
+        .gte('start_time', now.toISOString())
+        .lte('start_time', fortyEightHoursFromNow.toISOString())
+        .order('start_time', { ascending: true });
+
+      if (calendarError) {
+        // Error handling without console.error
       } else {
-        fetchDashboardData();
+        setCalendarEvents(calendarData || []);
       }
-      setLastRefreshTime(new Date());
-    }, 30 * 60 * 1000); // 30 minutes in milliseconds
+    } catch (error: any) {
+      // Error handling without console.error
+    }
+  }, [user]);
 
-    return () => {
-      clearInterval(refreshInterval);
-    };
-  }, [user, isCalendarConnected]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     // Add null check for user at the beginning of the function
     if (!user) return;
 
@@ -218,36 +225,9 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, router, fetchCalendarEvents]);
 
-  const fetchCalendarEvents = async () => {
-    // Add null check for user at the beginning of the function
-    if (!user) return;
-
-    try {
-      // Fetch calendar events for the next 48 hours
-      const now = new Date();
-      const fortyEightHoursFromNow = addHours(now, 48);
-
-      const { data: calendarData, error: calendarError } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .eq('tutor_id', user.id)
-        .gte('start_time', now.toISOString())
-        .lte('start_time', fortyEightHoursFromNow.toISOString())
-        .order('start_time', { ascending: true });
-
-      if (calendarError) {
-        // Error handling without console.error
-      } else {
-        setCalendarEvents(calendarData || []);
-      }
-    } catch (error: any) {
-      // Error handling without console.error
-    }
-  };
-
-  const handleRefreshCalendar = async () => {
+  const handleRefreshCalendar = useCallback(async () => {
     if (!user || !isCalendarConnected) return;
 
     try {
@@ -271,7 +251,27 @@ export default function DashboardPage() {
     } finally {
       setIsSyncingCalendar(false);
     }
-  };
+  }, [user, isCalendarConnected, fetchCalendarEvents, fetchDashboardData]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    fetchDashboardData();
+
+    // Set up automatic refresh every 30 minutes
+    const refreshInterval = setInterval(() => {
+      if (isCalendarConnected) {
+        handleRefreshCalendar();
+      } else {
+        fetchDashboardData();
+      }
+      setLastRefreshTime(new Date());
+    }, 30 * 60 * 1000); // 30 minutes in milliseconds
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [user, isCalendarConnected, fetchDashboardData, handleRefreshCalendar]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -358,7 +358,7 @@ export default function DashboardPage() {
               {getGreeting()}, <span className="gradient-text">{getDisplayName()}</span>!
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground">
-              Here's what's happening with your language teaching today
+              Here&apos;s what&apos;s happening with your language teaching today
             </p>
           </div>
           <div className="flex items-center space-x-2 glass-effect px-4 py-2 rounded-lg border border-cyber-400/20">

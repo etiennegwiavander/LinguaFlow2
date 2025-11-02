@@ -1,17 +1,21 @@
 import { serve } from "jsr:@std/http@0.224.0/server";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// Configure the function to not require JWT verification
+// This is necessary because Google OAuth will call this endpoint directly
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers":
-          "authorization, x-client-info, apikey, content-type",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      },
+      headers: corsHeaders,
     });
   }
 
@@ -24,6 +28,10 @@ serve(async (req) => {
   console.log(
     "  - SUPABASE_URL:",
     Deno.env.get("SUPABASE_URL") ? "SET" : "MISSING"
+  );
+  console.log(
+    "  - SUPABASE_ANON_KEY:",
+    Deno.env.get("SUPABASE_ANON_KEY") ? "SET" : "MISSING"
   );
   console.log(
     "  - SUPABASE_SERVICE_ROLE_KEY:",
@@ -94,6 +102,14 @@ serve(async (req) => {
     console.log("🔄 Starting token exchange with Google...");
 
     // Exchange authorization code for tokens
+    // The redirect_uri must match exactly what was sent to Google, including the apikey parameter
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const redirectUri = `${Deno.env.get(
+      "SUPABASE_URL"
+    )}/functions/v1/google-oauth-callback?apikey=${anonKey}`;
+    
+    console.log("🔗 Using redirect URI:", redirectUri.replace(anonKey, "***"));
+
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
@@ -104,9 +120,7 @@ serve(async (req) => {
         client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET") ?? "",
         code,
         grant_type: "authorization_code",
-        redirect_uri: `${Deno.env.get(
-          "SUPABASE_URL"
-        )}/functions/v1/google-oauth-callback`,
+        redirect_uri: redirectUri,
       }),
     });
 
