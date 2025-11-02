@@ -13,46 +13,46 @@ The Google Calendar OAuth callback was failing with error:
 Supabase Edge Functions require authentication by default. When Google redirects back to the callback URL after OAuth authorization, it doesn't include any Supabase authentication headers, causing the 401 error.
 
 ## Solution
-Include the Supabase anon key as an `apikey` query parameter in the OAuth redirect URI. This allows the Edge Function to be called without requiring a JWT token in the Authorization header.
+Disable JWT verification for the Edge Function by creating a `config.toml` file. This allows Google to call the callback URL directly without any Supabase authentication.
 
 ## Changes Made
 
-### 1. Updated OAuth Redirect URI
+### 1. Created Edge Function Configuration
+**File:** `supabase/functions/google-oauth-callback/config.toml`
+
+Created a configuration file to disable JWT verification:
+```toml
+[function]
+verify_jwt = false
+```
+
+This allows the function to be called without authentication headers.
+
+### 2. Kept Redirect URI Clean
 **Files:** `lib/google-calendar.ts`, `lib/google-calendar-improved.ts`
 
-Changed from:
+Ensured the redirect URI matches exactly what's in Google Cloud Console:
 ```typescript
 const redirectUri = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth-callback`;
 ```
 
-To:
-```typescript
-const redirectUri = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth-callback?apikey=${anonKey}`;
-```
-
-### 2. Updated Edge Function Token Exchange
-**File:** `supabase/functions/google-oauth-callback/index.ts`
-
-Updated the redirect_uri parameter in the token exchange request to match the new format with the apikey parameter.
-
-### 3. Added Environment Variable Check
-Added check for `SUPABASE_ANON_KEY` in the Edge Function to ensure it's properly configured.
+No query parameters are added to avoid redirect_uri_mismatch errors.
 
 ## Required Configuration Updates
 
 ### Google Cloud Console
-You need to update the authorized redirect URI in your Google Cloud Console:
+You need to ensure the authorized redirect URI in your Google Cloud Console is correct:
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Select your project
 3. Navigate to **APIs & Services** > **Credentials**
 4. Click on your OAuth 2.0 Client ID
-5. Under **Authorized redirect URIs**, update the URI to:
+5. Under **Authorized redirect URIs**, ensure you have:
    ```
-   https://urmuwjcjcyohsrkgyapl.supabase.co/functions/v1/google-oauth-callback?apikey=YOUR_ANON_KEY
+   https://urmuwjcjcyohsrkgyapl.supabase.co/functions/v1/google-oauth-callback
    ```
    
-   Replace `YOUR_ANON_KEY` with your actual Supabase anon key from `.env.local`
+   **Important:** Do NOT include any query parameters like `?apikey=...`
 
 6. Click **Save**
 

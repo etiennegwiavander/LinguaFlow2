@@ -102,13 +102,13 @@ serve(async (req) => {
     console.log("🔄 Starting token exchange with Google...");
 
     // Exchange authorization code for tokens
-    // The redirect_uri must match exactly what was sent to Google, including the apikey parameter
+    // The redirect_uri must match exactly what was sent to Google (including apikey)
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const redirectUri = `${Deno.env.get(
       "SUPABASE_URL"
     )}/functions/v1/google-oauth-callback?apikey=${anonKey}`;
     
-    console.log("🔗 Using redirect URI:", redirectUri.replace(anonKey, "***"));
+    console.log("🔗 Using redirect URI (key hidden):", redirectUri.replace(anonKey, "***"));
 
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",

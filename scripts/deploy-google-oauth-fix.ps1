@@ -70,27 +70,29 @@ Write-Host ""
 Write-Host "📝 Google Cloud Console Configuration" -ForegroundColor Cyan
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
 Write-Host ""
-Write-Host "You need to add this redirect URI to your Google Cloud Console:" -ForegroundColor Yellow
+Write-Host "Add this redirect URI to your Google Cloud Console:" -ForegroundColor Yellow
 Write-Host ""
 $redirectUri = "$SUPABASE_URL/functions/v1/google-oauth-callback?apikey=$ANON_KEY"
 Write-Host "  $redirectUri" -ForegroundColor White
+Write-Host ""
+Write-Host "⚠️  IMPORTANT: The apikey parameter is required for public access!" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Steps:" -ForegroundColor Yellow
 Write-Host "  1. Go to https://console.cloud.google.com/" -ForegroundColor White
 Write-Host "  2. Select your project" -ForegroundColor White
 Write-Host "  3. Navigate to APIs & Services > Credentials" -ForegroundColor White
 Write-Host "  4. Click on your OAuth 2.0 Client ID" -ForegroundColor White
-Write-Host "  5. Add the above URI to 'Authorized redirect URIs'" -ForegroundColor White
-Write-Host "  6. Click Save" -ForegroundColor White
+Write-Host "  5. Verify the above URI is in 'Authorized redirect URIs'" -ForegroundColor White
+Write-Host "  6. If not, add it and click Save" -ForegroundColor White
 Write-Host ""
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
 Write-Host ""
 
-# Ask user to confirm they've updated Google Cloud Console
-$response = Read-Host "Have you updated the redirect URI in Google Cloud Console? (y/n)"
+# Ask user to confirm they've verified Google Cloud Console
+$response = Read-Host "Have you verified the redirect URI in Google Cloud Console? (y/n)"
 if ($response -ne 'y' -and $response -ne 'Y') {
     Write-Host ""
-    Write-Host "⚠️  Please update Google Cloud Console first, then run this script again." -ForegroundColor Yellow
+    Write-Host "⚠️  Please verify Google Cloud Console first, then run this script again." -ForegroundColor Yellow
     exit 0
 }
 

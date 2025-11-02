@@ -80,12 +80,12 @@ export class ImprovedGoogleCalendarService {
       throw new Error("User not authenticated");
     }
 
-    // Use Supabase URL for the redirect URI with anon key for authentication
+    // Use Supabase URL for the redirect URI
+    // Include anon key as query parameter to allow public access
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!anonKey) {
       throw new Error("Supabase anon key is not configured");
     }
-    // Include the anon key in the redirect URI so Supabase allows the callback
     const redirectUri = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth-callback?apikey=${anonKey}`;
     const scope = "https://www.googleapis.com/auth/calendar.readonly";
     const state = user.id;

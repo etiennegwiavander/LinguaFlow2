@@ -13,12 +13,12 @@
 - [ ] Go to [Google Cloud Console](https://console.cloud.google.com/)
 - [ ] Navigate to **APIs & Services** > **Credentials**
 - [ ] Click on your OAuth 2.0 Client ID
-- [ ] Add the new redirect URI:
+- [ ] Verify the redirect URI is exactly:
   ```
-  https://urmuwjcjcyohsrkgyapl.supabase.co/functions/v1/google-oauth-callback?apikey=YOUR_ANON_KEY
+  https://urmuwjcjcyohsrkgyapl.supabase.co/functions/v1/google-oauth-callback
   ```
-  (Replace `YOUR_ANON_KEY` with your actual anon key from `.env.local`)
-- [ ] Click **Save**
+  **⚠️ IMPORTANT:** Do NOT include any query parameters like `?apikey=...`
+- [ ] If not present, add it and click **Save**
 - [ ] Wait 5-10 minutes for Google to propagate the changes
 
 ## ✅ Supabase Deployment
@@ -31,11 +31,10 @@
 ### Option 2: Manual
 - [ ] Set Supabase secrets:
   ```bash
-  supabase secrets set SUPABASE_ANON_KEY=your_anon_key
   supabase secrets set GOOGLE_CLIENT_ID=your_client_id
   supabase secrets set GOOGLE_CLIENT_SECRET=your_client_secret
   ```
-- [ ] Deploy Edge Function:
+- [ ] Deploy Edge Function (this will include the config.toml):
   ```bash
   supabase functions deploy google-oauth-callback
   ```
@@ -62,13 +61,20 @@
 ## 🚨 Troubleshooting
 
 ### If you still get 401 error:
-1. Verify the redirect URI in Google Cloud Console matches exactly (including apikey)
-2. Wait 5-10 minutes for Google changes to propagate
-3. Check Supabase secrets are set correctly:
+1. Verify the `config.toml` file was deployed with the function
+2. Check Edge Function logs for detailed error messages:
    ```bash
-   supabase secrets list
+   supabase functions logs google-oauth-callback
    ```
-4. Check Edge Function logs for detailed error messages
+3. Redeploy the function to ensure config is applied:
+   ```bash
+   supabase functions deploy google-oauth-callback
+   ```
+
+### If you get redirect_uri_mismatch error:
+1. Verify the redirect URI in Google Cloud Console matches exactly (no query parameters)
+2. Wait 5-10 minutes for Google changes to propagate
+3. Clear your browser cache and try again
 
 ### If token exchange fails:
 1. Verify `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are correct
