@@ -100,7 +100,7 @@ serve(async (req) => {
     // Replace placeholders in template
     const displayName = firstName
       ? `${firstName}${lastName ? ` ${lastName}` : ""}`
-      : "there";
+      : "Tutor";
 
     const placeholders: Record<string, string> = {
       user_name: displayName,
@@ -195,7 +195,7 @@ function generateTutorWelcomeEmail(
 ) {
   const displayName = firstName
     ? `${firstName}${lastName ? ` ${lastName}` : ""}`
-    : "there";
+    : "Tutor";
 
   return {
     subject: "Welcome to LinguaFlow!",

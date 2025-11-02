@@ -41,6 +41,7 @@ const passwordSchema = z
 
 const formSchema = z
   .object({
+    firstName: z.string().min(1, "First name is required"),
     email: z.string().email("Please enter a valid email address"),
     password: passwordSchema,
     confirmPassword: z.string(),
@@ -60,6 +61,7 @@ export default function SignUpPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      firstName: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -91,7 +93,7 @@ export default function SignUpPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await signUp(values.email, values.password);
+      await signUp(values.email, values.password, values.firstName);
       toast.success("Account created successfully!");
     } catch (error: any) {
       toast.error(error.message);
@@ -143,6 +145,25 @@ export default function SignUpPage() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="John"
+                            type="text"
+                            autoComplete="given-name"
+                            className="input-cyber focus-cyber"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="email"

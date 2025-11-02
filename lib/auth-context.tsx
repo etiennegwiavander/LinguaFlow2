@@ -10,7 +10,7 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, firstName?: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -262,7 +262,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, firstName?: string) => {
     try {
       // First, check if there's already an auth user with this email
       // This helps us handle the "User already registered" case
@@ -313,8 +313,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: data.user.id,
         email: email,
         is_admin: false,
-        first_name: null, // Will be set later when user completes profile
-        last_name: null,  // Will be set later when user completes profile
+        first_name: firstName || null,
+        last_name: null,
       };
 
       let tutorData = null;
@@ -365,7 +365,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // This is now handled at the application level instead of database triggers
       try {
         const emailResult = await SimpleWelcomeEmailService.sendWelcomeEmail(email, {
-          firstName: tutorData?.first_name || undefined, // Let the email service handle the fallback to "there"
+          firstName: tutorData?.first_name || undefined, // Will fallback to "Tutor" in email service
           lastName: tutorData?.last_name || undefined,
           userId: tutorData?.id
         });
