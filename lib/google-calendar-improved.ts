@@ -80,13 +80,9 @@ export class ImprovedGoogleCalendarService {
       throw new Error("User not authenticated");
     }
 
-    // Use Supabase URL for the redirect URI
-    // Include anon key as query parameter to allow public access
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!anonKey) {
-      throw new Error("Supabase anon key is not configured");
-    }
-    const redirectUri = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-oauth-callback?apikey=${anonKey}`;
+    // Use Next.js API route as redirect URI (it will proxy to the Edge Function with auth)
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://linguaflow.online';
+    const redirectUri = `${baseUrl}/api/oauth/google-callback`;
     const scope = "https://www.googleapis.com/auth/calendar.readonly";
     const state = user.id;
 

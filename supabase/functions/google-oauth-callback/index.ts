@@ -102,13 +102,12 @@ serve(async (req) => {
     console.log("🔄 Starting token exchange with Google...");
 
     // Exchange authorization code for tokens
-    // The redirect_uri must match exactly what was sent to Google (including apikey)
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const redirectUri = `${Deno.env.get(
-      "SUPABASE_URL"
-    )}/functions/v1/google-oauth-callback?apikey=${anonKey}`;
+    // The redirect_uri must match exactly what was sent to Google
+    // We use the Next.js API route as the redirect URI (not the Edge Function directly)
+    const siteUrl = Deno.env.get("SITE_URL") || "https://linguaflow.online";
+    const redirectUri = `${siteUrl}/api/oauth/google-callback`;
     
-    console.log("🔗 Using redirect URI (key hidden):", redirectUri.replace(anonKey, "***"));
+    console.log("🔗 Using redirect URI:", redirectUri);
 
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
