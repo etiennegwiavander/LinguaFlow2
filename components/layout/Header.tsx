@@ -35,7 +35,8 @@ interface HeaderProps {
 }
 
 interface TutorProfile {
-  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   email: string;
   avatar_url: string | null;
 }
@@ -54,7 +55,7 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
       try {
         const { data, error } = await supabase
           .from('tutors')
-          .select('name, email, avatar_url')
+          .select('first_name, last_name, email, avatar_url')
           .eq('id', user.id)
           .single();
 
@@ -94,19 +95,27 @@ export default function Header({ className, sidebarCollapsed }: HeaderProps) {
   };
 
   const getDisplayName = () => {
-    if (tutorProfile?.name) {
-      return tutorProfile.name.split(' ')[0];
+    if (tutorProfile?.first_name) {
+      return tutorProfile.first_name;
     }
     return tutorProfile?.email?.split('@')[0] || 'Guest';
   };
 
   const getFullDisplayName = () => {
-    return tutorProfile?.name || tutorProfile?.email?.split('@')[0] || 'Guest';
+    if (tutorProfile?.first_name) {
+      return tutorProfile.last_name 
+        ? `${tutorProfile.first_name} ${tutorProfile.last_name}`
+        : tutorProfile.first_name;
+    }
+    return tutorProfile?.email?.split('@')[0] || 'Guest';
   };
 
   const getAvatarFallback = () => {
-    if (tutorProfile?.name) {
-      return getInitials(tutorProfile.name);
+    if (tutorProfile?.first_name) {
+      const fullName = tutorProfile.last_name 
+        ? `${tutorProfile.first_name} ${tutorProfile.last_name}`
+        : tutorProfile.first_name;
+      return getInitials(fullName);
     }
     return getInitials(tutorProfile?.email?.split('@')[0] || 'Guest');
   };

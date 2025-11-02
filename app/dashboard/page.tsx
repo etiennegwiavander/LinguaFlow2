@@ -17,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { format, addHours, parseISO } from "date-fns";
 
 interface TutorProfile {
-  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   email: string;
   avatar_url: string | null;
 }
@@ -77,7 +78,7 @@ export default function DashboardPage() {
       // Fetch tutor profile
       const { data: tutorData, error: tutorError } = await supabase
         .from('tutors')
-        .select('name, email, avatar_url')
+        .select('first_name, last_name, email, avatar_url')
         .eq('id', user.id)
         .single();
 
@@ -280,8 +281,8 @@ export default function DashboardPage() {
   };
 
   const getDisplayName = () => {
-    if (tutorProfile?.name) {
-      return tutorProfile.name.split(' ')[0];
+    if (tutorProfile?.first_name) {
+      return tutorProfile.first_name;
     }
     return tutorProfile?.email?.split('@')[0] || 'there';
   };
