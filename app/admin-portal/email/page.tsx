@@ -7,7 +7,7 @@ import SMTPConfigurationManager from "@/components/admin/SMTPConfigurationManage
 import EmailTemplateManager from "@/components/admin/EmailTemplateManager";
 import EmailTestingInterface from "@/components/admin/EmailTestingInterface";
 import EmailAnalyticsDashboard from "@/components/admin/EmailAnalyticsDashboard";
-import EmailManagementDashboard from "@/components/admin/EmailManagementDashboard";
+// import EmailManagementDashboard from "@/components/admin/EmailManagementDashboard";
 
 export default function EmailManagementPage() {
   const searchParams = useSearchParams();
@@ -49,7 +49,28 @@ export default function EmailManagementPage() {
 
         {/* Email Management Dashboard */}
         <TabsContent value="dashboard">
-          <EmailManagementDashboard />
+          <div className="bg-card rounded-lg border p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2">Email Management Dashboard</h2>
+              <p className="text-muted-foreground">
+                Welcome to the email management system. Use the tabs above to configure SMTP settings, manage templates, and test email delivery.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-semibold mb-2">SMTP Configuration</h3>
+                <p className="text-sm text-muted-foreground mb-4">Configure email server settings</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-semibold mb-2">Email Templates</h3>
+                <p className="text-sm text-muted-foreground mb-4">Manage email templates</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-semibold mb-2">Email Testing</h3>
+                <p className="text-sm text-muted-foreground mb-4">Test email delivery</p>
+              </div>
+            </div>
+          </div>
         </TabsContent>
 
         {/* Email Analytics */}
