@@ -365,8 +365,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // This is now handled at the application level instead of database triggers
       try {
         const emailResult = await SimpleWelcomeEmailService.sendWelcomeEmail(email, {
-          firstName: tutorData?.first_name || 'New User',
-          lastName: tutorData?.last_name || '',
+          firstName: tutorData?.first_name || undefined, // Let the email service handle the fallback to "there"
+          lastName: tutorData?.last_name || undefined,
           userId: tutorData?.id
         });
         
