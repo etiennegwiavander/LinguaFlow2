@@ -1,0 +1,4 @@
+{
+  "schedule": "*/5 * * * *",
+  "description": "Send lesson reminders 30 minutes before scheduled lessons"
+}

@@ -48,6 +48,7 @@ export default function DashboardPage() {
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date>(new Date());
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const fetchCalendarEvents = useCallback(async () => {
     // Add null check for user at the beginning of the function
@@ -55,14 +56,16 @@ export default function DashboardPage() {
 
     try {
       // Fetch calendar events for the next 48 hours
+      // Include events that started in the past but haven't reached 75% completion yet
       const now = new Date();
       const fortyEightHoursFromNow = addHours(now, 48);
+      const fortyEightHoursAgo = addHours(now, -48); // Look back to catch ongoing events
 
       const { data: calendarData, error: calendarError } = await supabase
         .from('calendar_events')
         .select('*')
         .eq('tutor_id', user.id)
-        .gte('start_time', now.toISOString())
+        .gte('start_time', fortyEightHoursAgo.toISOString()) // Include past events
         .lte('start_time', fortyEightHoursFromNow.toISOString())
         .order('start_time', { ascending: true });
 
@@ -273,6 +276,15 @@ export default function DashboardPage() {
     };
   }, [user, isCalendarConnected, fetchDashboardData, handleRefreshCalendar]);
 
+  // Real-time updates for ongoing events (every minute)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -285,6 +297,24 @@ export default function DashboardPage() {
       return tutorProfile.first_name;
     }
     return tutorProfile?.email?.split('@')[0] || 'there';
+  };
+
+  // Helper function to determine event status and visibility
+  const getEventStatus = (event: CalendarEvent) => {
+    const eventStart = parseISO(event.start_time);
+    const eventEnd = parseISO(event.end_time);
+    
+    // Calculate 75% point of the event duration
+    const eventDuration = eventEnd.getTime() - eventStart.getTime();
+    const threeQuarterPoint = new Date(eventStart.getTime() + (eventDuration * 0.75));
+    
+    if (currentTime < eventStart) {
+      return { status: 'upcoming', visible: true };
+    } else if (currentTime >= eventStart && currentTime < threeQuarterPoint) {
+      return { status: 'ongoing', visible: true };
+    } else {
+      return { status: 'completed', visible: false };
+    }
   };
 
   const formatCalendarEventTime = (startTime: string, endTime: string) => {
@@ -404,39 +434,51 @@ export default function DashboardPage() {
           </div>
 
           {/* Calendar Events from Next 48 Hours */}
-          {calendarEvents.length > 0 && (
-            <div className="mb-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-base font-medium text-muted-foreground">
-                  Next 48 Hours - Calendar Events ({calendarEvents.length})
-                </h3>
-                {isCalendarConnected && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRefreshCalendar}
-                    disabled={isSyncingCalendar}
-                    className="text-xs border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all hover:dark:text-cyber-50 hover:text-cyan-950 duration-300 btn-ghost-cyber"
-                  >
-                    <RefreshCcw className={`h-3 w-3 mr-1.5 ${isSyncingCalendar ? 'animate-spin' : ''}`} />
-                    {isSyncingCalendar ? 'Refreshing...' : 'Refresh Calendar'}
-                  </Button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {calendarEvents.map((event, index) => {
-                  const timeInfo = formatCalendarEventTime(event.start_time, event.end_time);
+          {(() => {
+            // Filter events by visibility (75% rule)
+            const visibleEvents = calendarEvents
+              .map(event => ({
+                ...event,
+                eventStatus: getEventStatus(event)
+              }))
+              .filter(event => event.eventStatus.visible);
 
-                  return (
-                    <div
-                      key={event.id}
-                      className={`cyber-card p-4 rounded-lg cursor-pointer hover-lift ${timeInfo.isToday ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10' :
-                        timeInfo.isTomorrow ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10' : ''
-                        }`}
-                      style={{ animationDelay: `${0.6 + index * 0.1}s` }}
-                      onClick={() => handleCalendarEventClick(event.summary)}
-                      title="Click to find or create student"
+            return visibleEvents.length > 0 && (
+              <div className="mb-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-base font-medium text-muted-foreground">
+                    Next 48 Hours - Calendar Events ({visibleEvents.length})
+                  </h3>
+                  {isCalendarConnected && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRefreshCalendar}
+                      disabled={isSyncingCalendar}
+                      className="text-xs border-cyber-400/30 hover:bg-cyber-400/10 hover:border-cyber-400 transition-all hover:dark:text-cyber-50 hover:text-cyan-950 duration-300 btn-ghost-cyber"
                     >
+                      <RefreshCcw className={`h-3 w-3 mr-1.5 ${isSyncingCalendar ? 'animate-spin' : ''}`} />
+                      {isSyncingCalendar ? 'Refreshing...' : 'Refresh Calendar'}
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {visibleEvents.map((event, index) => {
+                    const timeInfo = formatCalendarEventTime(event.start_time, event.end_time);
+                    const isOngoing = event.eventStatus.status === 'ongoing';
+
+                    return (
+                      <div
+                        key={event.id}
+                        className={`cyber-card p-4 rounded-lg cursor-pointer hover-lift ${
+                          isOngoing ? 'border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-900/10' :
+                          timeInfo.isToday ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10' :
+                          timeInfo.isTomorrow ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10' : ''
+                        }`}
+                        style={{ animationDelay: `${0.6 + index * 0.1}s` }}
+                        onClick={() => handleCalendarEventClick(event.summary)}
+                        title="Click to find or create student"
+                      >
                       {/* Gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-br from-cyber-400/5 to-neon-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
 
@@ -455,7 +497,17 @@ export default function DashboardPage() {
                               </p>
                             )}
                           </div>
-                          {(timeInfo.isToday || timeInfo.isTomorrow) && (
+                          {isOngoing ? (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs ml-2 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300"
+                            >
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                                <span>Ongoing</span>
+                              </div>
+                            </Badge>
+                          ) : (timeInfo.isToday || timeInfo.isTomorrow) && (
                             <Badge
                               variant="secondary"
                               className={`text-xs ml-2 ${timeInfo.isToday ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
@@ -498,10 +550,11 @@ export default function DashboardPage() {
                 })}
               </div>
             </div>
-          )}
+          );
+          })()}
 
           {/* Regular Lessons */}
-          {upcomingLessons.length === 0 && calendarEvents.length === 0 ? (
+          {upcomingLessons.length === 0 && calendarEvents.filter(e => getEventStatus(e).visible).length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">
                 <Calendar className="w-8 h-8 text-cyber-400" />

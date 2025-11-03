@@ -27,7 +27,7 @@ serve(async (req) => {
       .eq('setting_key', 'lesson_reminder_timing')
       .maybeSingle()
 
-    const reminderMinutes = settingsData?.setting_value?.minutes || 15
+    const reminderMinutes = settingsData?.setting_value?.minutes || 30
 
     // Calculate time window for upcoming lessons
     const now = new Date()
@@ -36,23 +36,22 @@ serve(async (req) => {
 
     console.log(`📅 Looking for lessons between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`)
 
-    // Get upcoming lessons that need reminders
+    // Get upcoming lessons from Google Calendar events
     const { data: upcomingLessons, error: lessonsError } = await supabaseClient
       .from('calendar_events')
       .select(`
         id,
-        title,
+        google_event_id,
+        summary,
+        description,
         start_time,
         end_time,
-        student_id,
+        location,
         tutor_id,
-        status,
-        students!inner(id, email, first_name, last_name),
         tutors!inner(id, email, first_name, last_name)
       `)
       .gte('start_time', windowStart.toISOString())
       .lte('start_time', windowEnd.toISOString())
-      .eq('status', 'confirmed')
 
     if (lessonsError) {
       throw new Error(`Failed to fetch lessons: ${lessonsError.message}`)
@@ -75,15 +74,26 @@ serve(async (req) => {
     let scheduledCount = 0
     const errors: string[] = []
 
+    // Helper function to extract student name from event summary
+    const extractStudentName = (summary: string): string => {
+      // Handles formats like "Julia - preply lesson" or "John Smith - English Lesson"
+      const parts = summary.split(' - ')
+      return parts[0].trim()
+    }
+
     for (const lesson of upcomingLessons) {
       try {
+        // Extract student name from event summary
+        const studentName = extractStudentName(lesson.summary)
+        const tutorEmail = lesson.tutors.email
+
         // Check if reminder already sent or scheduled
         const { data: existingReminder } = await supabaseClient
           .from('email_logs')
           .select('id')
           .eq('template_type', 'lesson_reminder')
-          .eq('recipient_email', lesson.students.email)
-          .eq('metadata->lesson_id', lesson.id)
+          .eq('recipient_email', tutorEmail)
+          .eq('metadata->google_event_id', lesson.google_event_id)
           .in('status', ['sent', 'delivered', 'pending', 'scheduled'])
           .maybeSingle()
 
@@ -92,15 +102,15 @@ serve(async (req) => {
           continue
         }
 
-        // Check user notification preferences
+        // Check tutor notification preferences
         const { data: preferences } = await supabaseClient
           .from('user_notification_preferences')
           .select('lesson_reminders')
-          .eq('user_id', lesson.student_id)
+          .eq('user_id', lesson.tutor_id)
           .maybeSingle()
 
         if (preferences && preferences.lesson_reminders === false) {
-          console.log(`🔕 User ${lesson.student_id} has disabled lesson reminders`)
+          console.log(`🔕 Tutor ${lesson.tutor_id} has disabled lesson reminders`)
           continue
         }
 
@@ -130,14 +140,29 @@ serve(async (req) => {
         }
 
         // Prepare template data
+        const appUrl = Deno.env.get('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'
+        const tutorName = `${lesson.tutors.first_name} ${lesson.tutors.last_name}`.trim() || 'Tutor'
+        
         const templateData = {
-          user_name: `${lesson.students.first_name} ${lesson.students.last_name}`.trim() || 'Student',
-          lesson_title: lesson.title || 'Upcoming Lesson',
-          lesson_date: new Date(lesson.start_time).toLocaleDateString(),
-          lesson_time: new Date(lesson.start_time).toLocaleTimeString(),
-          tutor_name: `${lesson.tutors.first_name} ${lesson.tutors.last_name}`.trim() || 'Your Tutor',
-          lesson_url: `${Deno.env.get('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'}/dashboard`,
-          calendar_url: `${Deno.env.get('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'}/calendar`,
+          tutor_name: tutorName,
+          student_name: studentName,
+          lesson_title: lesson.summary || 'Upcoming Lesson',
+          lesson_date: new Date(lesson.start_time).toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          }),
+          lesson_time: new Date(lesson.start_time).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true
+          }),
+          location: lesson.location || '',
+          dashboard_url: `${appUrl}/dashboard`,
+          student_profile_url: `${appUrl}/students?searchName=${encodeURIComponent(studentName)}`,
+          settings_url: `${appUrl}/settings`,
+          google_event_id: lesson.google_event_id,
           lesson_id: lesson.id
         }
 
@@ -157,7 +182,7 @@ serve(async (req) => {
           body: {
             smtpConfigId: smtpConfig.id,
             templateId: template.id,
-            recipientEmail: lesson.students.email,
+            recipientEmail: tutorEmail,
             subject: subject,
             htmlContent: htmlContent,
             textContent: textContent,
@@ -165,8 +190,8 @@ serve(async (req) => {
               ...templateData,
               templateType: 'lesson_reminder'
             },
-            priority: 'normal',
-            userId: lesson.student_id
+            priority: 'high', // High priority for lesson reminders
+            userId: lesson.tutor_id
           }
         })
 
@@ -176,7 +201,7 @@ serve(async (req) => {
         }
 
         scheduledCount++
-        console.log(`✅ Scheduled reminder for lesson ${lesson.id} to ${lesson.students.email}`)
+        console.log(`✅ Scheduled reminder for lesson ${lesson.id} to ${tutorEmail} (Student: ${studentName})`)
 
       } catch (lessonError: any) {
         errors.push(`Error processing lesson ${lesson.id}: ${lessonError.message}`)

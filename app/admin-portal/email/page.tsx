@@ -25,10 +25,10 @@ export default function EmailManagementPage() {
 
       <Tabs defaultValue={defaultTab} className="space-y-6">
         <TabsList>
-          <TabsTrigger value="dashboard" className="flex items-center space-x-2">
+          {/* <TabsTrigger value="dashboard" className="flex items-center space-x-2">
             <Home className="h-4 w-4" />
             <span>Dashboard</span>
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger value="analytics" className="flex items-center space-x-2">
             <BarChart3 className="h-4 w-4" />
             <span>Analytics</span>
@@ -48,7 +48,7 @@ export default function EmailManagementPage() {
         </TabsList>
 
         {/* Email Management Dashboard */}
-        <TabsContent value="dashboard">
+        {/* <TabsContent value="dashboard">
           <div className="bg-card rounded-lg border p-6">
             <div className="mb-6">
               <h2 className="text-2xl font-bold mb-2">Email Management Dashboard</h2>
@@ -71,7 +71,7 @@ export default function EmailManagementPage() {
               </div>
             </div>
           </div>
-        </TabsContent>
+        </TabsContent> */}
 
         {/* Email Analytics */}
         <TabsContent value="analytics">
