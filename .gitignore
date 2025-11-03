@@ -28,7 +28,14 @@ yarn-error.log*
 .env
 .env*.local
 
-# Temporary security files (contain actual keys or sensitive info)
+# Documentation files in docs/ that may contain API key examples
+docs/api-key-security-fix-summary.md
+docs/revised-email-system-analysis.md
+docs/smtp-configuration-summary.md
+docs/smtp-implementation-analysis.md
+docs/vocabulary-connection-error-analysis.md
+
+# Temporary documentation files (may contain API key examples or sensitive info)
 UPDATE-SUPABASE-SECRETS.md
 NEXT-STEPS.md
 SECURITY-FIX-COMPLETE.md
@@ -37,6 +44,29 @@ API-KEY-SECURITY-COMPLETE.md
 QUICK-FIX-LESSON-GENERATION.md
 LESSON-GENERATION-AI-FIX-COMPLETE.md
 DEPLOYMENT-SUMMARY-LESSON-GENERATION-FIX.md
+IMPLEMENTATION-COMPLETE.md
+PASSWORD-RESET-COMPLETE.md
+PASSWORD-RESET-FINAL-SUMMARY.md
+PASSWORD-RESET-WORKING.md
+RESEND-INTEGRATION-READY.md
+VOCABULARY-INVESTIGATION-SUMMARY.md
+OPENROUTER-KEY-UPDATE-COMPLETE.md
+VOCABULARY-DEEPSEEK-UPDATE.md
+ADMIN-EMAIL-SYSTEM-SETUP.md
+FINAL-EMAIL-SYSTEM-STATUS.md
+DASHBOARD-ERROR-FIX.md
+ADMIN-DASHBOARD-UPDATE-COMPLETE.md
+BEFORE-AFTER-COMPARISON.md
+QUICK-START-ADMIN-DASHBOARD.md
+ADMIN-DASHBOARD-MIGRATION-SUMMARY.md
+ADMIN-DASHBOARD-COMPLETE.md
+TEMPLATE-EDITOR-COMPLETE.md
+ADMIN-DASHBOARD-REAL-DATA-COMPLETE.md
+LESSON-REMINDERS-30MIN-READY.md
+DEPLOYMENT-SUCCESS-30MIN-REMINDERS.md
+README-SECURITY-FIX.md
+SECURITY-FIX-SUMMARY-FINAL.md
+PASSWORD-RESET-DIRECT-FIX.md
 
 # Test scripts that may contain sensitive data
 test-ai-generation-direct.js
@@ -44,6 +74,19 @@ regenerate-etienne-lessons.js
 check-etienne-lessons.js
 regenerate-all-fallback-lessons.js
 verify-all-students-ai-generation.js
+test-deepseek-api.js
+test-gemini-newer-models.js
+test-gemini-models.js
+test-lesson-generation.js
+test-mine-lesson-generation.js
+check-mine-student-profile.js
+list-available-models.js
+test-gemini-api-now.js
+check-student-lessons.js
+test-lesson-generation-simple.js
+cleanup-orphaned-users.js
+cleanup-orphaned-users-v2.js
+test-mock-data.js
 
 # vercel
 .vercel
