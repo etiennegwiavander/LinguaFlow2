@@ -46,7 +46,7 @@ serve(async (req) => {
     }: EmailRequest = await req.json()
 
     // Try to get SMTP configuration from database (optional)
-    let fromEmail = 'noreply@linguaflow.online' // Default sender
+    let fromEmail = 'LinguaFlow <noreply@linguaflow.online>' // Default sender with name
     
     try {
       const { data: smtpConfig } = await supabaseClient
@@ -57,7 +57,12 @@ serve(async (req) => {
         .single()
       
       if (smtpConfig && smtpConfig.username) {
-        fromEmail = smtpConfig.username
+        // Ensure proper format: "Name <email@domain.com>"
+        if (smtpConfig.username.includes('<')) {
+          fromEmail = smtpConfig.username
+        } else {
+          fromEmail = `LinguaFlow <${smtpConfig.username}>`
+        }
       }
     } catch (error) {
       console.log('No SMTP config found, using default sender:', fromEmail)
