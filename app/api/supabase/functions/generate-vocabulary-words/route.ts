@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SERVICE_ROLE_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,13 +39,22 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Supabase function error:', error);
+      console.error('Supabase function error details:', JSON.stringify(error, null, 2));
       return NextResponse.json(
-        { success: false, error: error.message },
+        { success: false, error: error.message || 'Edge function invocation failed' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true, ...data });
+    console.log('Edge function response:', data);
+    console.log('Edge function response keys:', data ? Object.keys(data) : 'null');
+    
+    // Ensure we return the correct format
+    if (data && data.words) {
+      return NextResponse.json({ success: true, words: data.words });
+    } else {
+      return NextResponse.json({ success: true, ...data });
+    }
   } catch (error) {
     console.error('API route error:', error);
     return NextResponse.json(

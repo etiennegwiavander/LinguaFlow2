@@ -40,7 +40,7 @@ export class VocabularyPerformanceMonitor {
   endTiming(operation: string): number {
     const startTime = this.startTimes.get(operation);
     if (!startTime) {
-      console.warn(`No start time found for operation: ${operation}`);
+      // Silently return 0 instead of warning - this is expected in React StrictMode
       return 0;
     }
 

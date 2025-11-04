@@ -128,22 +128,28 @@ if (fs.existsSync('.gitignore')) {
   console.log('   ⚠️  .gitignore not found\n');
 }
 
-// Check 4: Scan for exposed keys in entire repository (not just staged)
-console.log('🔍 Scanning entire repository for exposed secrets...');
+// Check 4: Scan for exposed keys in git-tracked files only
+console.log('🔍 Scanning git-tracked files for exposed secrets...');
 try {
   const allFiles = execSync('git ls-files', { encoding: 'utf8' })
     .split('\n')
     .filter(file => file.trim() !== '');
 
+  console.log(`   Checking ${allFiles.length} git-tracked files...`);
+
   let scannedCount = 0;
   for (const file of allFiles) {
+    // Skip if file doesn't exist (may have been removed)
+    if (!fs.existsSync(file)) {
+      continue;
+    }
+
     // Skip excluded files
     if (excludePatterns.some(pattern => file.includes(pattern))) {
       continue;
     }
 
     // Skip binary files and large files
-    if (!fs.existsSync(file)) continue;
     const stats = fs.statSync(file);
     if (stats.size > 1024 * 1024) continue; // Skip files > 1MB
 

@@ -453,9 +453,26 @@ export class VocabularySessionManager {
       return { words, isUsingFallback: false };
     } catch (error) {
       console.error("AI vocabulary generation failed:", error);
+      
+      // Log the full error details for debugging
+      if (error && typeof error === 'object') {
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        console.error('Error keys:', Object.keys(error));
+        if ('message' in error) {
+          console.error('Error message:', error.message);
+        }
+        if ('type' in error) {
+          console.error('Error type:', error.type);
+        }
+      }
+
+      // If it's already a VocabularyError, rethrow it
+      if (error && typeof error === 'object' && 'type' in error && 'retryable' in error) {
+        throw error;
+      }
 
       throw this.createVocabularyError(
-        "Unable to generate personalized vocabulary. Please check your internet connection and try again.",
+        error instanceof Error ? error.message : "Unable to generate personalized vocabulary. Please check your internet connection and try again.",
         "generation"
       );
     }
@@ -471,12 +488,15 @@ export class VocabularySessionManager {
     excludeWords: string[],
     abortSignal?: AbortSignal
   ): Promise<VocabularyCardData[]> {
+    // No timeout - let AI take as long as it needs to generate quality vocabulary
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    // Combine external abort signal with internal timeout
+    // Only abort if external signal is triggered (e.g., user cancels)
     if (abortSignal) {
-      abortSignal.addEventListener("abort", () => controller.abort());
+      abortSignal.addEventListener("abort", () => {
+        console.log('🛑 External abort signal received');
+        controller.abort();
+      });
     }
 
     try {
@@ -492,6 +512,17 @@ export class VocabularySessionManager {
 
       if (authToken) {
         headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
+      // Conditional logging - only in development or when debugging
+      const isDebugMode = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG_VOCABULARY === 'true';
+      
+      if (isDebugMode) {
+        console.log('🌐 Vocabulary API request:', {
+          student_id: studentId,
+          count,
+          difficulty: studentProfile.proficiencyLevel,
+        });
       }
 
       const response = await fetch(
@@ -510,50 +541,97 @@ export class VocabularySessionManager {
         }
       );
 
-      clearTimeout(timeoutId);
+      // Read response body once
+      const responseText = await response.text();
+      
+      if (isDebugMode) {
+        console.log('✅ Vocabulary API response:', {
+          status: response.status,
+          ok: response.ok,
+          length: responseText.length
+        });
+      }
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`HTTP ${response.status} Error:`, errorText);
+        // Only log detailed error info in development
+        if (isDebugMode) {
+          console.error(`❌ Vocabulary API error ${response.status}:`, {
+            status: response.status,
+            statusText: response.statusText,
+            responsePreview: responseText.substring(0, 200),
+            requestParams: {
+              student_id: studentId,
+              count,
+              difficulty: studentProfile.proficiencyLevel,
+            }
+          });
+        }
 
         if (response.status === 408 || response.status === 504) {
-          throw this.createVocabularyError("Request timed out", "timeout");
+          throw this.createVocabularyError("Request timed out. Please try again.", "timeout");
         }
         if (response.status >= 500) {
           throw this.createVocabularyError(
-            `Server error: ${response.statusText}`,
+            `Server error: ${response.statusText}. Please try again later.`,
             "generation"
           );
         }
         if (response.status === 400) {
           throw this.createVocabularyError(
-            `Invalid request: ${response.statusText}`,
+            `Invalid request: ${responseText}`,
             "validation"
           );
         }
+        if (response.status === 404) {
+          throw this.createVocabularyError(
+            "Vocabulary service not found. Please ensure the development server is running.",
+            "network"
+          );
+        }
         throw this.createVocabularyError(
-          `HTTP ${response.status}: ${response.statusText}`,
+          `Connection failed (${response.status}): ${response.statusText}. Please check your internet connection and try again.`,
           "network"
         );
       }
 
       let data;
       try {
-        data = await response.json();
-        console.log("API Response:", data); // Debug logging
+        data = JSON.parse(responseText);
+        
+        if (isDebugMode) {
+          console.log("✅ Parsed vocabulary response:", {
+            success: data.success,
+            wordCount: data.words?.length || 0
+          });
+        }
       } catch (parseError) {
-        console.error("Failed to parse JSON response:", parseError);
+        if (isDebugMode) {
+          console.error("❌ JSON parse error:", parseError);
+        }
         throw this.createVocabularyError(
           "Invalid response format from server",
           "validation"
         );
       }
 
-      if (!data.success || !data.words) {
-        console.error("API Error:", data);
+      if (!data.success && !data.words) {
+        if (isDebugMode) {
+          console.error("❌ API returned error:", data.error);
+        }
         throw this.createVocabularyError(
           data.error || "Failed to generate vocabulary words",
           "generation"
+        );
+      }
+      
+      // Handle case where success is not explicitly true but words exist
+      if (!data.words || !Array.isArray(data.words)) {
+        if (isDebugMode) {
+          console.error("❌ Invalid data structure received");
+        }
+        throw this.createVocabularyError(
+          "Invalid vocabulary data received from server",
+          "validation"
         );
       }
 
@@ -567,7 +645,16 @@ export class VocabularySessionManager {
 
       return data.words;
     } catch (error) {
-      clearTimeout(timeoutId);
+      // Only log detailed errors in debug mode
+      const isDebugMode = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG_VOCABULARY === 'true';
+      
+      if (isDebugMode) {
+        console.error('❌ Vocabulary generation error:', {
+          type: error?.constructor?.name,
+          name: (error as any)?.name,
+          message: (error as any)?.message
+        });
+      }
 
       if (
         error &&
@@ -575,12 +662,12 @@ export class VocabularySessionManager {
         "name" in error &&
         error.name === "AbortError"
       ) {
-        throw this.createVocabularyError("Request timed out", "timeout");
+        throw this.createVocabularyError("Request was cancelled. Please try again.", "timeout");
       }
 
       if (error instanceof TypeError && error.message.includes("fetch")) {
         throw this.createVocabularyError(
-          "Network connection failed",
+          "Network connection failed. Please check your internet connection.",
           "network"
         );
       }

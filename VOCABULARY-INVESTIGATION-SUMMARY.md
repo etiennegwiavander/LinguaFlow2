@@ -92,7 +92,7 @@ supabase link --project-ref urmuwjcjcyohsrkgyapl
 supabase functions deploy generate-vocabulary-words
 
 # 5. Set the required secret
-supabase secrets set GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
+supabase secrets set GEMINI_API_KEY=[YOUR_GEMINI_API_KEY]
 ```
 
 ### Verify Fix:
@@ -202,7 +202,7 @@ Each word includes:
 2. **Based on results, deploy Edge Function:**
    ```bash
    supabase functions deploy generate-vocabulary-words
-   supabase secrets set GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
+   supabase secrets set GEMINI_API_KEY=[YOUR_GEMINI_API_KEY]
    ```
 
 3. **Test the fix:**

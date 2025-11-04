@@ -108,7 +108,7 @@ supabase link --project-ref urmuwjcjcyohsrkgyapl
 supabase functions deploy generate-vocabulary-words
 
 # Set the required secret
-supabase secrets set GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
+supabase secrets set GEMINI_API_KEY=[YOUR_GEMINI_API_KEY]
 ```
 
 ### Cause 2: Missing GEMINI_API_KEY Secret
@@ -124,13 +124,13 @@ supabase secrets set GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
 **How to Fix:**
 ```bash
 # Via CLI
-supabase secrets set GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
+supabase secrets set GEMINI_API_KEY=[YOUR_GEMINI_API_KEY]
 
 # Or via Dashboard
 # 1. Go to Edge Functions > generate-vocabulary-words > Secrets
 # 2. Click "Add Secret"
 # 3. Name: GEMINI_API_KEY
-# 4. Value: AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
+# 4. Value: [YOUR_GEMINI_API_KEY]
 ```
 
 ### Cause 3: Timeout Issues
@@ -239,10 +239,10 @@ This script will:
 # Required in .env.local
 NEXT_PUBLIC_SUPABASE_URL=https://urmuwjcjcyohsrkgyapl.supabase.co
 SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
+GEMINI_API_KEY=[YOUR_GEMINI_API_KEY]
 
 # Required in Supabase Secrets (for Edge Function)
-GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
+GEMINI_API_KEY=[YOUR_GEMINI_API_KEY]
 ```
 
 ## 🚀 Recommended Action Plan
@@ -260,7 +260,7 @@ GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
 3. **If not deployed, deploy it:**
    ```bash
    supabase functions deploy generate-vocabulary-words
-   supabase secrets set GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
+   supabase secrets set GEMINI_API_KEY=[YOUR_GEMINI_API_KEY]
    ```
 
 4. **Test again:**
