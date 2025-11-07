@@ -49,12 +49,12 @@ export const VocabularyCard = React.memo(function VocabularyCard({
 
     const operationId = `card-render-${Date.now()}`;
     vocabularyPerformanceMonitor.startTiming(operationId);
-    
+
     // Use requestAnimationFrame to measure actual render completion
     const rafId = requestAnimationFrame(() => {
       vocabularyPerformanceMonitor.endTiming(operationId);
     });
-    
+
     return () => {
       cancelAnimationFrame(rafId);
     };
@@ -103,7 +103,7 @@ export const VocabularyCard = React.memo(function VocabularyCard({
     if (!isAnimating) {
       return 'translate3d(0, 0, 0) opacity-100 scale-100';
     }
-    
+
     if (direction === 'forward') {
       return 'translate3d(100%, 0, 0) opacity-0 scale-95';
     } else {
@@ -114,7 +114,7 @@ export const VocabularyCard = React.memo(function VocabularyCard({
   // Helper function to highlight vocabulary word in sentences
   const highlightVocabularyWord = (sentence: string, word: string) => {
     if (!sentence || !word) return sentence;
-    
+
     const regex = new RegExp(`\\b(${word}|${word}s|${word}ed|${word}ing)\\b`, 'gi');
     return sentence.replace(regex, (match) => `<strong>${match}</strong>`);
   };
@@ -159,8 +159,8 @@ export const VocabularyCard = React.memo(function VocabularyCard({
           <span className="font-medium">Word {currentIndex + 1} of {totalWords}</span>
           <span className="capitalize font-medium">{vocabularyData.partOfSpeech}</span>
         </div>
-        <div className="w-full bg-secondary rounded-full h-2">
-          <div 
+        <div className="w-1/2 bg-secondary rounded-full h-2">
+          <div
             className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
             style={{ width: `${((currentIndex + 1) / totalWords) * 100}%` }}
             role="progressbar"
@@ -173,10 +173,10 @@ export const VocabularyCard = React.memo(function VocabularyCard({
       </div>
 
       {/* Main content area: Two columns on large screens */}
-      <div 
+      <div
         ref={cardRef}
         className={cn(
-          "flex-1 flex flex-col lg:flex-row lg:gap-6 overflow-hidden transition-opacity duration-200",
+          "flex-1 flex flex-col lg:flex-row lg:gap-2 overflow-hidden transition-opacity duration-200",
           isContentLoaded ? "opacity-100" : "opacity-0",
           getAnimationClasses()
         )}
@@ -185,17 +185,17 @@ export const VocabularyCard = React.memo(function VocabularyCard({
         aria-label={`Vocabulary word ${currentIndex + 1} of ${totalWords}: ${vocabularyData.word}`}
       >
         {/* Left Column: Vocabulary Section */}
-        <div className="flex-1 lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-8 border border-border rounded-lg bg-card mb-4 lg:mb-0">
+        <div className="flex-1 lg:w-1/3 flex flex-col justify-center items-center p-6 lg:p-8 border border-border rounded-none bg-card mb-4 lg:mb-0">
           <div className="text-center space-y-4 w-full">
             {/* Word with pronunciation button */}
             <div className="flex items-center justify-center gap-3">
-              <h1 
-                className="text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground"
+              <h1
+                className="text-3xl lg:text-4xl xl:text-5xl font-bold text-foreground"
                 id={`vocabulary-word-${currentIndex}`}
               >
                 {vocabularyData.word}
               </h1>
-              <Button
+              {/* <Button
                 variant="ghost"
                 size="sm"
                 onClick={handlePronunciation}
@@ -203,25 +203,25 @@ export const VocabularyCard = React.memo(function VocabularyCard({
                 aria-label={`Play pronunciation for ${vocabularyData.word}`}
               >
                 <Volume2 className="h-5 w-5" aria-hidden="true" />
-              </Button>
+              </Button> */}
             </div>
-            
+
             {/* Pronunciation */}
-            <div 
-              className="text-xl lg:text-2xl text-muted-foreground font-mono"
+            <div
+              className="text-xl lg:text-xl text-muted-foreground font-mono"
               id={`word-pronunciation-${currentIndex}`}
             >
               /{vocabularyData.pronunciation}/
             </div>
-            
+
             {/* Part of Speech Badge */}
-            <div className="inline-block px-4 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-medium">
+            <div className="inline-block px-4 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
               {vocabularyData.partOfSpeech}
             </div>
 
             {/* Definition */}
             <div className="pt-4">
-              <p 
+              <p
                 className="text-lg lg:text-xl text-foreground leading-relaxed"
                 id={`word-definition-${currentIndex}`}
               >
@@ -232,21 +232,21 @@ export const VocabularyCard = React.memo(function VocabularyCard({
         </div>
 
         {/* Right Column: Example Sentences Section */}
-        <div className="flex-1 lg:w-1/2 flex flex-col p-6 lg:p-8 border border-border rounded-lg bg-card overflow-hidden">
-          <h2 className="text-lg font-semibold text-primary mb-4 uppercase tracking-wide flex-shrink-0">
+        <div className="flex-1 lg:w-2/3 flex flex-col p-6 lg:p-4 border border-border rounded-none bg-card overflow-hidden">
+          {/* <h2 className="text-base font-semibold text-primary mb-4 uppercase tracking-wide flex-shrink-0">
             Example Sentences
-          </h2>
-          
+          </h2> */}
+
           <div className="flex-1 overflow-y-auto pr-2">
             {areExamplesLoaded ? (
               <div className="space-y-4">
                 {tenseCategories.map(({ key, label, sentence }) => (
                   sentence && (
                     <div key={key} className="space-y-1.5">
-                      <h3 className="text-sm font-semibold text-primary uppercase tracking-wide">
+                      <h3 className="text-xs  text-primary  italic tracking-wide">
                         {label}
                       </h3>
-                      <p 
+                      <p
                         className="text-sm lg:text-base text-foreground leading-relaxed pl-3 border-l-2 border-primary/30"
                         dangerouslySetInnerHTML={{
                           __html: highlightVocabularyWord(sentence, vocabularyData.word)

@@ -271,9 +271,15 @@ export class VocabularySessionManager {
       message = error.message;
       originalError = error;
     } else if (error && typeof error === "object") {
-      // Handle Supabase error objects
-      message =
-        error.message || error.error_description || JSON.stringify(error);
+      // Handle various error object formats
+      message = 
+        error.message || 
+        error.error_description || 
+        error.error || 
+        error.statusText ||
+        error.msg ||
+        (error.toString && error.toString() !== '[object Object]' ? error.toString() : null) ||
+        'An unexpected error occurred. Please try again.';
       originalError = error instanceof Error ? error : undefined;
     } else {
       message = String(error);
