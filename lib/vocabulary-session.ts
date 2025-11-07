@@ -375,7 +375,7 @@ export class VocabularySessionManager {
     operation: () => Promise<T>,
     maxRetries: number = this.maxRetries
   ): Promise<T> {
-    let lastError: Error;
+    let lastError: any;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -383,7 +383,8 @@ export class VocabularySessionManager {
         this.retryCount = 0; // Reset on success
         return result;
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
+        // Preserve the original error object (especially VocabularyError)
+        lastError = error;
 
         if (attempt === maxRetries) {
           break;
@@ -397,7 +398,8 @@ export class VocabularySessionManager {
     }
 
     this.retryCount = maxRetries + 1;
-    throw lastError!;
+    // Throw the original error to preserve its structure
+    throw lastError;
   }
 
   /**

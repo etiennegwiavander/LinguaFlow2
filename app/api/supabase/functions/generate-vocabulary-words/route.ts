@@ -38,10 +38,24 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error('Supabase function error:', error);
-      console.error('Supabase function error details:', JSON.stringify(error, null, 2));
+      console.error('❌ Supabase Edge Function error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        name: error.name,
+        context: error.context,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      
+      // Extract meaningful error message
+      const errorMessage = error.message || 
+                          error.details || 
+                          error.hint ||
+                          'Edge Function returned a non-2xx status code';
+      
       return NextResponse.json(
-        { success: false, error: error.message || 'Edge function invocation failed' },
+        { success: false, error: errorMessage },
         { status: 500 }
       );
     }
