@@ -158,8 +158,11 @@ async function callDeepSeekForVocabulary(
   const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
 
   if (!openRouterApiKey) {
+    console.error("❌ OPENROUTER_API_KEY not found in environment");
     throw new Error("OpenRouter API key not configured");
   }
+
+  console.log("🤖 Calling OpenRouter API with DeepSeek model...");
 
   const response = await fetch(
     "https://openrouter.ai/api/v1/chat/completions",
@@ -198,12 +201,29 @@ async function callDeepSeekForVocabulary(
     );
   }
 
+  console.log("✅ OpenRouter API response status:", response.status);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("❌ OpenRouter API error:", {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorText
+    });
+    throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+  }
+
   const data = await response.json();
+  console.log("📦 OpenRouter response data keys:", Object.keys(data));
+  
   const content = data.choices?.[0]?.message?.content;
 
   if (!content) {
+    console.error("❌ No content in response:", JSON.stringify(data, null, 2));
     throw new Error("No content received from DeepSeek");
   }
+  
+  console.log("✅ Received content from DeepSeek, length:", content.length);
 
   try {
     // Parse the JSON response
