@@ -48,8 +48,24 @@ export async function POST(request: NextRequest) {
         code: error.code
       });
       
+      // Try to read the response body for more details
+      let errorBody = null;
+      if (error.context && error.context.body) {
+        try {
+          const reader = error.context.body.getReader();
+          const { value } = await reader.read();
+          if (value) {
+            errorBody = new TextDecoder().decode(value);
+            console.error('❌ Edge Function response body:', errorBody);
+          }
+        } catch (readError) {
+          console.error('Could not read error response body:', readError);
+        }
+      }
+      
       // Extract meaningful error message
-      const errorMessage = error.message || 
+      const errorMessage = errorBody ||
+                          error.message || 
                           error.details || 
                           error.hint ||
                           'Edge Function returned a non-2xx status code';

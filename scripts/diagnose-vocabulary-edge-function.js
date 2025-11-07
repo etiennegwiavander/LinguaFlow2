@@ -46,6 +46,22 @@ async function testEdgeFunction() {
       console.error('Hint:', error.hint);
       console.error('Code:', error.code);
       console.error('');
+      
+      // Try to read the response body
+      if (error.context && error.context.body) {
+        try {
+          const reader = error.context.body.getReader();
+          const { value } = await reader.read();
+          if (value) {
+            const errorBody = new TextDecoder().decode(value);
+            console.error('📄 Edge Function Response Body:', errorBody);
+            console.error('');
+          }
+        } catch (readError) {
+          console.error('Could not read response body:', readError);
+        }
+      }
+      
       console.error('Full error object:', JSON.stringify(error, null, 2));
       
       // Check if it's a function not found error
