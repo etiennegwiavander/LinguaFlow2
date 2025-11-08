@@ -115,8 +115,12 @@ export const VocabularyCard = React.memo(function VocabularyCard({
   const highlightVocabularyWord = (sentence: string, word: string) => {
     if (!sentence || !word) return sentence;
 
+    // First, remove any markdown asterisks around the word
+    let cleanedSentence = sentence.replace(/\*\*/g, '');
+    
+    // Then highlight the word and its variations with bold
     const regex = new RegExp(`\\b(${word}|${word}s|${word}ed|${word}ing)\\b`, 'gi');
-    return sentence.replace(regex, (match) => `<strong>${match}</strong>`);
+    return cleanedSentence.replace(regex, (match) => `<strong>${match}</strong>`);
   };
 
   // Pronunciation handler (placeholder for future audio implementation)
@@ -237,7 +241,7 @@ export const VocabularyCard = React.memo(function VocabularyCard({
             Example Sentences
           </h2> */}
 
-          <div className="flex-1 overflow-y-auto pr-2">
+          <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide">
             {areExamplesLoaded ? (
               <div className="space-y-4">
                 {tenseCategories.map(({ key, label, sentence }) => (
