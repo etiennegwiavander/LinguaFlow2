@@ -250,7 +250,9 @@ The vocabulary generation system is working as designed and can be confidently u
 Ensure the following is set in `.env.local`:
 
 ```env
-OPENROUTER_API_KEY=sk-or-v1-...
+OPENROUTER_API_KEY=[YOUR_OPENROUTER_API_KEY]
 ```
+
+**Note:** Replace `[YOUR_OPENROUTER_API_KEY]` with your actual OpenRouter API key from https://openrouter.ai/keys
 
 The API key is properly configured and working correctly.
