@@ -264,7 +264,7 @@ export const VocabularyFlashcardInterface = React.memo(function VocabularyFlashc
       />
 
       {/* Header with close button */}
-      <div className="relative z-10 flex justify-between items-center p-4 sm:p-6 md:p-8">
+      <div className="relative z-10 flex justify-between items-center py-4 sm:p-6 md:p-8">
         <div className="flex items-center space-x-2">
           <h1 className="text-lg sm:text-xl font-semibold text-foreground">
             Vocabulary Flashcards
@@ -293,10 +293,10 @@ export const VocabularyFlashcardInterface = React.memo(function VocabularyFlashc
       </div>
 
       {/* Main content area with proper responsive layout */}
-      <div className="relative z-10 flex-1 flex flex-col px-4 sm:px-6 md:px-8 pb-4 sm:pb-6 md:pb-8 min-h-0">
+      <div className="relative z-10 flex-1 flex flex-col py-1 px-4 sm:px-6 md:px-8 pb-4 sm:pb-6 md:pb-4 min-h-0">
         {/* Vocabulary card container with scroll capability */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col min-h-0">
+          <div className="w-full max-w-6xl mx-auto flex-1 flex flex-col min-h-0">
             {currentWord && (
               <VocabularyCard
                 vocabularyData={currentWord}

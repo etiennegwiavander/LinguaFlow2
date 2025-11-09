@@ -75,7 +75,7 @@ export const VocabularyNavigationControls = React.memo(function VocabularyNaviga
   }, [handleKeyDown]);
 
   return (
-    <div className={cn('flex flex-row items-center justify-between w-full max-w-2xl mx-auto gap-2 sm:gap-0', className)}>
+    <div className={cn('flex flex-row items-center justify-between w-full max-w-2xl mx-auto my-0 gap-2 sm:gap-0', className)}>
       {/* Mobile & Desktop: Previous button */}
       <div className="flex items-center space-x-1 sm:space-x-2">
         <Button
@@ -90,7 +90,7 @@ export const VocabularyNavigationControls = React.memo(function VocabularyNaviga
             'contrast-more:border-2 contrast-more:border-foreground',
             isFirstWord
               ? 'opacity-50 cursor-not-allowed contrast-more:opacity-30'
-              : 'hover:bg-primary/10 hover:border-primary/50'
+              : 'hover:bg-primary/90 hover:border-primary/50'
           )}
           aria-label={`Previous vocabulary word. ${isFirstWord ? 'Disabled - at first word' : `Go to word ${currentIndex}`}`}
           aria-describedby="prev-word-help"
@@ -207,7 +207,7 @@ export const VocabularyNavigationControls = React.memo(function VocabularyNaviga
             'contrast-more:border-2 contrast-more:border-foreground',
             isLastWord
               ? 'opacity-50 cursor-not-allowed contrast-more:opacity-30'
-              : 'hover:bg-primary/10 hover:border-primary/50'
+              : 'hover:bg-primary/100 hover:border-primary/50'
           )}
           aria-label={`Next vocabulary word. ${isLastWord ? 'Disabled - at last word' : `Go to word ${currentIndex + 2}`}`}
           aria-describedby="next-word-help"
