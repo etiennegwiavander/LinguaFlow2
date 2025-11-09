@@ -533,8 +533,12 @@ export class VocabularySessionManager {
         });
       }
 
+      // Call Supabase Edge Function directly to avoid Netlify 26s timeout
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const edgeFunctionUrl = `${supabaseUrl}/functions/v1/generate-vocabulary-words`;
+      
       const response = await fetch(
-        "/api/supabase/functions/generate-vocabulary-words",
+        edgeFunctionUrl,
         {
           method: "POST",
           headers,

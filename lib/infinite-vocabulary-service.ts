@@ -657,7 +657,11 @@ export class InfiniteVocabularyService {
     // For now, return empty array to avoid circular dependency
     // In the actual implementation, this would call the enhanced generate-vocabulary-words function
     try {
-      const response = await fetch('/api/supabase/functions/generate-vocabulary-words', {
+      // Call Supabase Edge Function directly to avoid Netlify 26s timeout
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const edgeFunctionUrl = `${supabaseUrl}/functions/v1/generate-vocabulary-words`;
+      
+      const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
