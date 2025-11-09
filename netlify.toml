@@ -8,6 +8,14 @@
   NODE_OPTIONS = "--max-old-space-size=4096"
   NEXT_PUBLIC_APP_URL = "https://linguaflow.online"
 
+# Increase function timeout for AI generation (max 26 seconds on free tier)
+[functions]
+  node_bundler = "esbuild"
+  
+[[functions]]
+  path = "api/supabase/functions/generate-vocabulary-words"
+  node_bundler = "esbuild"
+
 # Next.js specific configuration
 [[plugins]]
   package = "@netlify/plugin-nextjs"

@@ -96,7 +96,7 @@ async function generateAIPersonalizedVocabulary(
   }
 }
 
-// Create AI prompt for vocabulary generation
+// Create AI prompt for vocabulary generation - OPTIMIZED FOR SPEED
 function createVocabularyPrompt(
   studentName: string,
   level: string,
@@ -107,48 +107,20 @@ function createVocabularyPrompt(
   excludeWords: string[],
   count: number
 ): string {
-  return `Generate ${count} personalized English vocabulary words for ${studentName}, a ${level} level English learner.
+  // Shortened prompt to reduce tokens and generation time
+  const excludeList = excludeWords.length > 10 ? excludeWords.slice(0, 10).join(", ") + "..." : excludeWords.join(", ");
+  
+  return `Generate ${count} ${level} English vocabulary words for ${studentName}.
 
-Student Profile:
-- Native Language: ${nativeLanguage}
-- Learning Goals: ${goals}
-- Vocabulary Gaps: ${vocabularyGaps}
-- Conversational Barriers: ${conversationalBarriers}
-- Level: ${level}
+Profile: ${nativeLanguage} speaker | Goals: ${goals} | Gaps: ${vocabularyGaps}
+${excludeList ? `Avoid: ${excludeList}` : ''}
 
-Requirements:
-1. Generate words appropriate for ${level} level
-2. Focus on words that help with their learning goals: ${goals}
-3. Address vocabulary gaps: ${vocabularyGaps}
-4. Avoid these words: ${excludeWords.join(", ")}
-5. Make words relevant to their conversational barriers: ${conversationalBarriers}
+Return ONLY valid JSON array. No markdown, no text.
 
-For each word, provide:
-- word: the English word
-- pronunciation: IPA phonetic notation
-- partOfSpeech: noun, verb, adjective, adverb, etc.
-- definition: clear, level-appropriate definition
-- exampleSentences: 6 natural, contextually relevant example sentences that relate to the student's learning goals and real-life situations they might encounter. Use different tenses (present, past, future, present perfect, past perfect, future perfect). Create scenarios that connect to their goals (${goals}) and address their conversational barriers (${conversationalBarriers}). Use the student's name sparingly - only in 1-2 sentences when it feels natural and personal
+Format:
+[{"word":"example","pronunciation":"/ɪɡˈzæmpəl/","partOfSpeech":"noun","definition":"A thing showing what others are like","exampleSentences":{"present":"This is an example.","past":"That was an example.","future":"This will be an example.","presentPerfect":"I have seen this example.","pastPerfect":"I had seen that example.","futurePerfect":"I will have seen the example."}}]
 
-CRITICAL: Return ONLY a valid JSON array of vocabulary objects. Do not wrap it in markdown code blocks or add any explanatory text. Just the raw JSON array starting with [ and ending with ].
-
-Example format:
-[
-  {
-    "word": "opportunity",
-    "pronunciation": "/ˌɑːpərˈtuːnəti/",
-    "partOfSpeech": "noun",
-    "definition": "A chance to do something good or beneficial",
-    "exampleSentences": {
-      "present": "Every job interview presents a new **opportunity** to showcase your skills.",
-      "past": "She recognized the **opportunity** and applied for the scholarship immediately.",
-      "future": "This internship will provide valuable **opportunity** for career growth.",
-      "presentPerfect": "Many students have found **opportunity** through networking events.",
-      "pastPerfect": "He had missed several **opportunity** before learning to be more proactive.",
-      "futurePerfect": "By graduation, ${studentName} will have explored every **opportunity** available."
-    }
-  }
-]`;
+Generate ${count} words now:`;
 }
 
 // Call OpenRouter DeepSeek API for vocabulary generation
@@ -178,12 +150,17 @@ async function callDeepSeekForVocabulary(
         model: "deepseek/deepseek-chat-v3.1:free",
         messages: [
           {
+            role: "system",
+            content: "You are a vocabulary generator. Return only valid JSON arrays. Be concise."
+          },
+          {
             role: "user",
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 4000
+        temperature: 0.5, // Lower temperature for faster, more focused responses
+        max_tokens: 3000, // Reduced tokens for faster generation
+        top_p: 0.9, // More focused sampling
       }),
     }
   );
