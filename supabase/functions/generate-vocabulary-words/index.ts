@@ -175,20 +175,15 @@ async function callDeepSeekForVocabulary(
         "X-Title": "LinguaFlow Vocabulary Generator",
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-chat",
+        model: "deepseek/deepseek-chat-v3.1:free",
         messages: [
-          {
-            role: "system",
-            content: "You are an expert English language teacher who creates personalized vocabulary lessons. Always respond with valid JSON only. Do not include any markdown formatting, code blocks, or explanatory text - only return the raw JSON array."
-          },
           {
             role: "user",
             content: prompt
           }
         ],
         temperature: 0.7,
-        max_tokens: 4000,
-        response_format: { type: "json_object" }
+        max_tokens: 4000
       }),
     }
   );
@@ -229,19 +224,31 @@ async function callDeepSeekForVocabulary(
     // Parse the JSON response
     let vocabularyWords;
     
+    // Clean the content - remove markdown code blocks if present
+    let cleanedContent = content.trim();
+    if (cleanedContent.startsWith('```json')) {
+      cleanedContent = cleanedContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanedContent.startsWith('```')) {
+      cleanedContent = cleanedContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
     // Try to parse as direct JSON
     try {
-      vocabularyWords = JSON.parse(content);
+      vocabularyWords = JSON.parse(cleanedContent);
     } catch (e) {
       // If it's wrapped in a JSON object with a key, try to extract the array
-      const parsed = JSON.parse(content);
-      if (parsed.words && Array.isArray(parsed.words)) {
-        vocabularyWords = parsed.words;
-      } else if (parsed.vocabulary && Array.isArray(parsed.vocabulary)) {
-        vocabularyWords = parsed.vocabulary;
-      } else {
+      try {
+        const parsed = JSON.parse(cleanedContent);
+        if (parsed.words && Array.isArray(parsed.words)) {
+          vocabularyWords = parsed.words;
+        } else if (parsed.vocabulary && Array.isArray(parsed.vocabulary)) {
+          vocabularyWords = parsed.vocabulary;
+        } else {
+          throw new Error("No array found in parsed object");
+        }
+      } catch (parseError) {
         // Try to find any array in the response
-        const arrayMatch = content.match(/\[[\s\S]*\]/);
+        const arrayMatch = cleanedContent.match(/\[[\s\S]*\]/);
         if (arrayMatch) {
           vocabularyWords = JSON.parse(arrayMatch[0]);
         } else {
