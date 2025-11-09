@@ -5,6 +5,7 @@ import { VocabularyFlashcardInterface } from './VocabularyFlashcardInterface';
 import { VocabularyCardData, Student, StudentVocabularyProfile } from '@/types';
 import { vocabularySessionManager, VocabularyError } from '@/lib/vocabulary-session';
 import { VocabularyErrorBoundary } from './VocabularyErrorBoundary';
+import { VocabularyGenerationProgress } from './VocabularyGenerationProgress';
 import { useSidebar } from '@/lib/sidebar-context';
 import { 
   VocabularyGenerationErrorFallback,
@@ -383,6 +384,14 @@ const VocabularyFlashcardsTab = React.memo(function VocabularyFlashcardsTab({
             Personalized vocabulary practice tailored to {student.name}&apos;s learning profile and goals.
           </p>
         </div>
+
+        {/* Generation Progress Display */}
+        {isLoading && !error && (
+          <VocabularyGenerationProgress 
+            isGenerating={isLoading}
+            estimatedDuration={120} // 2 minutes
+          />
+        )}
 
         {/* Error Display with specific error types */}
         {error && (
