@@ -107,20 +107,14 @@ function createVocabularyPrompt(
   excludeWords: string[],
   count: number
 ): string {
-  // Shortened prompt to reduce tokens and generation time
-  const excludeList = excludeWords.length > 10 ? excludeWords.slice(0, 10).join(", ") + "..." : excludeWords.join(", ");
+  // Ultra-concise prompt for maximum speed
+  const excludeList = excludeWords.length > 5 ? excludeWords.slice(0, 5).join(",") : excludeWords.join(",");
   
-  return `Generate ${count} ${level} English vocabulary words for ${studentName}.
+  return `Generate ${count} ${level}-level English vocabulary JSON array.
+Student: ${nativeLanguage} speaker, goals: ${goals.substring(0, 50)}
+${excludeList ? `Skip: ${excludeList}` : ''}
 
-Profile: ${nativeLanguage} speaker | Goals: ${goals} | Gaps: ${vocabularyGaps}
-${excludeList ? `Avoid: ${excludeList}` : ''}
-
-Return ONLY valid JSON array. No markdown, no text.
-
-Format:
-[{"word":"example","pronunciation":"/ɪɡˈzæmpəl/","partOfSpeech":"noun","definition":"A thing showing what others are like","exampleSentences":{"present":"This is an example.","past":"That was an example.","future":"This will be an example.","presentPerfect":"I have seen this example.","pastPerfect":"I had seen that example.","futurePerfect":"I will have seen the example."}}]
-
-Generate ${count} words now:`;
+JSON only. Format: [{"word":"str","pronunciation":"str","partOfSpeech":"str","definition":"str","exampleSentences":{"present":"str","past":"str","future":"str","presentPerfect":"str","pastPerfect":"str","futurePerfect":"str"}}]`;
 }
 
 // Call OpenRouter DeepSeek API for vocabulary generation
@@ -198,39 +192,40 @@ async function callDeepSeekForVocabulary(
   console.log("✅ Received content from DeepSeek, length:", content.length);
 
   try {
-    // Parse the JSON response
+    // Parse the JSON response with enhanced extraction
     let vocabularyWords;
     
-    // Clean the content - remove markdown code blocks if present
+    // Clean the content
     let cleanedContent = content.trim();
+    
+    // Remove markdown code blocks
     if (cleanedContent.startsWith('```json')) {
       cleanedContent = cleanedContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
     } else if (cleanedContent.startsWith('```')) {
       cleanedContent = cleanedContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
     
-    // Try to parse as direct JSON
+    // Remove any text before the first [ and after the last ]
+    const firstBracket = cleanedContent.indexOf('[');
+    const lastBracket = cleanedContent.lastIndexOf(']');
+    
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      cleanedContent = cleanedContent.substring(firstBracket, lastBracket + 1);
+    }
+    
+    // Try to parse the cleaned JSON
     try {
       vocabularyWords = JSON.parse(cleanedContent);
-    } catch (e) {
-      // If it's wrapped in a JSON object with a key, try to extract the array
-      try {
-        const parsed = JSON.parse(cleanedContent);
-        if (parsed.words && Array.isArray(parsed.words)) {
-          vocabularyWords = parsed.words;
-        } else if (parsed.vocabulary && Array.isArray(parsed.vocabulary)) {
-          vocabularyWords = parsed.vocabulary;
-        } else {
-          throw new Error("No array found in parsed object");
-        }
-      } catch (parseError) {
-        // Try to find any array in the response
-        const arrayMatch = cleanedContent.match(/\[[\s\S]*\]/);
-        if (arrayMatch) {
-          vocabularyWords = JSON.parse(arrayMatch[0]);
-        } else {
-          throw new Error("Could not find vocabulary array in response");
-        }
+    } catch (parseError) {
+      console.log('Parse failed, trying regex extraction...');
+      
+      // Fallback: extract array with regex
+      const arrayMatch = content.match(/\[[\s\S]*?\]/g);
+      if (arrayMatch && arrayMatch.length > 0) {
+        const largestArray = arrayMatch.reduce((a, b) => a.length > b.length ? a : b);
+        vocabularyWords = JSON.parse(largestArray);
+      } else {
+        throw new Error(`Failed to parse vocabulary response: ${parseError.message}`);
       }
     }
 
