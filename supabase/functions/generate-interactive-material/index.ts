@@ -123,12 +123,57 @@ Sub-Topic to Focus On:
 Template Structure to Fill:
 ${JSON.stringify(template.template_json, null, 2)}
 
-CRITICAL INSTRUCTIONS:
-1. You must fill ALL "ai_placeholder" fields in the template with appropriate content based on the student profile and sub-topic
-2. Replace placeholder content like "Lesson Title Here" with the actual sub-topic title: "${
+⚠️ CRITICAL INSTRUCTIONS FOR FILLING THE TEMPLATE:
+
+🚨 MOST IMPORTANT RULE: The "ai_placeholder" field is a LABEL, not a place to put content!
+   - NEVER replace or modify the "ai_placeholder" field value
+   - ALWAYS create a NEW field with the name specified in "ai_placeholder"
+   - The "ai_placeholder" value tells you what field name to create
+
+STEP-BY-STEP PROCESS:
+1. Find a section with an "ai_placeholder" field (e.g., "ai_placeholder": "introduction_overview")
+2. Note the VALUE of that field (e.g., "introduction_overview")
+3. CREATE A NEW FIELD in that same section with that exact name
+4. Put your generated content in that NEW field
+5. Leave the original "ai_placeholder" field unchanged
+
+CORRECT EXAMPLE:
+BEFORE (template):
+{
+  "id": "introduction_overview",
+  "type": "info_card",
+  "title": "Introduction/Overview",
+  "content_type": "text",
+  "ai_placeholder": "introduction_overview",
+  "background_color_var": "primary_bg"
+}
+
+AFTER (your response):
+{
+  "id": "introduction_overview",
+  "type": "info_card",
+  "title": "Introduction/Overview",
+  "content_type": "text",
+  "ai_placeholder": "introduction_overview",  ← UNCHANGED
+  "background_color_var": "primary_bg",
+  "introduction_overview": "Welcome, ${student.name}! This lesson is designed to help you..."  ← NEW FIELD ADDED
+}
+
+WRONG EXAMPLE (DO NOT DO THIS):
+{
+  "id": "introduction_overview",
+  "type": "info_card",
+  "title": "Introduction/Overview",
+  "content_type": "text",
+  "ai_placeholder": "Welcome, ${student.name}! This lesson...",  ← WRONG! Don't replace this field!
+  "background_color_var": "primary_bg"
+}
+
+OTHER INSTRUCTIONS:
+- Replace placeholder content like "Lesson Title Here" with the actual sub-topic title: "${
       subTopic.title
     }"
-3. Generate specific, detailed content for each section that matches the student's level and needs
+- Generate specific, detailed content for each section that matches the student's level and needs
 4. For vocabulary_items arrays, create 4-6 relevant vocabulary words. Each vocabulary item MUST have this exact structure with the correct number of examples based on student level:
    - A1/A2 levels: Generate 5 example sentences per vocabulary word
    - B1/B2 levels: Generate 4 example sentences per vocabulary word  
@@ -740,24 +785,26 @@ serve(async (req) => {
     );
     console.log("📝 Prompt constructed, length:", prompt.length);
 
-    // Get Gemini API key
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!geminiApiKey) {
-      throw new Error("Gemini API key not configured");
+    // Get OpenRouter API key for DeepSeek
+    const openrouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+    if (!openrouterApiKey) {
+      throw new Error("OPENROUTER_API_KEY not configured");
     }
 
-    console.log("🤖 Calling Gemini API...");
-    // Call Gemini API
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
+    console.log("🤖 Calling DeepSeek API via OpenRouter...");
+    // Call DeepSeek API via OpenRouter
+    const aiResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${geminiApiKey}`,
+          Authorization: `Bearer ${openrouterApiKey}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": "https://linguaflow.online",
+          "X-Title": "LinguaFlow",
         },
         body: JSON.stringify({
-          model: "gemini-2.0-flash-exp",
+          model: "deepseek/deepseek-chat",
           messages: [
             {
               role: "system",
@@ -775,21 +822,21 @@ serve(async (req) => {
       }
     );
 
-    console.log("📡 Gemini API response status:", geminiResponse.status);
+    console.log("📡 DeepSeek API response status:", aiResponse.status);
 
-    if (!geminiResponse.ok) {
-      const errorData = await geminiResponse.text();
-      console.error("❌ Gemini API error:", errorData);
-      throw new Error(`Gemini API error: ${errorData}`);
+    if (!aiResponse.ok) {
+      const errorData = await aiResponse.text();
+      console.error("❌ DeepSeek API error:", errorData);
+      throw new Error(`DeepSeek API error: ${errorData}`);
     }
 
-    const geminiData = await geminiResponse.json();
-    console.log("✅ Gemini API response received");
+    const aiData = await aiResponse.json();
+    console.log("✅ DeepSeek API response received");
 
-    const generatedContent = geminiData.choices[0]?.message?.content;
+    const generatedContent = aiData.choices[0]?.message?.content;
 
     if (!generatedContent) {
-      throw new Error("No content generated from Gemini");
+      throw new Error("No content generated from DeepSeek");
     }
 
     console.log("📄 Raw generated content length:", generatedContent.length);

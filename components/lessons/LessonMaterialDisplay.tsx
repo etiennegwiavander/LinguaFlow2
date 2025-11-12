@@ -579,38 +579,58 @@ const generateFallbackContent = (section: TemplateSection, level: string): React
 
 // Helper function to get content from info_card sections
 const getInfoCardContent = (section: TemplateSection): string => {
-  // Check for content in section.content
+  console.log('🔍 getInfoCardContent called for section:', section.id, section.title);
+  console.log('📋 Section keys:', Object.keys(section));
+  
+  const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+  console.log('🎯 ai_placeholder value:', aiPlaceholderKey);
+  
+  // PRIORITY 1: Check if AI content is in the correct place (new field with ai_placeholder name)
+  // This is the CORRECT structure we want
+  if (aiPlaceholderKey && aiPlaceholderKey.length < 100) {
+    // If ai_placeholder is short (like "introduction_overview"), it's a field name
+    const aiContent = (section as any)[aiPlaceholderKey];
+    if (aiContent && typeof aiContent === 'string') {
+      console.log(`✅ Found AI content in CORRECT field "${aiPlaceholderKey}":`, aiContent.substring(0, 100) + '...');
+      return aiContent;
+    }
+  }
+  
+  // PRIORITY 2: TEMPORARY FIX - Check if content is wrongly placed IN the ai_placeholder field itself
+  // This handles the current broken case where AI put content directly in ai_placeholder
+  if (aiPlaceholderKey && aiPlaceholderKey.length > 100) {
+    // If ai_placeholder is long (like a full sentence), it's actually the content (WRONG but we handle it)
+    console.log(`⚠️ Found AI content WRONGLY placed in ai_placeholder field (temporary fix):`, aiPlaceholderKey.substring(0, 100) + '...');
+    return aiPlaceholderKey;
+  }
+
+  // PRIORITY 3: Check for content in section.content
   const directContent = safeGetString(section, 'content');
-  if (directContent) {
+  if (directContent && directContent !== 'Content will be displayed here.') {
+    console.log('✅ Found content in section.content');
     return directContent;
   }
 
-  // Check for content in the ai_placeholder field (this should contain the actual content)
-  const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
-  if (aiPlaceholderKey && (section as any)[aiPlaceholderKey]) {
-    return safeStringify((section as any)[aiPlaceholderKey]);
-  }
-
-  // Check for content in items array
+  // PRIORITY 4: Check for content in items array
   const items = safeGetArray(section, 'items');
   if (items.length > 0) {
+    console.log('✅ Found content in items array');
     return items.map(item => `• ${safeStringify(item)}`).join('\n');
   }
 
-  // Check for content in other common fields
-  const commonContentFields = ['text', 'description', 'summary', 'overview'];
+  // PRIORITY 5: Check for content in other common fields
+  const commonContentFields = ['text', 'description', 'summary', 'overview', 'introduction_overview', 'wrap_up_reflection'];
   for (const field of commonContentFields) {
     const fieldContent = safeGetString(section, field);
-    if (fieldContent) {
+    if (fieldContent && fieldContent !== 'Content will be displayed here.') {
+      console.log(`✅ Found content in field "${field}"`);
       return fieldContent;
     }
   }
 
-  // Check if there's a 'text' field specifically (this might be where the AI content is stored)
-  if ((section as any).text) {
-    return safeStringify((section as any).text);
-  }
-
+  // NO FALLBACK - Return empty to show error
+  console.error(`❌ NO CONTENT FOUND for info_card section: ${section.title}`);
+  console.log('📦 Full section object:', JSON.stringify(section, null, 2));
   return '';
 };
 
@@ -1330,10 +1350,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   ))}
                 </ul>
               ) : (
-                <div className="prose max-w-none info-card-content">
-                  <div className="lesson-section-content" onDoubleClick={handleTextDoubleClick}>
-                    {generateFallbackContent(section, lesson?.student?.level || 'intermediate')}
-                  </div>
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    ⚠️ AI-generated content not available for this section. Please regenerate the lesson material.
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -1522,12 +1542,47 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
     switch (contentType) {
       case 'list': {
-        const items = safeGetArray(section, 'items');
+        // PRIORITY 1: Check AI-generated content first
+        const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+        let items = safeGetArray(section, 'items');
+        
+        // If items is empty, check if AI filled the placeholder field
+        if (items.length === 0 && aiPlaceholderKey) {
+          // Check if content is in the correct place (new field with ai_placeholder name)
+          if (aiPlaceholderKey.length < 100) {
+            const aiContent = (section as any)[aiPlaceholderKey];
+            if (aiContent) {
+              // AI content might be an array or a string
+              if (Array.isArray(aiContent)) {
+                items = aiContent;
+                console.log(`✅ Using AI-generated items from CORRECT field "${aiPlaceholderKey}":`, items.length, 'items');
+              } else if (typeof aiContent === 'string') {
+                // Split string content into items
+                items = aiContent.split('\n').filter(line => line.trim());
+                console.log(`✅ Using AI-generated content from CORRECT field "${aiPlaceholderKey}" (split into items):`, items.length, 'items');
+              }
+            }
+          }
+          
+          // TEMPORARY FIX: Check if content is wrongly placed IN the ai_placeholder field itself
+          if (items.length === 0 && aiPlaceholderKey.length > 100) {
+            // Content is wrongly in ai_placeholder field
+            if (aiPlaceholderKey.includes('\n')) {
+              items = aiPlaceholderKey.split('\n').filter(line => line.trim());
+              console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder (split into items):`, items.length, 'items');
+            } else {
+              items = [aiPlaceholderKey];
+              console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder (single item)`);
+            }
+          }
+        }
 
         if (items.length === 0) {
           return (
-            <div className="text-center py-4 text-gray-500">
-              <p>No items available for this exercise.</p>
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                ⚠️ No items available for this exercise. Please regenerate the lesson material.
+              </p>
             </div>
           );
         }
@@ -1560,7 +1615,38 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       }
 
       case 'text': {
-        const textContent = safeGetString(section, 'content', 'Content will be displayed here.');
+        // PRIORITY 1: Check AI-generated content first
+        const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+        let textContent = safeGetString(section, 'content', '');
+        
+        // If content is empty or placeholder, check if AI filled the placeholder field
+        if ((!textContent || textContent === 'Content will be displayed here.') && aiPlaceholderKey) {
+          // Check if content is in the correct place (new field with ai_placeholder name)
+          if (aiPlaceholderKey.length < 100) {
+            const aiContent = (section as any)[aiPlaceholderKey];
+            if (aiContent) {
+              textContent = safeStringify(aiContent);
+              console.log(`✅ Using AI-generated text from CORRECT field "${aiPlaceholderKey}":`, textContent.substring(0, 100) + '...');
+            }
+          }
+          
+          // TEMPORARY FIX: Check if content is wrongly placed IN the ai_placeholder field itself
+          if ((!textContent || textContent === 'Content will be displayed here.') && aiPlaceholderKey.length > 100) {
+            textContent = aiPlaceholderKey;
+            console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder field:`, textContent.substring(0, 100) + '...');
+          }
+        }
+        
+        // If still no content, show error message
+        if (!textContent || textContent === 'Content will be displayed here.') {
+          return (
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                ⚠️ Content not available for this section. Please regenerate the lesson material.
+              </p>
+            </div>
+          );
+        }
 
         // AGGRESSIVE GRAMMAR DETECTION: Format ANY content that contains grammar patterns
         // This ensures NO asterisks or raw markdown EVER appears in grammar explanations
@@ -1644,7 +1730,32 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       }
 
       case 'grammar_explanation': {
-        let explanationContent = safeGetString(section, 'explanation_content', '') || safeGetString(section, 'content', '');
+        // PRIORITY 1: Check AI-generated content first
+        const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+        let explanationContent = '';
+        
+        // Check AI placeholder field first
+        if (aiPlaceholderKey) {
+          // Check if content is in the correct place (new field with ai_placeholder name)
+          if (aiPlaceholderKey.length < 100) {
+            const aiContent = (section as any)[aiPlaceholderKey];
+            if (aiContent) {
+              explanationContent = safeStringify(aiContent);
+              console.log(`✅ Using AI-generated grammar explanation from CORRECT field "${aiPlaceholderKey}"`);
+            }
+          }
+          
+          // TEMPORARY FIX: Check if content is wrongly placed IN the ai_placeholder field itself
+          if (!explanationContent && aiPlaceholderKey.length > 100) {
+            explanationContent = aiPlaceholderKey;
+            console.log(`⚠️ Using AI grammar explanation WRONGLY placed in ai_placeholder field`);
+          }
+        }
+        
+        // Fallback to other fields if no AI content
+        if (!explanationContent) {
+          explanationContent = safeGetString(section, 'explanation_content', '') || safeGetString(section, 'content', '');
+        }
 
         // Generate fallback content if empty
         if (!explanationContent || explanationContent.trim() === '' || explanationContent === 'Content will be displayed here.') {
