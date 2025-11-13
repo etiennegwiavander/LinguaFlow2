@@ -220,7 +220,7 @@ async function generatePersonalizedQuestions(student: Student, topicTitle: strin
         'X-Title': 'LinguaFlow Discussion Questions'
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-chat-v3.1:free",
+        model: "deepseek/deepseek-chat-v3.1",
         messages: [{
           role: 'user',
           content: topicSpecificPrompt

@@ -676,7 +676,7 @@ Make each question explore different angles with unique structures.`;
           'X-Title': 'LinguaFlow Discussion Questions'
         },
         body: JSON.stringify({
-          model: 'deepseek/deepseek-chat-v3.1:free',
+          model: "deepseek/deepseek-chat-v3.1",
           messages: [{
             role: 'user',
             content: topicSpecificPrompt
