@@ -59,10 +59,10 @@ serve(async (req) => {
     // Get language name from code
     const targetLanguageName = languageMap[target_language_code] || target_language_code;
 
-    // Get Gemini API key
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
-    if (!geminiApiKey) {
-      throw new Error('Gemini API key not configured')
+    // Get OpenRouter API key for DeepSeek
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY')
+    if (!openrouterApiKey) {
+      throw new Error('OPENROUTER_API_KEY not configured')
     }
 
     // Construct the prompt for translation
@@ -70,15 +70,17 @@ serve(async (req) => {
 
 "${text_to_translate}"`;
 
-    // Call Gemini API using the OpenAI-compatible endpoint
-    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`, {
+    // Call DeepSeek API via OpenRouter
+    const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${geminiApiKey}`,
+        'Authorization': `Bearer ${openrouterApiKey}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://linguaflow.online',
+        'X-Title': 'LinguaFlow'
       },
       body: JSON.stringify({
-        model: 'gemini-2.0-flash-exp',
+        model: 'deepseek/deepseek-chat',
         messages: [
           {
             role: 'system',
@@ -94,13 +96,13 @@ serve(async (req) => {
       }),
     })
 
-    if (!geminiResponse.ok) {
-      const errorData = await geminiResponse.text()
-      throw new Error(`Gemini API error: ${errorData}`)
+    if (!aiResponse.ok) {
+      const errorData = await aiResponse.text()
+      throw new Error(`DeepSeek API error: ${errorData}`)
     }
 
-    const geminiData = await geminiResponse.json()
-    const translatedText = geminiData.choices[0]?.message?.content.trim()
+    const aiData = await aiResponse.json()
+    const translatedText = aiData.choices[0]?.message?.content.trim()
 
     if (!translatedText) {
       throw new Error('No translation generated')
