@@ -156,7 +156,9 @@ function SubTopicSelectionDialogContent({
 
         // Extract unique categories from active templates
         const categorySet = new Set(templates.map(t => t.category));
-        const uniqueCategories = Array.from(categorySet).sort();
+        const uniqueCategories = Array.from(categorySet)
+          .filter(cat => cat !== 'English for Travel') // Hide English for Travel from dropdown
+          .sort();
         setAvailableCategories(uniqueCategories);
         console.log('📋 Available categories from active templates:', uniqueCategories);
       } catch (error) {
@@ -175,6 +177,11 @@ function SubTopicSelectionDialogContent({
   // Update edited sub-topics when props change and auto-select categories
   useEffect(() => {
     const updatedSubTopics = subTopics.map(subTopic => {
+      // Preserve "English for Travel" category if already assigned (even though hidden from dropdown)
+      if (subTopic.category === 'English for Travel') {
+        return subTopic;
+      }
+      
       // If the sub-topic doesn't have a category or has an invalid category,
       // try to intelligently assign one based on the title/description
       if (!subTopic.category || !availableCategories.includes(subTopic.category)) {
