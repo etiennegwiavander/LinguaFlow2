@@ -9,8 +9,8 @@ INSERT INTO lesson_templates (
   template_json,
   is_active
 ) VALUES (
-  'English for Travel C1',
-  'Travel English',
+  'English for Travel Lesson',
+  'English for Travel',
   'c1',
   '{
     "lesson_structure": [

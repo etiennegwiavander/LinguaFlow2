@@ -625,14 +625,27 @@ function selectAppropriateTemplate(
   subTopic: any,
   templates: LessonTemplate[]
 ): LessonTemplate | null {
-  // First, try to find a template that matches the sub-topic's level and category exactly
-  const exactMatches = templates.filter(
-    (t) => t.level === subTopic.level && t.category === subTopic.category
-  );
+  console.log(`🔍 Searching for template matching:`, {
+    category: subTopic.category,
+    level: subTopic.level || 'NOT PROVIDED',
+  });
 
-  if (exactMatches.length > 0) {
-    console.log(`✅ Found exact match template: ${exactMatches[0].name}`);
-    return exactMatches[0];
+  // If level is missing, log warning but continue
+  if (!subTopic.level) {
+    console.warn(`⚠️ WARNING: Sub-topic "${subTopic.title}" is missing level field!`);
+    console.warn(`   This may cause template matching issues.`);
+  }
+
+  // First, try to find a template that matches the sub-topic's level and category exactly
+  if (subTopic.level) {
+    const exactMatches = templates.filter(
+      (t) => t.level === subTopic.level && t.category === subTopic.category
+    );
+
+    if (exactMatches.length > 0) {
+      console.log(`✅ Found exact match template: ${exactMatches[0].name} (${exactMatches[0].category}, ${exactMatches[0].level})`);
+      return exactMatches[0];
+    }
   }
 
   // Try to match by category only (any level)
@@ -641,34 +654,38 @@ function selectAppropriateTemplate(
   );
 
   if (categoryMatches.length > 0) {
-    console.log(`✅ Found category match template: ${categoryMatches[0].name}`);
+    console.log(`✅ Found category match template: ${categoryMatches[0].name} (${categoryMatches[0].category}, ${categoryMatches[0].level})`);
+    console.log(`   Note: Using ${categoryMatches[0].level} level template for ${subTopic.level || 'unspecified'} level subtopic`);
     return categoryMatches[0];
   }
 
   // Try to match by level only (any category)
-  const levelMatches = templates.filter((t) => t.level === subTopic.level);
+  if (subTopic.level) {
+    const levelMatches = templates.filter((t) => t.level === subTopic.level);
 
-  if (levelMatches.length > 0) {
-    // Prefer Conversation templates as they're most generic
-    const conversationTemplate = levelMatches.find(
-      (t) => t.category === "Conversation"
-    );
-    if (conversationTemplate) {
-      console.log(
-        `✅ Using Conversation template for level ${subTopic.level}: ${conversationTemplate.name}`
+    if (levelMatches.length > 0) {
+      // Prefer Conversation templates as they're most generic
+      const conversationTemplate = levelMatches.find(
+        (t) => t.category === "Conversation"
       );
-      return conversationTemplate;
-    }
+      if (conversationTemplate) {
+        console.log(
+          `✅ Using Conversation template for level ${subTopic.level}: ${conversationTemplate.name}`
+        );
+        return conversationTemplate;
+      }
 
-    console.log(
-      `✅ Using first available template for level ${subTopic.level}: ${levelMatches[0].name}`
-    );
-    return levelMatches[0];
+      console.log(
+        `✅ Using first available template for level ${subTopic.level}: ${levelMatches[0].name}`
+      );
+      return levelMatches[0];
+    }
   }
 
-  console.log(
-    `⚠️ No suitable template found for category: ${subTopic.category}, level: ${subTopic.level}`
+  console.error(
+    `❌ No suitable template found for category: "${subTopic.category}", level: "${subTopic.level || 'MISSING'}"`
   );
+  console.error(`   Available categories: ${[...new Set(templates.map(t => t.category))].join(', ')}`);
   return null;
 }
 
@@ -745,6 +762,11 @@ serve(async (req) => {
 
     console.log("✅ Lesson found:", lesson.id, "for student:", student.name);
     console.log("🎯 Selected sub-topic:", selected_sub_topic.title);
+    console.log("📊 Sub-topic details:", {
+      category: selected_sub_topic.category,
+      level: selected_sub_topic.level || 'MISSING',
+      hasDescription: !!selected_sub_topic.description
+    });
 
     // Fetch available lesson templates
     console.log("🎯 Fetching lesson templates...");
@@ -769,11 +791,19 @@ serve(async (req) => {
 
     let templateName = "Basic Interactive Lesson";
     if (selectedTemplate) {
-      templateName = selectedTemplate.name;
-      console.log("🎯 Using template:", selectedTemplate.name);
+      templateName = `${selectedTemplate.name} (${selectedTemplate.category}, ${selectedTemplate.level.toUpperCase()})`;
+      console.log("🎯 Using template:", templateName);
     } else {
-      console.log(
-        "🎯 No specific template found, using basic interactive format"
+      console.error("❌ No template selected!");
+      console.error(`   Sub-topic: "${selected_sub_topic.title}"`);
+      console.error(`   Category: "${selected_sub_topic.category}"`);
+      console.error(`   Level: "${selected_sub_topic.level || 'MISSING'}"`);
+      console.error(`   Available templates: ${templates.length}`);
+      console.error(`   Available categories: ${[...new Set(templates.map(t => t.category))].join(', ')}`);
+      
+      throw new Error(
+        `No matching template found for "${selected_sub_topic.category}" (Level: ${selected_sub_topic.level || 'not specified'}). ` +
+        `Please ensure the lesson template exists in the database.`
       );
     }
 

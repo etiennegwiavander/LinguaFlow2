@@ -59,7 +59,7 @@ const categoryIcons = {
   'Vocabulary': BookOpen,
   'Pronunciation': Volume2,
   'Picture Description': Eye,
-  'English for Travel': Globe,
+  // 'English for Travel': Globe,
 };
 
 const categoryColors = {
@@ -70,7 +70,7 @@ const categoryColors = {
   'Vocabulary': 'bg-yellow-100 text-yellow-800 border-yellow-200',
   'Pronunciation': 'bg-orange-100 text-orange-800 border-orange-200',
   'Picture Description': 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  'English for Travel': 'bg-teal-100 text-teal-800 border-teal-200',
+  // 'English for Travel': 'bg-teal-100 text-teal-800 border-teal-200',
 };
 
 // Intelligent category selection based on sub-topic content
@@ -88,7 +88,7 @@ const getIntelligentCategory = (subTopic: SubTopic, availableCategories: string[
     'Vocabulary': ['vocabulary', 'words', 'meaning', 'definition', 'synonym', 'antonym', 'lexical', 'terminology', 'expressions', 'idioms', 'phrases'],
     'Pronunciation': ['pronunciation', 'phonetic', 'sound', 'accent', 'intonation', 'stress', 'rhythm', 'articulation', 'minimal pairs', 'phonics'],
     'Picture Description': ['picture', 'image', 'describe', 'visual', 'photo', 'illustration', 'scene', 'observation', 'detail'],
-    'English for Travel': ['travel', 'trip', 'journey', 'vacation', 'hotel', 'airport', 'restaurant', 'tourist', 'destination', 'culture', 'customs']
+    // 'English for Travel': ['travel', 'trip', 'journey', 'vacation', 'hotel', 'airport', 'restaurant', 'tourist', 'destination', 'culture', 'customs']
   };
 
   // Score each available category based on keyword matches
@@ -149,7 +149,7 @@ function SubTopicSelectionDialogContent({
           // Fallback to default categories
           setAvailableCategories([
             'Grammar', 'Conversation', 'Business English', 'English for Kids',
-            'Vocabulary', 'Pronunciation', 'Picture Description', 'English for Travel'
+            'Vocabulary', 'Pronunciation', 'Picture Description'//, 'English for Travel'
           ]);
           return;
         }
@@ -164,7 +164,7 @@ function SubTopicSelectionDialogContent({
         // Fallback to default categories
         setAvailableCategories([
           'Grammar', 'Conversation', 'Business English', 'English for Kids',
-          'Vocabulary', 'Pronunciation', 'Picture Description', 'English for Travel'
+          'Vocabulary', 'Pronunciation', 'Picture Description'//, 'English for Travel'
         ]);
       }
     };
@@ -244,7 +244,7 @@ function SubTopicSelectionDialogContent({
       <DialogHeader className="relative z-10">
         <DialogTitle className="flex items-center text-xl">
           <Target className="mr-2 h-6 w-6 text-cyber-400" />
-          <span className="gradient-text">Choose a Sub-Topic</span> for Interactive Material
+          <span className="gradient-text">Choose a Sub-Topic</span> &ensp;for Interactive Material
         </DialogTitle>
         <DialogDescription className="text-base">
           Select and optionally edit a specific sub-topic to create focused interactive lesson material. 
