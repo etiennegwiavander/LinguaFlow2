@@ -595,7 +595,7 @@ export default function HomePage() {
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
               </Button>
             </Link>
-            <Link href="/pricing">
+            {/* <Link href="/pricing">
               <Button
                 variant="outline"
                 size="lg"
@@ -603,7 +603,7 @@ export default function HomePage() {
               >
                 View Pricing
               </Button>
-            </Link>
+            </Link> */}
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-6 text-sm text-white/60">
@@ -611,14 +611,14 @@ export default function HomePage() {
               <CheckCircle className="w-4 h-4 mr-2 text-emerald-400" />
               No credit card required
             </div>
-            <div className="flex items-center">
+            {/* <div className="flex items-center">
               <CheckCircle className="w-4 h-4 mr-2 text-emerald-400" />
               14-day free trial
             </div>
             <div className="flex items-center">
               <CheckCircle className="w-4 h-4 mr-2 text-emerald-400" />
               Cancel anytime
-            </div>
+            </div> */}
           </div>
         </div>
       </section>
