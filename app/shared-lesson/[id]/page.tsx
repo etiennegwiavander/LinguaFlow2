@@ -531,7 +531,86 @@ function SharedLessonPage() {
 
     switch (contentType) {
       case 'list': {
-        const items = safeGetArray(section, 'items');
+        // PRIORITY 1: Check AI-generated content first (same logic as tutor's view)
+        const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+        let items = safeGetArray(section, 'items');
+        
+        // If items is empty, check if AI filled the placeholder field
+        if (items.length === 0 && aiPlaceholderKey) {
+          // Check if content is in the correct place (new field with ai_placeholder name)
+          if (aiPlaceholderKey.length < 100) {
+            const aiContent = (section as any)[aiPlaceholderKey];
+            if (aiContent) {
+              // AI content might be an array or a string
+              if (Array.isArray(aiContent)) {
+                items = aiContent;
+                console.log(`✅ Using AI-generated items from CORRECT field "${aiPlaceholderKey}":`, items.length, 'items');
+              } else if (typeof aiContent === 'string') {
+                // Try to parse as JSON first (for legacy pronunciation content)
+                try {
+                  const parsed = JSON.parse(aiContent);
+                  if (Array.isArray(parsed)) {
+                    // Extract text from JSON objects
+                    items = parsed.map(obj => {
+                      if (typeof obj === 'object' && obj !== null) {
+                        // Handle pronunciation format: {"word":"telephone","contains":"cognate"}
+                        if (obj.word && obj.contains) {
+                          return `${obj.word} - ${obj.contains}`;
+                        }
+                        // Handle other object formats
+                        return obj.text || obj.content || obj.word || JSON.stringify(obj);
+                      }
+                      return String(obj);
+                    });
+                    console.log(`✅ Parsed legacy JSON content from "${aiPlaceholderKey}":`, items.length, 'items');
+                  } else {
+                    // Single JSON object
+                    items = [JSON.stringify(parsed)];
+                  }
+                } catch (e) {
+                  // Not JSON, split string content into items
+                  items = aiContent.split('\n').filter(line => line.trim());
+                  console.log(`✅ Using AI-generated content from CORRECT field "${aiPlaceholderKey}" (split into items):`, items.length, 'items');
+                }
+              }
+            }
+          }
+          
+          // TEMPORARY FIX: Check if content is wrongly placed IN the ai_placeholder field itself
+          if (items.length === 0 && aiPlaceholderKey.length > 100) {
+            // Try to parse as JSON first (for legacy pronunciation content)
+            try {
+              const parsed = JSON.parse(aiPlaceholderKey);
+              if (Array.isArray(parsed)) {
+                // Extract text from JSON objects
+                items = parsed.map(obj => {
+                  if (typeof obj === 'object' && obj !== null) {
+                    // Handle pronunciation format: {"word":"telephone","contains":"cognate"}
+                    if (obj.word && obj.contains) {
+                      return `${obj.word} - ${obj.contains}`;
+                    }
+                    // Handle other object formats
+                    return obj.text || obj.content || obj.word || JSON.stringify(obj);
+                  }
+                  return String(obj);
+                });
+                console.log(`⚠️ Parsed legacy JSON from ai_placeholder:`, items.length, 'items');
+              } else {
+                items = [JSON.stringify(parsed)];
+              }
+            } catch (e) {
+              // Not JSON, content is wrongly in ai_placeholder field
+              if (aiPlaceholderKey.includes('\n')) {
+                items = aiPlaceholderKey.split('\n').filter(line => line.trim());
+                console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder (split into items):`, items.length, 'items');
+              } else {
+                items = [aiPlaceholderKey];
+                console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder (single item)`);
+              }
+            }
+          }
+        }
+
         if (items.length === 0) {
           return (
             <div className="text-center py-4 text-gray-500">
@@ -566,7 +645,32 @@ function SharedLessonPage() {
       }
 
       case 'text': {
-        const textContent = safeGetString(section, 'content', 'Content will be displayed here.');
+        // PRIORITY 1: Check AI-generated content first (same logic as tutor's view)
+        const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+        let textContent = safeGetString(section, 'content', '');
+        
+        // If content is empty or placeholder, check if AI filled the placeholder field
+        if ((!textContent || textContent === 'Content will be displayed here.') && aiPlaceholderKey) {
+          // Check if content is in the correct place (new field with ai_placeholder name)
+          if (aiPlaceholderKey.length < 100) {
+            const aiContent = (section as any)[aiPlaceholderKey];
+            if (aiContent) {
+              textContent = safeStringify(aiContent);
+              console.log(`✅ Using AI-generated text from CORRECT field "${aiPlaceholderKey}":`, textContent.substring(0, 100) + '...');
+            }
+          }
+          
+          // TEMPORARY FIX: Check if content is wrongly placed IN the ai_placeholder field itself
+          if ((!textContent || textContent === 'Content will be displayed here.') && aiPlaceholderKey.length > 100) {
+            textContent = aiPlaceholderKey;
+            console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder field:`, textContent.substring(0, 100) + '...');
+          }
+        }
+        
+        // If still no content, use default
+        if (!textContent || textContent === 'Content will be displayed here.') {
+          textContent = 'Content will be displayed here.';
+        }
 
         // AGGRESSIVE GRAMMAR DETECTION: Format ANY content that contains grammar patterns (exact same as tutor's view)
         // This ensures NO asterisks or raw markdown EVER appears in grammar explanations
@@ -1030,7 +1134,28 @@ function SharedLessonPage() {
 
       case 'info_card':
         const objectives = safeGetArray(section, 'items');
-        const cardContent = safeGetString(section, 'content', '');
+        
+        // PRIORITY 1: Check AI-generated content first (same logic as tutor's view)
+        const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+        let cardContent = safeGetString(section, 'content', '');
+        
+        // If content is empty, check if AI filled the placeholder field
+        if (!cardContent && aiPlaceholderKey) {
+          // Check if content is in the correct place (new field with ai_placeholder name)
+          if (aiPlaceholderKey.length < 100) {
+            const aiContent = (section as any)[aiPlaceholderKey];
+            if (aiContent) {
+              cardContent = safeStringify(aiContent);
+              console.log(`✅ Using AI-generated content from CORRECT field "${aiPlaceholderKey}" for info_card`);
+            }
+          }
+          
+          // TEMPORARY FIX: Check if content is wrongly placed IN the ai_placeholder field itself
+          if (!cardContent && aiPlaceholderKey.length > 100) {
+            cardContent = aiPlaceholderKey;
+            console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder field for info_card`);
+          }
+        }
 
         return (
           <Card key={sectionId} className={`mb-6 floating-card glass-effect border-cyber-400/20 ${getBgColor(section.background_color_var)}`}>
@@ -1057,8 +1182,10 @@ function SharedLessonPage() {
                   ))}
                 </ul>
               ) : (
-                <div className="prose max-w-none">
-                  <p className="text-sm text-muted-foreground">No content available</p>
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    ⚠️ Content not available for this section. Please contact your tutor.
+                  </p>
                 </div>
               )}
             </CardContent>
