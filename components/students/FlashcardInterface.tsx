@@ -8,19 +8,26 @@ import { cn } from '@/lib/utils';
 import { ErrorBoundary } from './ErrorBoundary';
 import { QuestionLoadErrorFallback } from './ErrorFallbacks';
 import { FlashcardSkeleton } from './SkeletonLoaders';
+import FloatingTranslationToggle from '@/components/lessons/FloatingTranslationToggle';
 
 interface FlashcardInterfaceProps {
   questions: Question[];
   isOpen: boolean;
   onClose: () => void;
   topicTitle: string;
+  studentNativeLanguage?: string | null;
+  isTranslating?: boolean;
+  onTranslationRequest?: () => void;
 }
 
 export const FlashcardInterface = React.memo(function FlashcardInterface({
   questions,
   isOpen,
   onClose,
-  topicTitle
+  topicTitle,
+  studentNativeLanguage,
+  isTranslating,
+  onTranslationRequest
 }: FlashcardInterfaceProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -288,6 +295,7 @@ export const FlashcardInterface = React.memo(function FlashcardInterface({
             <QuestionCard
               question={currentQuestion}
               currentIndex={currentQuestionIndex}
+              studentNativeLanguage={studentNativeLanguage}
               totalQuestions={questions.length}
               isAnimating={isAnimating}
               direction={direction}
@@ -334,6 +342,14 @@ export const FlashcardInterface = React.memo(function FlashcardInterface({
           className="absolute inset-0 -z-10 bg-black/20"
           aria-hidden="true"
         />
+
+        {/* Floating Translation Toggle */}
+        {studentNativeLanguage && onTranslationRequest && (
+          <FloatingTranslationToggle
+            isTranslating={isTranslating || false}
+            onToggle={onTranslationRequest}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );

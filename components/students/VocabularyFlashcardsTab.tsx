@@ -31,6 +31,7 @@ import {
   AlertTriangle,
   Database
 } from 'lucide-react';
+import { useTextTranslation } from '@/hooks/useTextTranslation';
 
 interface VocabularyFlashcardsTabProps {
   student: Student;
@@ -41,6 +42,9 @@ const VocabularyFlashcardsTab = React.memo(function VocabularyFlashcardsTab({
   student,
   className
 }: VocabularyFlashcardsTabProps) {
+  // Translation feature
+  const { isTranslating, handleTranslationRequest } = useTextTranslation(student.native_language);
+  
   // State management
   const [vocabularyWords, setVocabularyWords] = useState<VocabularyCardData[]>([]);
   const [isFlashcardOpen, setIsFlashcardOpen] = useState(false);
@@ -348,6 +352,9 @@ const VocabularyFlashcardsTab = React.memo(function VocabularyFlashcardsTab({
         <VocabularyFlashcardInterface
           vocabularyWords={vocabularyWords}
           initialIndex={currentPosition}
+          studentNativeLanguage={student.native_language}
+          isTranslating={isTranslating}
+          onTranslationRequest={handleTranslationRequest}
           onClose={handleFlashcardClose}
           onPositionChange={handlePositionChange}
           isLoading={isLoading}

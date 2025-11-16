@@ -5,6 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Question } from '@/types';
 import { FlashcardNavigationLoading } from './LoadingStates';
+import { useTextTranslation } from '@/hooks/useTextTranslation';
+import WordTranslationPopup from '@/components/lessons/WordTranslationPopup';
 
 interface QuestionCardProps {
   question: Question;
@@ -14,6 +16,7 @@ interface QuestionCardProps {
   direction?: 'forward' | 'backward';
   className?: string;
   isLoading?: boolean;
+  studentNativeLanguage?: string | null;
 }
 
 export const QuestionCard = React.memo(function QuestionCard({
@@ -23,10 +26,14 @@ export const QuestionCard = React.memo(function QuestionCard({
   isAnimating,
   direction = 'forward',
   className,
-  isLoading = false
+  isLoading = false,
+  studentNativeLanguage
 }: QuestionCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isContentLoaded, setIsContentLoaded] = useState(false);
+  
+  // Translation feature
+  const { translationPopup, handleTextDoubleClick, closeTranslationPopup } = useTextTranslation(studentNativeLanguage);
 
   // Focus management for accessibility
   useEffect(() => {
@@ -107,8 +114,10 @@ export const QuestionCard = React.memo(function QuestionCard({
             )}>
               {/* Question text */}
               <h2 
-                className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-medium leading-relaxed text-foreground px-2"
+                className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-medium leading-relaxed text-foreground px-2 select-text cursor-text"
                 id={`question-${question.id}`}
+                onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}
+                title={studentNativeLanguage ? "Double-click any word to translate" : undefined}
               >
                 {question.question_text}
               </h2>
@@ -146,6 +155,16 @@ export const QuestionCard = React.memo(function QuestionCard({
         {currentIndex === 0 && ' This is the first question.'}
         {currentIndex === totalQuestions - 1 && ' This is the last question.'}
       </div>
+
+      {/* Translation Popup */}
+      {translationPopup.isVisible && translationPopup.wordRect && (
+        <WordTranslationPopup
+          word={translationPopup.word}
+          translation={translationPopup.translation}
+          wordRect={translationPopup.wordRect}
+          onClose={closeTranslationPopup}
+        />
+      )}
     </div>
   );
 }, (prevProps, nextProps) => {
@@ -157,6 +176,7 @@ export const QuestionCard = React.memo(function QuestionCard({
     prevProps.isAnimating === nextProps.isAnimating &&
     prevProps.direction === nextProps.direction &&
     prevProps.isLoading === nextProps.isLoading &&
-    prevProps.className === nextProps.className
+    prevProps.className === nextProps.className &&
+    prevProps.studentNativeLanguage === nextProps.studentNativeLanguage
   );
 });

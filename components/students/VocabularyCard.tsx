@@ -2,12 +2,11 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { VocabularyCardData } from '@/types';
 import { vocabularyPerformanceMonitor } from '@/lib/vocabulary-performance-monitor';
+import { useTextTranslation } from '@/hooks/useTextTranslation';
+import WordTranslationPopup from '@/components/lessons/WordTranslationPopup';
 
 interface VocabularyCardProps {
   vocabularyData: VocabularyCardData;
@@ -17,6 +16,7 @@ interface VocabularyCardProps {
   direction?: 'forward' | 'backward';
   className?: string;
   isLoading?: boolean;
+  studentNativeLanguage?: string | null;
 }
 
 export const VocabularyCard = React.memo(function VocabularyCard({
@@ -26,12 +26,16 @@ export const VocabularyCard = React.memo(function VocabularyCard({
   isAnimating,
   direction = 'forward',
   className,
-  isLoading = false
+  isLoading = false,
+  studentNativeLanguage
 }: VocabularyCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isContentLoaded, setIsContentLoaded] = useState(false);
   const [isExamplesExpanded, setIsExamplesExpanded] = useState(false);
   const [areExamplesLoaded, setAreExamplesLoaded] = useState(false);
+  
+  // Translation feature
+  const { translationPopup, handleTextDoubleClick, closeTranslationPopup } = useTextTranslation(studentNativeLanguage);
 
   // Focus management for accessibility
   useEffect(() => {
@@ -226,8 +230,10 @@ export const VocabularyCard = React.memo(function VocabularyCard({
             {/* Definition */}
             <div className="pt-4">
               <p
-                className="text-lg lg:text-xl text-foreground leading-relaxed"
+                className="text-lg lg:text-xl text-foreground leading-relaxed select-text cursor-text"
                 id={`word-definition-${currentIndex}`}
+                onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}
+                title={studentNativeLanguage ? "Double-click any word to translate" : undefined}
               >
                 {vocabularyData.definition}
               </p>
@@ -251,10 +257,12 @@ export const VocabularyCard = React.memo(function VocabularyCard({
                         {label}
                       </h3>
                       <p
-                        className="text-sm lg:text-base text-foreground leading-relaxed pl-3 border-l-2 border-primary/30"
+                        className="text-sm lg:text-base text-foreground leading-relaxed pl-3 border-l-2 border-primary/30 select-text cursor-text"
                         dangerouslySetInnerHTML={{
                           __html: highlightVocabularyWord(sentence, vocabularyData.word)
                         }}
+                        onDoubleClick={studentNativeLanguage ? handleTextDoubleClick : undefined}
+                        title={studentNativeLanguage ? "Double-click any word to translate" : undefined}
                       />
                     </div>
                   )
@@ -284,6 +292,16 @@ export const VocabularyCard = React.memo(function VocabularyCard({
           {isAnimating && 'Transitioning to new vocabulary word...'}
         </div>
       </div>
+
+      {/* Translation Popup */}
+      {translationPopup.isVisible && translationPopup.wordRect && (
+        <WordTranslationPopup
+          word={translationPopup.word}
+          translation={translationPopup.translation}
+          wordRect={translationPopup.wordRect}
+          onClose={closeTranslationPopup}
+        />
+      )}
     </div>
   );
 }, (prevProps, nextProps) => {
@@ -295,6 +313,7 @@ export const VocabularyCard = React.memo(function VocabularyCard({
     prevProps.isAnimating === nextProps.isAnimating &&
     prevProps.direction === nextProps.direction &&
     prevProps.isLoading === nextProps.isLoading &&
-    prevProps.className === nextProps.className
+    prevProps.className === nextProps.className &&
+    prevProps.studentNativeLanguage === nextProps.studentNativeLanguage
   );
 });

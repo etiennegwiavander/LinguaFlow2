@@ -25,6 +25,7 @@ import {
 import { clearExpiredEntries } from "@/lib/discussion-cache";
 import { usePerformanceTracking } from "@/lib/performance-monitor";
 import { useSidebar } from "@/lib/sidebar-context";
+import { useTextTranslation } from "@/hooks/useTextTranslation";
 
 interface DiscussionTopicsTabProps {
   student: Student;
@@ -47,6 +48,9 @@ interface DiscussionTopicsState {
 }
 
 const DiscussionTopicsTab = React.memo(function DiscussionTopicsTab({ student }: DiscussionTopicsTabProps) {
+  // Translation feature
+  const { isTranslating, handleTranslationRequest } = useTextTranslation(student.native_language);
+  
   // Performance tracking - must be at the top
   const trackRender = usePerformanceTracking('DiscussionTopicsTab');
   const { collapseSidebar } = useSidebar();
@@ -869,6 +873,9 @@ Make each question explore different angles with unique structures.`;
         <FlashcardInterface
           questions={state.questions}
           isOpen={state.isFlashcardOpen}
+          studentNativeLanguage={student.native_language}
+          isTranslating={isTranslating}
+          onTranslationRequest={handleTranslationRequest}
           onClose={handleFlashcardClose}
           topicTitle={state.selectedTopic?.title || ""}
         />

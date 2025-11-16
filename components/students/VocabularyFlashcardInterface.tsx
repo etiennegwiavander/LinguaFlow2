@@ -7,6 +7,7 @@ import { VocabularyCardData } from '@/types';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import FloatingTranslationToggle from '@/components/lessons/FloatingTranslationToggle';
 import './vocabulary-accessibility.css';
 
 interface VocabularyFlashcardInterfaceProps {
@@ -16,6 +17,9 @@ interface VocabularyFlashcardInterfaceProps {
   onPositionChange?: (position: number) => void;
   isLoading?: boolean;
   className?: string;
+  studentNativeLanguage?: string | null;
+  isTranslating?: boolean;
+  onTranslationRequest?: () => void;
 }
 
 export const VocabularyFlashcardInterface = React.memo(function VocabularyFlashcardInterface({
@@ -24,7 +28,10 @@ export const VocabularyFlashcardInterface = React.memo(function VocabularyFlashc
   onClose,
   onPositionChange,
   isLoading = false,
-  className
+  className,
+  studentNativeLanguage,
+  isTranslating,
+  onTranslationRequest
 }: VocabularyFlashcardInterfaceProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -301,6 +308,7 @@ export const VocabularyFlashcardInterface = React.memo(function VocabularyFlashc
               <VocabularyCard
                 vocabularyData={currentWord}
                 currentIndex={currentIndex}
+                studentNativeLanguage={studentNativeLanguage}
                 totalWords={vocabularyWords.length}
                 isAnimating={isAnimating}
                 direction={animationDirection}
@@ -372,6 +380,14 @@ export const VocabularyFlashcardInterface = React.memo(function VocabularyFlashc
       <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-primary/10 rounded-full animate-pulse" />
       <div className="absolute bottom-1/3 right-1/3 w-1 h-1 bg-primary/20 rounded-full animate-pulse delay-1000" />
       <div className="absolute top-1/2 right-1/4 w-1.5 h-1.5 bg-primary/5 rounded-full animate-pulse delay-500" />
+
+      {/* Floating Translation Toggle */}
+      {studentNativeLanguage && onTranslationRequest && (
+        <FloatingTranslationToggle
+          isTranslating={isTranslating || false}
+          onToggle={onTranslationRequest}
+        />
+      )}
     </div>
   );
 }, (prevProps, nextProps) => {
