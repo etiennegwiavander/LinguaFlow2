@@ -1557,22 +1557,67 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                 items = aiContent;
                 console.log(`✅ Using AI-generated items from CORRECT field "${aiPlaceholderKey}":`, items.length, 'items');
               } else if (typeof aiContent === 'string') {
-                // Split string content into items
-                items = aiContent.split('\n').filter(line => line.trim());
-                console.log(`✅ Using AI-generated content from CORRECT field "${aiPlaceholderKey}" (split into items):`, items.length, 'items');
+                // Try to parse as JSON first (for legacy pronunciation content)
+                try {
+                  const parsed = JSON.parse(aiContent);
+                  if (Array.isArray(parsed)) {
+                    // Extract text from JSON objects
+                    items = parsed.map(obj => {
+                      if (typeof obj === 'object' && obj !== null) {
+                        // Handle pronunciation format: {"word":"telephone","contains":"cognate"}
+                        if (obj.word && obj.contains) {
+                          return `${obj.word} - ${obj.contains}`;
+                        }
+                        // Handle other object formats
+                        return obj.text || obj.content || obj.word || JSON.stringify(obj);
+                      }
+                      return String(obj);
+                    });
+                    console.log(`✅ Parsed legacy JSON content from "${aiPlaceholderKey}":`, items.length, 'items');
+                  } else {
+                    // Single JSON object
+                    items = [JSON.stringify(parsed)];
+                  }
+                } catch (e) {
+                  // Not JSON, split string content into items
+                  items = aiContent.split('\n').filter(line => line.trim());
+                  console.log(`✅ Using AI-generated content from CORRECT field "${aiPlaceholderKey}" (split into items):`, items.length, 'items');
+                }
               }
             }
           }
           
           // TEMPORARY FIX: Check if content is wrongly placed IN the ai_placeholder field itself
           if (items.length === 0 && aiPlaceholderKey.length > 100) {
-            // Content is wrongly in ai_placeholder field
-            if (aiPlaceholderKey.includes('\n')) {
-              items = aiPlaceholderKey.split('\n').filter(line => line.trim());
-              console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder (split into items):`, items.length, 'items');
-            } else {
-              items = [aiPlaceholderKey];
-              console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder (single item)`);
+            // Try to parse as JSON first (for legacy pronunciation content)
+            try {
+              const parsed = JSON.parse(aiPlaceholderKey);
+              if (Array.isArray(parsed)) {
+                // Extract text from JSON objects
+                items = parsed.map(obj => {
+                  if (typeof obj === 'object' && obj !== null) {
+                    // Handle pronunciation format: {"word":"telephone","contains":"cognate"}
+                    if (obj.word && obj.contains) {
+                      return `${obj.word} - ${obj.contains}`;
+                    }
+                    // Handle other object formats
+                    return obj.text || obj.content || obj.word || JSON.stringify(obj);
+                  }
+                  return String(obj);
+                });
+                console.log(`⚠️ Parsed legacy JSON from ai_placeholder:`, items.length, 'items');
+              } else {
+                items = [JSON.stringify(parsed)];
+              }
+            } catch (e) {
+              // Not JSON, content is wrongly in ai_placeholder field
+              if (aiPlaceholderKey.includes('\n')) {
+                items = aiPlaceholderKey.split('\n').filter(line => line.trim());
+                console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder (split into items):`, items.length, 'items');
+              } else {
+                items = [aiPlaceholderKey];
+                console.log(`⚠️ Using AI content WRONGLY placed in ai_placeholder (single item)`);
+              }
             }
           }
         }
