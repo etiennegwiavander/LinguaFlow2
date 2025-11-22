@@ -174,7 +174,7 @@ OTHER INSTRUCTIONS:
       subTopic.title
     }"
 - Generate specific, detailed content for each section that matches the student's level and needs
-4. For vocabulary_items arrays, create 4-6 relevant vocabulary words. Each vocabulary item MUST have this exact structure with the correct number of examples based on student level:
+4. For vocabulary_items arrays, create EXACTLY 5-7 relevant vocabulary words (minimum 5, maximum 7). Each vocabulary item MUST have this exact structure with the correct number of examples based on student level:
    - A1/A2 levels: Generate 5 example sentences per vocabulary word
    - B1/B2 levels: Generate 4 example sentences per vocabulary word  
    - C1/C2 levels: Generate 3 example sentences per vocabulary word
@@ -291,6 +291,7 @@ Create a basic interactive lesson focused on this sub-topic. Respond with this J
       {
         "word": "word1", 
         "definition": "definition1",
+        "part_of_speech": "noun",
         "examples": [
           "Contextual sentence 1 using word1 in the context of ${
             subTopic.title
@@ -306,6 +307,7 @@ Create a basic interactive lesson focused on this sub-topic. Respond with this J
       {
         "word": "word2", 
         "definition": "definition2",
+        "part_of_speech": "verb",
         "examples": [
           "Contextual sentence 1 using word2 in the context of ${
             subTopic.title
@@ -314,6 +316,54 @@ Create a basic interactive lesson focused on this sub-topic. Respond with this J
             subTopic.title
           }",
           "Contextual sentence 3 using word2 in the context of ${
+            subTopic.title
+          }"
+        ]
+      },
+      {
+        "word": "word3", 
+        "definition": "definition3",
+        "part_of_speech": "adjective",
+        "examples": [
+          "Contextual sentence 1 using word3 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 2 using word3 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 3 using word3 in the context of ${
+            subTopic.title
+          }"
+        ]
+      },
+      {
+        "word": "word4", 
+        "definition": "definition4",
+        "part_of_speech": "adverb",
+        "examples": [
+          "Contextual sentence 1 using word4 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 2 using word4 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 3 using word4 in the context of ${
+            subTopic.title
+          }"
+        ]
+      },
+      {
+        "word": "word5", 
+        "definition": "definition5",
+        "part_of_speech": "noun",
+        "examples": [
+          "Contextual sentence 1 using word5 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 2 using word5 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 3 using word5 in the context of ${
             subTopic.title
           }"
         ]
@@ -351,7 +401,8 @@ CRITICAL INSTRUCTIONS FOR CONTEXTUAL EXAMPLE SENTENCES:
       student.conversational_fluency_barriers || "general fluency"
     }
 4. Create practical, engaging content that relates directly to ${subTopic.title}
-5. For vocabulary items, each word MUST have the correct number of example sentences based on student level:
+5. Generate EXACTLY 5-7 vocabulary words (minimum 5, maximum 7) - the example above shows 5 words, but you can include up to 7 if appropriate for the topic
+6. For vocabulary items, each word MUST have the correct number of example sentences based on student level:
    - A1/A2 levels: Generate 5 example sentences per vocabulary word
    - B1/B2 levels: Generate 4 example sentences per vocabulary word  
    - C1/C2 levels: Generate 3 example sentences per vocabulary word
@@ -361,16 +412,17 @@ CRITICAL INSTRUCTIONS FOR CONTEXTUAL EXAMPLE SENTENCES:
    - Be appropriate for ${student.level.toUpperCase()} level
    - Show practical, real-world usage related to the lesson topic
    - Be contextually relevant to the lesson (NOT generic sentences)
-6. For example_sentences arrays, create sentences that:
+7. For example_sentences arrays, create sentences that:
    - Directly relate to and demonstrate concepts from ${subTopic.title}
    - Incorporate vocabulary words from the lesson
    - Are contextually coherent with the lesson theme
    - Provide meaningful practice for the student's level
-7. ALWAYS populate dialogue arrays with objects containing "character" and "text" properties
-8. NEVER create generic example sentences - all examples must be contextually relevant to ${
+8. ALWAYS populate dialogue arrays with objects containing "character" and "text" properties
+9. NEVER create generic example sentences - all examples must be contextually relevant to ${
       subTopic.title
     }
-9. Ensure all example sentences work together to reinforce the lesson's main concepts
+10. Ensure all example sentences work together to reinforce the lesson's main concepts
+11. Include "part_of_speech" field for each vocabulary word (noun/verb/adjective/adverb/etc.)
 
 RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT.`;
   }
