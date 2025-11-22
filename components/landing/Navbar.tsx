@@ -22,7 +22,7 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navItems = [
+  const navItems: { href: string; label: string }[] = [
     // { href: "/pricing", label: "Pricing" },
     // { href: "/faq", label: "FAQ" },
   ];
