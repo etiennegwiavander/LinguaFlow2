@@ -222,12 +222,21 @@ OTHER INSTRUCTIONS:
    - VERBS: Show different tenses and conjugations (I walk, she walks, they walked, will walk)
    - ADJECTIVES: Use to modify nouns (the happy child, a difficult situation)
    - ADVERBS: Use to modify verbs, adjectives, or other adverbs (speaks quickly, very important)
-5. For dialogue_lines arrays, create realistic conversations appropriate for the level. Each dialogue line MUST be an object with "character" and "text" properties:
+5. For dialogue_lines arrays, create realistic conversations with the following line counts based on student level:
+   - A1 level: 4-7 dialogue lines
+   - A2 level: 6-8 dialogue lines
+   - B1 level: 7-10 dialogue lines
+   - B2 level: 9-12 dialogue lines
+   - C1/C2 levels: 10-12 dialogue lines
+   
+   Each dialogue line MUST be an object with "character" and "text" properties:
    Example: [
      {"character": "Teacher", "text": "Hello! How are you today?"},
      {"character": "Student", "text": "I'm fine, thank you. How are you?"},
      {"character": "Teacher", "text": "I'm very well, thanks for asking."}
    ]
+   
+   Ensure natural conversation flow with appropriate turn-taking between characters.
 6. For matching_pairs arrays, create 3-5 question-answer pairs
 7. For list items, create 3-5 relevant items
 8. For example_sentences arrays, create contextual sentences that directly relate to the lesson topic "${
@@ -386,6 +395,18 @@ Create a basic interactive lesson focused on this sub-topic. Respond with this J
       }"},
       {"character": "Student", "text": "Example dialogue line 2 related to ${
         subTopic.title
+      }"},
+      {"character": "Teacher", "text": "Example dialogue line 3 related to ${
+        subTopic.title
+      }"},
+      {"character": "Student", "text": "Example dialogue line 4 related to ${
+        subTopic.title
+      }"},
+      {"character": "Teacher", "text": "Example dialogue line 5 related to ${
+        subTopic.title
+      }"},
+      {"character": "Student", "text": "Example dialogue line 6 related to ${
+        subTopic.title
       }"}
     ],
     "wrap_up": "Summary and key takeaways"
@@ -412,17 +433,24 @@ CRITICAL INSTRUCTIONS FOR CONTEXTUAL EXAMPLE SENTENCES:
    - Be appropriate for ${student.level.toUpperCase()} level
    - Show practical, real-world usage related to the lesson topic
    - Be contextually relevant to the lesson (NOT generic sentences)
-7. For example_sentences arrays, create sentences that:
+7. For dialogue_example arrays, create realistic conversations with the following line counts based on student level:
+   - A1 level: 4-7 dialogue lines
+   - A2 level: 6-8 dialogue lines
+   - B1 level: 7-10 dialogue lines
+   - B2 level: 9-12 dialogue lines
+   - C1/C2 levels: 10-12 dialogue lines
+   Each dialogue line must have "character" and "text" properties with natural conversation flow.
+8. For example_sentences arrays, create sentences that:
    - Directly relate to and demonstrate concepts from ${subTopic.title}
    - Incorporate vocabulary words from the lesson
    - Are contextually coherent with the lesson theme
    - Provide meaningful practice for the student's level
-8. ALWAYS populate dialogue arrays with objects containing "character" and "text" properties
-9. NEVER create generic example sentences - all examples must be contextually relevant to ${
+9. ALWAYS populate dialogue arrays with objects containing "character" and "text" properties
+10. NEVER create generic example sentences - all examples must be contextually relevant to ${
       subTopic.title
     }
-10. Ensure all example sentences work together to reinforce the lesson's main concepts
-11. Include "part_of_speech" field for each vocabulary word (noun/verb/adjective/adverb/etc.)
+11. Ensure all example sentences work together to reinforce the lesson's main concepts
+12. Include "part_of_speech" field for each vocabulary word (noun/verb/adjective/adverb/etc.)
 
 RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT.`;
   }
