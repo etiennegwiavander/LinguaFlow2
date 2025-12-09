@@ -1300,6 +1300,8 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     const sectionId = safeGetString(section, 'id', 'unknown-section');
     const sectionType = safeGetString(section, 'type', 'unknown');
 
+    console.log('🔍 Rendering section:', sectionId, 'type:', sectionType, 'title:', safeGetString(section, 'title', 'No title'));
+    
     switch (sectionType) {
       case 'title':
         const lessonTitle = safeGetString(section, 'title', 'Lesson Title');
@@ -1336,9 +1338,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                   className="prose max-w-none info-card-content"
                   onDoubleClick={handleTextDoubleClick}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-700 dark:text-gray-300">
-                    {cardContent}
-                  </p>
+                  {/* Process markdown content with icons */}
+                  <div className="space-y-4">
+                    {processGrammarContent(cardContent)}
+                  </div>
                 </div>
               ) : objectives.length > 0 ? (
                 <ul className="space-y-2">
@@ -1361,6 +1364,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         );
 
       case 'exercise':
+        console.log('🎯 EXERCISE case - calling renderExerciseContent for section:', safeGetString(section, 'title', 'Exercise'));
         return (
           <Card key={sectionId} className="mb-6 floating-card glass-effect border-cyber-400/20">
             <CardHeader>
@@ -1533,12 +1537,82 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     }
   };
 
+  // Process content and replace markdown headers with styled components directly
+  const processGrammarContent = (content: string) => {
+    console.log('🔧 processGrammarContent called with content:', content.substring(0, 100) + '...');
+    // Split content by lines and process each line
+    const lines = content.split('\n');
+    const processedElements: React.ReactNode[] = [];
+    let currentParagraph: string[] = [];
+    
+    const flushParagraph = () => {
+      if (currentParagraph.length > 0) {
+        const paragraphText = currentParagraph.join('\n').trim();
+        if (paragraphText) {
+          processedElements.push(
+            <p key={processedElements.length} className="mb-3 leading-relaxed text-gray-700 dark:text-gray-300" onDoubleClick={handleTextDoubleClick}>
+              {paragraphText}
+            </p>
+          );
+        }
+        currentParagraph = [];
+      }
+    };
+
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine.startsWith('## ')) {
+        flushParagraph();
+        const headerText = trimmedLine.substring(3).trim();
+        console.log('✅ Processing H2 header:', headerText);
+        processedElements.push(
+          <h2 key={processedElements.length} className="text-xl font-bold mb-4 text-blue-700 dark:text-blue-300 mt-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-400">
+            {headerText}
+          </h2>
+        );
+      } else if (trimmedLine.startsWith('### ')) {
+        flushParagraph();
+        const headerText = trimmedLine.substring(4).trim();
+        processedElements.push(
+          <h3 key={processedElements.length} className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 mt-5 bg-gray-50 dark:bg-gray-800/50 p-3 rounded border-l-4 border-gray-400">
+            {headerText}
+          </h3>
+        );
+      } else if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
+        flushParagraph();
+        const boldText = trimmedLine.substring(2, trimmedLine.length - 2);
+        processedElements.push(
+          <p key={processedElements.length} className="mb-2 font-bold text-gray-900 dark:text-gray-100 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-1 rounded">
+            {boldText}
+          </p>
+        );
+      } else if (trimmedLine.startsWith('- ')) {
+        flushParagraph();
+        const listText = trimmedLine.substring(2).trim();
+        processedElements.push(
+          <li key={processedElements.length} className="mb-2 text-gray-700 dark:text-gray-300 leading-relaxed ml-4 list-disc" onDoubleClick={handleTextDoubleClick}>
+            {listText}
+          </li>
+        );
+      } else if (trimmedLine === '') {
+        flushParagraph();
+      } else {
+        currentParagraph.push(line);
+      }
+    });
+    
+    flushParagraph();
+    return processedElements;
+  };
+
   const renderExerciseContent = (
     section: TemplateSection,
     lessonIndex: number
   ) => {
     const currentLesson = generatedLessons[lessonIndex];
     const contentType = safeGetString(section, 'content_type', 'unknown');
+    console.log('🔍 renderExerciseContent - contentType:', contentType, 'section:', safeGetString(section, 'title', 'No title'));
 
     switch (contentType) {
       case 'list': {
@@ -1695,12 +1769,13 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
         // AGGRESSIVE GRAMMAR DETECTION: Format ANY content that contains grammar patterns
         // This ensures NO asterisks or raw markdown EVER appears in grammar explanations
-        if (textContent.includes('**') || textContent.includes('* ') ||
+        if (textContent.includes('**') || textContent.includes('* ') || textContent.includes('##') || textContent.includes('###') ||
+          textContent.includes('Grammar Focus') || textContent.includes('Formation Rules') || textContent.includes('Examples') ||
           textContent.includes('Imperative Verbs') || textContent.includes('Modal Verbs') ||
           textContent.includes('Conditional Sentences') || textContent.includes('Passive voice') ||
           textContent.includes('emergency situations') || textContent.includes('grammatical structures')) {
 
-          console.log('🎯 FORMATTING GRAMMAR CONTENT - No asterisks allowed!');
+          console.log('🎯 FORMATTING GRAMMAR CONTENT - Processing headers and markdown!');
 
           // Process grammar content with professional formatting
           const sections = textContent.split('\n\n').filter(s => s.trim());
@@ -1715,8 +1790,28 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
                     {lines.map((line, lineIndex) => {
                       const trimmedLine = line.trim();
 
+                      // Handle ## headers
+                      if (trimmedLine.startsWith('## ')) {
+                        const headerText = trimmedLine.substring(3).trim();
+                        return (
+                          <h2 key={lineIndex} className="text-xl font-bold mb-4 text-blue-700 dark:text-blue-300 mt-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                            {headerText}
+                          </h2>
+                        );
+                      }
+                      
+                      // Handle ### headers
+                      else if (trimmedLine.startsWith('### ')) {
+                        const headerText = trimmedLine.substring(4).trim();
+                        return (
+                          <h3 key={lineIndex} className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 mt-5 bg-gray-50 dark:bg-gray-800/50 p-3 ">
+                            {headerText}
+                          </h3>
+                        );
+                      }
+                      
                       // Handle grammar rules like "**Imperative Verbs:** These are used..."
-                      if (trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/)) {
+                      else if (trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/)) {
                         const match = trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/);
                         if (match) {
                           const [, grammarType, explanation] = match;
@@ -1761,14 +1856,11 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           );
         }
 
-        // Default text rendering for non-grammar content
+        // Default text rendering - process markdown content with icons
         return (
           <div className="prose max-w-none">
-            <div
-              className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300"
-              onDoubleClick={handleTextDoubleClick}
-            >
-              {textContent}
+            <div className="space-y-4" onDoubleClick={handleTextDoubleClick}>
+              {processGrammarContent(textContent)}
             </div>
           </div>
         );
@@ -1808,71 +1900,143 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           const levelLower = currentLevel.toLowerCase();
 
           if (levelLower === 'a1' || levelLower === 'a2') {
-            explanationContent = `## Grammar Focus
+            explanationContent = `## Grammar Focus: Basic Grammar Rules
 
-This section explains important grammar rules in simple terms.
+### Formation Rules
+Follow these simple steps to build correct sentences:
+1. **Subject** (who or what)
+2. **Verb** (action word)  
+3. **Object** (receives the action)
 
-### Key Points:
-- Learn basic sentence structure
-- Understand word order
-- Practice with simple examples
-- Remember the main rules
+### Examples
 
-### Examples:
-- Subject + Verb + Object
-- "I eat food" (correct order)
-- "Food eat I" (wrong order)
+**Positive/Affirmative:**
+- I eat breakfast every morning.
+- She studies English at school.
+- They play football on weekends.
 
-### Practice Tips:
-- Start with short sentences
-- Use familiar words
-- Practice every day
-- Ask questions when confused`;
+**Negative:**
+- I do not eat meat.
+- She does not like coffee.
+
+**Questions:**
+- Do you speak English?
+- What time do you wake up?
+
+### When to Use
+Use this grammar pattern for:
+- Daily activities and routines
+- Simple statements about facts
+- Basic conversations
+
+### Common Mistakes
+- ❌ "I no eat meat" → ✅ "I do not eat meat"
+- ❌ "She like coffee" → ✅ "She likes coffee"
+
+### Memory Tips
+Remember: **Subject + Verb + Object** = Complete sentence
+Think: "Who does what to whom?"`;
           } else if (levelLower === 'b1' || levelLower === 'b2') {
-            explanationContent = `## Grammar Explanation
+            explanationContent = `## Grammar Focus: Intermediate Grammar Concepts
 
-This section provides detailed explanations of intermediate grammar concepts with practical applications.
+### Formation Rules
+This grammar structure follows these patterns:
+1. **Main clause** + **connecting word** + **dependent clause**
+2. Use appropriate **tense consistency** throughout
+3. Apply **subject-verb agreement** rules
 
-### Learning Objectives:
-- Master complex sentence structures
-- Apply grammar rules in context
-- Develop accuracy in communication
-- Build confidence in usage
+### Examples
 
-### Key Grammar Points:
-- **Sentence Structure**: Understanding how different elements work together
-- **Tense Usage**: Appropriate timing and context for different tenses
-- **Modifiers**: Using adjectives and adverbs effectively
-- **Connectors**: Linking ideas with appropriate conjunctions
+**Positive/Affirmative:**
+- I have been studying English for three years.
+- She will have finished her project by tomorrow.
+- They had already left when we arrived.
 
-### Application Strategy:
-1. Study the rule and its exceptions
-2. Analyze examples in context
-3. Practice with guided exercises
-4. Apply in real communication situations`;
+**Negative:**
+- I haven't been feeling well lately.
+- She won't have completed the task on time.
+
+**Questions:**
+- How long have you been working here?
+- Will you have finished by 5 PM?
+
+### When to Use
+Apply this grammar for:
+- **Expressing duration** and time relationships
+- **Connecting past, present, and future** events
+- **Showing cause and effect** relationships
+- **Academic and professional** communication
+
+### Common Mistakes
+- ❌ "I am studying English since 2020" → ✅ "I have been studying English since 2020"
+- ❌ "She will finished tomorrow" → ✅ "She will have finished tomorrow"
+
+### Memory Tips
+- **Present Perfect**: Past action, present relevance
+- **Future Perfect**: Action completed before future time
+- Use **time markers** (since, for, by, already) as clues
+
+### Comparison with Simple Tenses
+**Simple Present**: "I work" (general fact)
+**Present Perfect**: "I have worked" (experience/duration)
+**Present Perfect Continuous**: "I have been working" (ongoing duration)`;
           } else {
-            explanationContent = `## Advanced Grammar Analysis
+            explanationContent = `## Grammar Focus: Advanced Grammatical Structures
 
-This section presents sophisticated grammatical concepts and their nuanced applications in professional and academic discourse.
+### Formation Rules
+Complex grammatical constructions require:
+1. **Syntactic awareness** of clause relationships
+2. **Semantic precision** in meaning construction
+3. **Pragmatic sensitivity** to context and register
+4. **Stylistic consideration** of rhetorical effect
 
-### Analytical Framework:
-- **Syntactic Complexity**: Advanced sentence structures and their rhetorical effects
-- **Semantic Precision**: Subtle meaning distinctions in grammatical choices
-- **Pragmatic Considerations**: Context-dependent grammatical variations
-- **Stylistic Applications**: Grammar as a tool for effective communication
+### Examples
 
-### Critical Examination:
-- Examine how grammatical choices affect meaning and tone
-- Analyze variations in formal and informal registers
-- Consider cross-linguistic influences on grammatical patterns
-- Evaluate the effectiveness of different structural approaches
+**Formal/Academic:**
+- Having thoroughly analyzed the data, researchers concluded that the hypothesis was supported.
+- Were it not for the intervention, the outcome would have been significantly different.
+- The extent to which these findings can be generalized remains to be determined.
 
-### Professional Application:
-Apply these concepts in academic writing, professional presentations, and sophisticated discourse to enhance clarity, precision, and impact.`;
+**Professional/Business:**
+- Should you require further clarification, please do not hesitate to contact us.
+- Having reviewed your proposal, we are pleased to inform you of our acceptance.
+
+**Literary/Sophisticated:**
+- Scarcely had the sun risen when the village began to stir with activity.
+- Not only did she excel academically, but she also demonstrated exceptional leadership qualities.
+
+### When to Use
+Deploy these structures for:
+- **Academic writing** and research papers
+- **Professional correspondence** and reports
+- **Formal presentations** and speeches
+- **Literary expression** and creative writing
+
+### Common Mistakes
+- ❌ "If I would have known" → ✅ "If I had known" (conditional perfection)
+- ❌ "Despite of the rain" → ✅ "Despite the rain" (preposition usage)
+- ❌ "The reason is because" → ✅ "The reason is that" (redundancy avoidance)
+
+### Memory Tips
+- **Inversion patterns**: Negative adverbs trigger subject-verb inversion
+- **Conditional hierarchy**: Real → Unreal → Past unreal
+- **Register awareness**: Match complexity to audience and purpose
+
+### Stylistic Considerations
+**Conciseness vs. Elaboration**: Balance detail with clarity
+**Formality Spectrum**: Adjust grammatical choices to context
+**Rhetorical Impact**: Use structure to emphasize key points
+
+### Cross-Linguistic Influences
+Consider how native language patterns may interfere with target language structures, particularly in:
+- **Word order variations**
+- **Tense and aspect systems**
+- **Modal verb usage**
+- **Passive voice preferences**`;
           }
         }
 
-        // Define explicit components for ReactMarkdown with enhanced formatting
+        // Define explicit components for ReactMarkdown with enhanced formatting for grammar explanations
         const enhancedComponents = {
           p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
             <p className="mb-3 leading-relaxed text-gray-700 dark:text-gray-300" onDoubleClick={handleTextDoubleClick} {...props}>
@@ -1880,100 +2044,73 @@ Apply these concepts in academic writing, professional presentations, and sophis
             </p>
           ),
           ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
-            <ul className="list-disc list-inside mb-4 space-y-1 ml-4" {...props}>
+            <ul className="list-disc list-inside mb-4 space-y-2 ml-4" {...props}>
               {children}
             </ul>
           ),
           ol: ({ children, ...props }: React.OlHTMLAttributes<HTMLOListElement>) => (
-            <ol className="list-decimal list-inside mb-4 space-y-1 ml-4" {...props}>
+            <ol className="list-decimal list-inside mb-4 space-y-2 ml-4" {...props}>
               {children}
             </ol>
           ),
           li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
-            <li className="mb-1 text-gray-700 dark:text-gray-300 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
+            <li className="mb-2 text-gray-700 dark:text-gray-300 leading-relaxed" onDoubleClick={handleTextDoubleClick} {...props}>
               {children}
             </li>
           ),
           strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
-            <strong className="font-bold text-gray-900 dark:text-gray-100" {...props}>
+            <strong className="font-bold text-gray-900 dark:text-gray-100 bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded" {...props}>
               {children}
             </strong>
           ),
           em: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
-            <em className="italic text-gray-600 dark:text-gray-400" {...props}>
+            <em className="italic text-blue-600 dark:text-blue-400 font-medium" {...props}>
               {children}
             </em>
           ),
           h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2" {...props}>
+            <h1 className="text-2xl font-bold mb-4 text-blue-800 dark:text-blue-200 border-b-2 border-blue-200 dark:border-blue-700 pb-2" {...props}>
               {children}
             </h1>
           ),
           h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <h2 className="text-xl font-bold mb-3 text-gray-900 dark:text-gray-100 mt-6" {...props}>
+            <h2 className="text-xl font-bold mb-4 text-blue-700 dark:text-blue-300 mt-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-400" {...props}>
               {children}
             </h2>
           ),
           h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200 mt-4" {...props}>
+            <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 mt-5 bg-gray-50 dark:bg-gray-800/50 p-3 rounded border-l-4 border-gray-400" {...props}>
               {children}
             </h3>
           ),
           h4: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-            <h4 className="text-base font-semibold mb-2 text-gray-800 dark:text-gray-200 mt-3" {...props}>
+            <h4 className="text-base font-semibold mb-2 text-gray-800 dark:text-gray-200 mt-4" {...props}>
               {children}
             </h4>
           ),
           blockquote: ({ children, ...props }: React.HTMLAttributes<HTMLQuoteElement>) => (
-            <blockquote className="border-l-4 border-cyber-400 pl-4 my-4 italic text-gray-600 dark:text-gray-400" {...props}>
+            <blockquote className="border-l-4 border-blue-400 bg-blue-50 dark:bg-blue-900/20 pl-4 pr-4 py-3 my-4 rounded-r-lg text-gray-700 dark:text-gray-300" {...props}>
               {children}
             </blockquote>
           ),
           code: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
-            <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono" {...props}>
+            <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm font-mono border" {...props}>
               {children}
             </code>
           ),
           pre: ({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) => (
-            <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto mb-4" {...props}>
+            <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto mb-4 border" {...props}>
               {children}
             </pre>
           ),
         };
 
-        // Process grammar explanation content with robust formatting
-        const processGrammarContent = (content: string) => {
-          // Clean and normalize the content
-          const cleanedContent = content
-            .replace(/^\s+|\s+$/g, '') // Trim whitespace
-            .replace(/\r\n/g, '\n') // Normalize line endings
-            .replace(/\n{3,}/g, '\n\n'); // Normalize multiple line breaks
 
-          // Split content into paragraphs and process each one
-          const paragraphs = cleanedContent.split('\n\n').filter(p => p.trim());
 
-          return paragraphs.map((paragraph, index) => {
-            // Process bold text, italic text, and line breaks
-            const processedParagraph = paragraph
-              .replace(/\*\*([^*\n]+)\*\*/g, '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>')
-              .replace(/\*([^*\n]+)\*/g, '<em class="italic text-gray-600 dark:text-gray-400">$1</em>')
-              .replace(/\n/g, '<br>');
-
-            return (
-              <div
-                key={index}
-                className="mb-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300"
-                onDoubleClick={handleTextDoubleClick}
-                dangerouslySetInnerHTML={{
-                  __html: processedParagraph
-                }}
-              />
-            );
-          });
-        };
-
+        console.log('🎯 GRAMMAR_EXPLANATION case - about to call processGrammarContent with:', explanationContent.substring(0, 100) + '...');
+        
         return (
-          <div className="space-y-2">
+          <div className="space-y-4 grammar-explanation-content">
             {processGrammarContent(explanationContent)}
           </div>
         );

@@ -130,6 +130,93 @@ ${JSON.stringify(template.template_json, null, 2)}
    - ALWAYS create a NEW field with the name specified in "ai_placeholder"
    - The "ai_placeholder" value tells you what field name to create
 
+📚 GRAMMAR EXPLANATION ENHANCEMENT REQUIREMENTS:
+For grammar_explanation sections, create comprehensive, structured content with PROPER MARKDOWN FORMATTING:
+
+1. **Clear Formation Rules** - Step-by-step how to construct the grammar
+2. **Multiple Example Categories**:
+   - Positive/Affirmative examples (3-4 sentences)
+   - Negative examples (2-3 sentences) 
+   - Question formation examples (2-3 sentences)
+3. **Usage Context** - When and why to use this grammar
+4. **Common Mistakes** - What learners often get wrong
+5. **Comparison with Similar Grammar** (if applicable)
+6. **Memory Tips** - Helpful ways to remember the rules
+7. **Level-Appropriate Complexity**:
+   - A1/A2: Simple rules, basic examples, clear structure
+   - B1/B2: More detailed explanations, varied examples, usage contexts
+   - C1/C2: Nuanced explanations, complex examples, stylistic considerations
+
+🔥 CRITICAL MARKDOWN FORMATTING REQUIREMENTS:
+- ALWAYS use ## for the main grammar topic header
+- ALWAYS use ### for ALL subsection headers (Formation Rules, Examples, When to Use, Common Mistakes, Memory Tips, etc.)
+- NEVER use plain text for headers - they MUST have markdown syntax
+- MANDATORY: Include TWO newline characters (\\n\\n) between ALL sections
+- MANDATORY: Each header MUST be on its own line with newlines before and after
+- Use **bold** for subcategories within sections
+- CRITICAL: Proper spacing is essential for markdown rendering
+
+SPACING EXAMPLE:
+## Grammar Focus: Present Perfect Tense
+
+### Formation Rules
+Content here...
+
+### Examples
+Content here...
+
+### When to Use
+Content here...
+
+GRAMMAR EXPLANATION STRUCTURE TEMPLATE:
+CRITICAL: Use EXACT markdown formatting with proper line breaks between ALL sections:
+
+## Grammar Focus: [Grammar Topic]
+
+### Formation Rules
+[Clear step-by-step formation instructions]
+
+### Examples
+
+**Positive/Affirmative:**
+- [Example 1 with context]
+- [Example 2 with context]
+- [Example 3 with context]
+
+**Negative:**
+- [Negative example 1]
+- [Negative example 2]
+
+**Questions:**
+- [Question example 1]
+- [Question example 2]
+
+### When to Use
+[Context and usage explanations]
+
+### Common Mistakes
+- ❌ [Wrong example] → ✅ [Correct example]
+- ❌ [Wrong example] → ✅ [Correct example]
+
+### Memory Tips
+[Helpful mnemonics or patterns to remember]
+
+### Comparison with [Similar Grammar]
+[If applicable, compare with related grammar points]
+
+CRITICAL SPACING RULES:
+- Each ## or ### header MUST have blank lines before and after
+- Never concatenate headers together
+- Use double newlines (\\n\\n) between sections
+- Example: "## Header\\n\\nContent\\n\\n### Subheader\\n\\nMore content"
+
+MANDATORY FORMATTING RULES:
+- Use ## for main topic (Grammar Focus: [Topic])
+- Use ### for ALL subsections (Formation Rules, Examples, When to Use, etc.)
+- Include blank lines between sections
+- Use **bold** for subcategories like Positive/Affirmative, Negative, Questions
+- Use proper markdown syntax throughout
+
 STEP-BY-STEP PROCESS:
 1. Find a section with an "ai_placeholder" field (e.g., "ai_placeholder": "introduction_overview")
 2. Note the VALUE of that field (e.g., "introduction_overview")
@@ -919,7 +1006,7 @@ serve(async (req) => {
             {
               role: "system",
               content:
-                "You are an expert language tutor creating interactive lesson materials. You must respond ONLY with valid JSON in the exact format requested. Do not include any explanations, markdown formatting, or additional text outside the JSON object.",
+                "You are an expert language tutor creating interactive lesson materials. You must respond ONLY with valid JSON in the exact format requested. CRITICAL: When generating markdown content, use proper line breaks (\\n) between headers and sections. Each header must be on its own line with blank lines before and after. Do not include any explanations or additional text outside the JSON object.",
             },
             {
               role: "user",
