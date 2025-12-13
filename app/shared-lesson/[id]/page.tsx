@@ -674,12 +674,13 @@ function SharedLessonPage() {
 
         // AGGRESSIVE GRAMMAR DETECTION: Format ANY content that contains grammar patterns (exact same as tutor's view)
         // This ensures NO asterisks or raw markdown EVER appears in grammar explanations
-        if (textContent.includes('**') || textContent.includes('* ') ||
+        if (textContent.includes('**') || textContent.includes('* ') || textContent.includes('##') || textContent.includes('###') ||
+          textContent.includes('Grammar Focus') || textContent.includes('Formation Rules') || textContent.includes('Examples') ||
           textContent.includes('Imperative Verbs') || textContent.includes('Modal Verbs') ||
           textContent.includes('Conditional Sentences') || textContent.includes('Passive voice') ||
           textContent.includes('emergency situations') || textContent.includes('grammatical structures')) {
 
-          console.log('🎯 FORMATTING GRAMMAR CONTENT - No asterisks allowed!');
+          console.log('🎯 FORMATTING GRAMMAR CONTENT - Processing headers and markdown!');
 
           // Process grammar content with professional formatting
           const sections = textContent.split('\n\n').filter(s => s.trim());
@@ -694,8 +695,28 @@ function SharedLessonPage() {
                     {lines.map((line, lineIndex) => {
                       const trimmedLine = line.trim();
 
+                      // Handle ## headers
+                      if (trimmedLine.startsWith('## ')) {
+                        const headerText = trimmedLine.substring(3).trim();
+                        return (
+                          <h2 key={lineIndex} className="text-xl font-bold mb-4 text-blue-700 dark:text-blue-300 mt-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg ">
+                            {headerText}
+                          </h2>
+                        );
+                      }
+                      
+                      // Handle ### headers
+                      else if (trimmedLine.startsWith('### ')) {
+                        const headerText = trimmedLine.substring(4).trim();
+                        return (
+                          <h3 key={lineIndex} className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 mt-5 bg-gray-50 dark:bg-gray-800/50 p-3 rounded ">
+                            {headerText}
+                          </h3>
+                        );
+                      }
+                      
                       // Handle grammar rules like "**Imperative Verbs:** These are used..."
-                      if (trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/)) {
+                      else if (trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/)) {
                         const match = trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/);
                         if (match) {
                           const [, grammarType, explanation] = match;
@@ -757,12 +778,13 @@ function SharedLessonPage() {
 
         // AGGRESSIVE GRAMMAR DETECTION: Format ANY content that contains grammar patterns (exact same as tutor's view)
         // This ensures NO asterisks or raw markdown EVER appears in grammar explanations
-        if (explanationContent.includes('**') || explanationContent.includes('* ') ||
+        if (explanationContent.includes('**') || explanationContent.includes('* ') || explanationContent.includes('##') || explanationContent.includes('###') ||
+          explanationContent.includes('Grammar Focus') || explanationContent.includes('Formation Rules') || explanationContent.includes('Examples') ||
           explanationContent.includes('Imperative Verbs') || explanationContent.includes('Modal Verbs') ||
           explanationContent.includes('Conditional Sentences') || explanationContent.includes('Passive voice') ||
           explanationContent.includes('emergency situations') || explanationContent.includes('grammatical structures')) {
 
-          console.log('🎯 FORMATTING GRAMMAR CONTENT - No asterisks allowed!');
+          console.log('🎯 FORMATTING GRAMMAR CONTENT - Processing headers and markdown!');
 
           // Process grammar content with professional formatting
           const sections = explanationContent.split('\n\n').filter(s => s.trim());
@@ -777,8 +799,28 @@ function SharedLessonPage() {
                     {lines.map((line, lineIndex) => {
                       const trimmedLine = line.trim();
 
+                      // Handle ## headers
+                      if (trimmedLine.startsWith('## ')) {
+                        const headerText = trimmedLine.substring(3).trim();
+                        return (
+                          <h2 key={lineIndex} className="text-xl font-bold mb-4 text-blue-700 dark:text-blue-300 mt-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-400">
+                            {headerText}
+                          </h2>
+                        );
+                      }
+                      
+                      // Handle ### headers
+                      else if (trimmedLine.startsWith('### ')) {
+                        const headerText = trimmedLine.substring(4).trim();
+                        return (
+                          <h3 key={lineIndex} className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 mt-5 bg-gray-50 dark:bg-gray-800/50 p-3 rounded border-l-4 border-gray-400">
+                            {headerText}
+                          </h3>
+                        );
+                      }
+                      
                       // Handle grammar rules like "**Imperative Verbs:** These are used..."
-                      if (trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/)) {
+                      else if (trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/)) {
                         const match = trimmedLine.match(/^\*\*([^*]+)\*\*:\s*(.*)/);
                         if (match) {
                           const [, grammarType, explanation] = match;

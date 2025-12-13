@@ -1300,7 +1300,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     const sectionId = safeGetString(section, 'id', 'unknown-section');
     const sectionType = safeGetString(section, 'type', 'unknown');
 
-    console.log('🔍 Rendering section:', sectionId, 'type:', sectionType, 'title:', safeGetString(section, 'title', 'No title'));
+    // console.log('🔍 Rendering section:', sectionId, 'type:', sectionType, 'title:', safeGetString(section, 'title', 'No title'));
     
     switch (sectionType) {
       case 'title':
@@ -1364,7 +1364,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         );
 
       case 'exercise':
-        console.log('🎯 EXERCISE case - calling renderExerciseContent for section:', safeGetString(section, 'title', 'Exercise'));
+        // console.log('🎯 EXERCISE case - calling renderExerciseContent for section:', safeGetString(section, 'title', 'Exercise'));
         return (
           <Card key={sectionId} className="mb-6 floating-card glass-effect border-cyber-400/20">
             <CardHeader>
@@ -1539,7 +1539,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
   // Process content and replace markdown headers with styled components directly
   const processGrammarContent = (content: string) => {
-    console.log('🔧 processGrammarContent called with content:', content.substring(0, 100) + '...');
+    // console.log('🔧 processGrammarContent called with content:', content.substring(0, 100) + '...');
     // Split content by lines and process each line
     const lines = content.split('\n');
     const processedElements: React.ReactNode[] = [];
@@ -1565,7 +1565,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       if (trimmedLine.startsWith('## ')) {
         flushParagraph();
         const headerText = trimmedLine.substring(3).trim();
-        console.log('✅ Processing H2 header:', headerText);
+        // console.log('✅ Processing H2 header:', headerText);
         processedElements.push(
           <h2 key={processedElements.length} className="text-xl font-bold mb-4 text-blue-700 dark:text-blue-300 mt-6 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-400">
             {headerText}
@@ -1612,7 +1612,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
   ) => {
     const currentLesson = generatedLessons[lessonIndex];
     const contentType = safeGetString(section, 'content_type', 'unknown');
-    console.log('🔍 renderExerciseContent - contentType:', contentType, 'section:', safeGetString(section, 'title', 'No title'));
+    // console.log('🔍 renderExerciseContent - contentType:', contentType, 'section:', safeGetString(section, 'title', 'No title'));
 
     switch (contentType) {
       case 'list': {
@@ -1775,7 +1775,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           textContent.includes('Conditional Sentences') || textContent.includes('Passive voice') ||
           textContent.includes('emergency situations') || textContent.includes('grammatical structures')) {
 
-          console.log('🎯 FORMATTING GRAMMAR CONTENT - Processing headers and markdown!');
+          // console.log('🎯 FORMATTING GRAMMAR CONTENT - Processing headers and markdown!');
 
           // Process grammar content with professional formatting
           const sections = textContent.split('\n\n').filter(s => s.trim());
@@ -2107,7 +2107,7 @@ Consider how native language patterns may interfere with target language structu
 
 
 
-        console.log('🎯 GRAMMAR_EXPLANATION case - about to call processGrammarContent with:', explanationContent.substring(0, 100) + '...');
+        // console.log('🎯 GRAMMAR_EXPLANATION case - about to call processGrammarContent with:', explanationContent.substring(0, 100) + '...');
         
         return (
           <div className="space-y-4 grammar-explanation-content">
