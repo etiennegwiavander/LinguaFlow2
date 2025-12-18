@@ -460,7 +460,7 @@ const VocabularyFlashcardsTab = React.memo(function VocabularyFlashcardsTab({
         )}
 
       {/* Student Profile Summary */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Users className="w-5 h-5" />
@@ -524,7 +524,7 @@ const VocabularyFlashcardsTab = React.memo(function VocabularyFlashcardsTab({
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Action Buttons */}
       <div className="space-y-4">
