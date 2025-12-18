@@ -1,5 +1,10 @@
 /* Vocabulary Flashcards Accessibility Styles */
 
+/* Responsive layout transitions */
+.vocabulary-interface {
+  transition: left 300ms ease-in-out, right 300ms ease-in-out, width 300ms ease-in-out !important;
+}
+
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .vocabulary-card {

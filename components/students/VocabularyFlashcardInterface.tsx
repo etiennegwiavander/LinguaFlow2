@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import FloatingTranslationToggle from '@/components/lessons/FloatingTranslationToggle';
+import { useSidebar } from '@/lib/sidebar-context';
 import './vocabulary-accessibility.css';
 
 interface VocabularyFlashcardInterfaceProps {
@@ -39,6 +40,9 @@ export const VocabularyFlashcardInterface = React.memo(function VocabularyFlashc
   const [isVisible, setIsVisible] = useState(false);
   const interfaceRef = useRef<HTMLDivElement>(null);
   const [prefetchedCards, setPrefetchedCards] = useState<Set<number>>(new Set());
+  
+  // Get sidebar state for responsive layout
+  const { sidebarCollapsed, isMobile } = useSidebar();
 
   // Initialize visibility for smooth entrance animation
   useEffect(() => {
@@ -199,10 +203,22 @@ export const VocabularyFlashcardInterface = React.memo(function VocabularyFlashc
     };
   }, []);
 
+  // Handle sidebar state changes for responsive layout
+  useEffect(() => {
+    // Force a re-render when sidebar state changes to ensure proper positioning
+    // This is particularly important for smooth transitions
+  }, [sidebarCollapsed, isMobile]);
+
   // Handle empty vocabulary words
   if (!vocabularyWords || vocabularyWords.length === 0) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className={cn(
+        'fixed z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm',
+        'transition-all duration-300 ease-in-out',
+        isMobile || sidebarCollapsed 
+          ? 'inset-0' 
+          : 'top-0 bottom-0 left-64 right-0'
+      )}>
         <div className="text-center space-y-4">
           <p className="text-lg text-muted-foreground">No vocabulary words available</p>
           <Button onClick={handleClose} variant="outline">
@@ -219,12 +235,16 @@ export const VocabularyFlashcardInterface = React.memo(function VocabularyFlashc
     <div
       ref={interfaceRef}
       className={cn(
-        'vocabulary-interface fixed inset-0 z-50 flex flex-col',
+        'vocabulary-interface fixed z-50 flex flex-col',
         'bg-background/95 backdrop-blur-md',
         'transition-all duration-300 ease-in-out',
         'focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
         'supports-[color-scheme]:color-scheme-auto',
         'contrast-more:bg-background contrast-more:border-2 contrast-more:border-foreground',
+        // Responsive positioning based on sidebar state
+        isMobile || sidebarCollapsed 
+          ? 'inset-0' 
+          : 'top-0 bottom-0 left-64 right-0',
         isVisible 
           ? 'opacity-100 scale-100' 
           : 'opacity-0 scale-95',
