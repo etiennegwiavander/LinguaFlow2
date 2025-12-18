@@ -141,7 +141,7 @@ async function callDeepSeekForVocabulary(
         "X-Title": "LinguaFlow Vocabulary Generator",
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-chat-v3.1",
+        model: "deepseek/deepseek-chat",
         messages: [
           {
             role: "system",
