@@ -2,6 +2,7 @@
 
 import { createContext, useState, useCallback, ReactNode, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { lessonHistoryService } from "@/lib/lesson-history-service";
 
 interface CompletedSubTopic {
   id: string;
@@ -11,21 +12,27 @@ interface CompletedSubTopic {
 interface ProgressContextType {
   completedSubTopics: string[];
   completedSubTopicsWithTimestamps: CompletedSubTopic[];
-  markSubTopicComplete: (subTopicId: string) => void;
+  markSubTopicComplete: (subTopicId: string, subTopicData?: any, lessonSessionData?: any) => Promise<void>;
   isSubTopicCompleted: (subTopicId: string) => boolean;
   getSubTopicCompletionDate: (subTopicId: string) => string | null;
   resetProgress: () => void;
   initializeFromLessonData: (lessonData: any) => void;
+  isLoading: boolean;
+  refreshProgress: () => Promise<void>;
+  setStudentContext: (studentId: string, tutorId: string) => void;
 }
 
 export const ProgressContext = createContext<ProgressContextType>({
   completedSubTopics: [],
   completedSubTopicsWithTimestamps: [],
-  markSubTopicComplete: () => {},
+  markSubTopicComplete: async () => {},
   isSubTopicCompleted: () => false,
   getSubTopicCompletionDate: () => null,
   resetProgress: () => {},
   initializeFromLessonData: () => {},
+  isLoading: false,
+  refreshProgress: async () => {},
+  setStudentContext: () => {},
 });
 
 interface ProgressProviderProps {
@@ -33,89 +40,154 @@ interface ProgressProviderProps {
 }
 
 export function ProgressProvider({ children }: ProgressProviderProps) {
-  // FIXED: User-specific localStorage to prevent data leakage
+  // State management
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
+  const [currentTutorId, setCurrentTutorId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Helper function to get user-specific localStorage keys
-  const getUserSpecificKey = (baseKey: string) => {
-    if (!currentUserId) return `${baseKey}_anonymous`;
-    return `${baseKey}_${currentUserId}`;
-  };
-
-  // Store completed sub-topics with timestamps (user-specific)
+  // Store completed sub-topics with timestamps
   const [completedSubTopicsWithTimestamps, setCompletedSubTopicsWithTimestamps] = useState<CompletedSubTopic[]>([]);
 
   // Maintain backward compatibility - derive simple array from timestamped data
   const [completedSubTopics, setCompletedSubTopics] = useState<string[]>([]);
 
-  // Load user-specific data when user changes
+  // Helper function to get user-specific localStorage keys (for migration)
+  const getUserSpecificKey = (baseKey: string) => {
+    if (!currentUserId) return `${baseKey}_anonymous`;
+    return `${baseKey}_${currentUserId}`;
+  };
+
+  // Load progress data from database when user changes
   useEffect(() => {
-    const loadUserSpecificData = async () => {
+    const loadProgressData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         const userId = user?.id || null;
         
         if (userId !== currentUserId) {
           setCurrentUserId(userId);
+          setIsLoading(true);
           
-          // Clean up old global localStorage data (data leakage fix)
-          if (typeof window !== 'undefined') {
-            try {
-              const oldGlobalData = localStorage.getItem('completedSubTopicsWithTimestamps');
-              const oldGlobalSimple = localStorage.getItem('completedSubTopics');
-              
-              if (oldGlobalData || oldGlobalSimple) {
-                console.log('🧹 Cleaning up old global localStorage data to prevent data leakage');
-                localStorage.removeItem('completedSubTopicsWithTimestamps');
-                localStorage.removeItem('completedSubTopics');
-              }
-            } catch (error) {
-              console.error('❌ Error cleaning up old localStorage data:', error);
+          if (userId) {
+            // Get current student and tutor context
+            const { data: tutorData } = await supabase
+              .from('tutors')
+              .select('id')
+              .eq('user_id', userId)
+              .single();
+            
+            if (tutorData) {
+              setCurrentTutorId(tutorData.id);
             }
-          }
-          
-          // Load user-specific data from localStorage
-          if (typeof window !== 'undefined' && userId) {
-            try {
-              const timestampedKey = `completedSubTopicsWithTimestamps_${userId}`;
-              const stored = localStorage.getItem(timestampedKey);
-              
-              if (stored) {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed)) {
-                  setCompletedSubTopicsWithTimestamps(parsed);
-                  setCompletedSubTopics(parsed.map((item: CompletedSubTopic) => item.id));
-                  console.log('✅ Loaded user-specific progress data for user:', userId);
-                  return;
-                }
-              }
-              
-              // If no user-specific data, start fresh
-              setCompletedSubTopicsWithTimestamps([]);
-              setCompletedSubTopics([]);
-              console.log('🆕 Starting fresh progress for user:', userId);
-            } catch (error) {
-              console.error('❌ Error loading user-specific progress:', error);
-              setCompletedSubTopicsWithTimestamps([]);
-              setCompletedSubTopics([]);
-            }
+
+            // Try to load from database first
+            await refreshProgressFromDatabase();
+            
+            // Check for localStorage migration
+            await migrateLocalStorageIfNeeded(userId);
           } else {
             // No user, clear data
             setCompletedSubTopicsWithTimestamps([]);
             setCompletedSubTopics([]);
+            setCurrentStudentId(null);
+            setCurrentTutorId(null);
           }
+          
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error('❌ Error in loadUserSpecificData:', error);
+        console.error('❌ Error in loadProgressData:', error);
+        setIsLoading(false);
       }
     };
 
-    loadUserSpecificData();
+    loadProgressData();
   }, [currentUserId]);
+
+  // Refresh progress from database
+  const refreshProgressFromDatabase = async (studentId?: string) => {
+    if (!currentUserId) return;
+    
+    try {
+      const targetStudentId = studentId || currentStudentId;
+      if (!targetStudentId) return;
+
+      const progressData = await lessonHistoryService.getStudentProgress(targetStudentId);
+      
+      setCompletedSubTopicsWithTimestamps(progressData.completedSubTopicsWithTimestamps);
+      setCompletedSubTopics(progressData.completedSubTopics);
+      
+      console.log('✅ Loaded progress from database:', progressData.completedSubTopics.length, 'completed sub-topics');
+    } catch (error) {
+      console.error('❌ Error loading progress from database:', error);
+      // Fallback to localStorage if database fails
+      await loadFromLocalStorageFallback();
+    }
+  };
+
+  // Migrate localStorage data to database if needed
+  const migrateLocalStorageIfNeeded = async (userId: string) => {
+    if (!currentTutorId || !currentStudentId) return;
+    
+    try {
+      const timestampedKey = `completedSubTopicsWithTimestamps_${userId}`;
+      const stored = localStorage.getItem(timestampedKey);
+      
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          console.log('🔄 Migrating localStorage data to database...');
+          
+          await lessonHistoryService.migrateLocalStorageData(
+            currentStudentId,
+            currentTutorId,
+            parsed
+          );
+          
+          // Clean up localStorage after successful migration
+          localStorage.removeItem(timestampedKey);
+          localStorage.removeItem(`completedSubTopics_${userId}`);
+          
+          console.log('✅ Successfully migrated localStorage data to database');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error migrating localStorage data:', error);
+    }
+  };
+
+  // Fallback to localStorage if database fails
+  const loadFromLocalStorageFallback = async () => {
+    if (!currentUserId || typeof window === 'undefined') return;
+    
+    try {
+      const timestampedKey = `completedSubTopicsWithTimestamps_${currentUserId}`;
+      const stored = localStorage.getItem(timestampedKey);
+      
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setCompletedSubTopicsWithTimestamps(parsed);
+          setCompletedSubTopics(parsed.map((item: CompletedSubTopic) => item.id));
+          console.log('⚠️ Loaded from localStorage fallback');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error loading localStorage fallback:', error);
+    }
+  };
 
   // Function to initialize completed sub-topics from lesson data
   const initializeFromLessonData = useCallback((lessonData: any) => {
-    // Prevent infinite loops by checking if we already have this data
+    // Set student context if available
+    if (lessonData?.student_id && lessonData.student_id !== currentStudentId) {
+      setCurrentStudentId(lessonData.student_id);
+      // Refresh progress for this student
+      refreshProgressFromDatabase(lessonData.student_id);
+    }
+    
+    // Legacy support - prevent infinite loops by checking if we already have this data
     if (!lessonData?.interactive_lesson_content) {
       return;
     }
@@ -142,31 +214,80 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
         return Array.from(new Set([...prev, ...newIds]));
       });
     }
-  }, []);
+  }, [currentStudentId]);
 
-  const markSubTopicComplete = useCallback((subTopicId: string) => {
+  const markSubTopicComplete = useCallback(async (
+    subTopicId: string, 
+    subTopicData?: any, 
+    lessonSessionData?: any
+  ) => {
     const completionTimestamp = new Date().toISOString();
     console.log('🎯 Marking sub-topic as complete:', subTopicId, 'at', completionTimestamp);
     
-    // Update timestamped data
+    // Update local state immediately for responsive UI
     setCompletedSubTopicsWithTimestamps(prev => {
       if (prev.some(item => item.id === subTopicId)) {
         console.log('⚠️ Sub-topic already marked as complete:', subTopicId);
         return prev;
       }
       const newCompleted = [...prev, { id: subTopicId, completedAt: completionTimestamp }];
-      console.log('✅ Updated completed sub-topics with timestamps:', newCompleted);
       return newCompleted;
     });
     
-    // Update simple array for backward compatibility
     setCompletedSubTopics(prev => {
       if (prev.includes(subTopicId)) {
         return prev;
       }
       return [...prev, subTopicId];
     });
-  }, []);
+
+    // Save to database
+    try {
+      if (currentStudentId && currentTutorId) {
+        // Create lesson session if we have full data
+        if (lessonSessionData && subTopicData) {
+          await lessonHistoryService.createLessonSession({
+            student_id: currentStudentId,
+            tutor_id: currentTutorId,
+            sub_topic_id: subTopicId,
+            sub_topic_data: subTopicData,
+            ...lessonSessionData
+          });
+        } else {
+          // Just mark progress
+          await lessonHistoryService.markSubTopicComplete({
+            student_id: currentStudentId,
+            tutor_id: currentTutorId,
+            sub_topic_id: subTopicId,
+            sub_topic_title: subTopicData?.title,
+            sub_topic_category: subTopicData?.category,
+            sub_topic_level: subTopicData?.level
+          });
+        }
+        
+        console.log('✅ Successfully saved progress to database');
+      } else {
+        console.warn('⚠️ Missing student or tutor context, saving to localStorage fallback');
+        // Fallback to localStorage
+        if (typeof window !== 'undefined' && currentUserId) {
+          const timestampedKey = `completedSubTopicsWithTimestamps_${currentUserId}`;
+          const currentData = completedSubTopicsWithTimestamps;
+          const newData = [...currentData, { id: subTopicId, completedAt: completionTimestamp }];
+          localStorage.setItem(timestampedKey, JSON.stringify(newData));
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error saving progress to database, using localStorage fallback:', error);
+      
+      // Fallback to localStorage
+      if (typeof window !== 'undefined' && currentUserId) {
+        const timestampedKey = `completedSubTopicsWithTimestamps_${currentUserId}`;
+        const currentData = completedSubTopicsWithTimestamps;
+        const newData = [...currentData, { id: subTopicId, completedAt: completionTimestamp }];
+        localStorage.setItem(timestampedKey, JSON.stringify(newData));
+      }
+    }
+  }, [currentStudentId, currentTutorId, currentUserId, completedSubTopicsWithTimestamps]);
 
   const isSubTopicCompleted = useCallback((subTopicId: string) => {
     return completedSubTopics.includes(subTopicId);
@@ -180,41 +301,45 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
   const resetProgress = useCallback(() => {
     setCompletedSubTopics([]);
     setCompletedSubTopicsWithTimestamps([]);
-    // Also clear from user-specific localStorage
+    
+    // Clear from localStorage (fallback)
     if (typeof window !== 'undefined' && currentUserId) {
       const timestampedKey = `completedSubTopicsWithTimestamps_${currentUserId}`;
       const simpleKey = `completedSubTopics_${currentUserId}`;
       localStorage.removeItem(simpleKey);
       localStorage.removeItem(timestampedKey);
-      console.log('🗑️ Cleared user-specific completed sub-topics from localStorage for user:', currentUserId);
     }
+    
+    console.log('🗑️ Cleared progress data');
   }, [currentUserId]);
 
-  // Save to user-specific localStorage whenever completedSubTopics changes
-  useEffect(() => {
-    if (typeof window !== 'undefined' && currentUserId && completedSubTopics.length > 0) {
-      try {
-        const userKey = `completedSubTopics_${currentUserId}`;
-        localStorage.setItem(userKey, JSON.stringify(completedSubTopics));
-        console.log('💾 Saved user-specific progress for user:', currentUserId);
-      } catch (error) {
-        console.error('❌ Error saving user-specific completed sub-topics to localStorage:', error);
-      }
+  // Refresh progress function
+  const refreshProgress = useCallback(async () => {
+    if (currentStudentId) {
+      await refreshProgressFromDatabase(currentStudentId);
     }
-  }, [completedSubTopics, currentUserId]);
+  }, [currentStudentId, refreshProgressFromDatabase]);
 
-  // Save timestamped data to user-specific localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window !== 'undefined' && currentUserId && completedSubTopicsWithTimestamps.length > 0) {
-      try {
-        const userKey = `completedSubTopicsWithTimestamps_${currentUserId}`;
-        localStorage.setItem(userKey, JSON.stringify(completedSubTopicsWithTimestamps));
-        console.log('💾 Saved user-specific timestamped progress for user:', currentUserId);
-      } catch (error) {
-        console.error('❌ Error saving user-specific completed sub-topics with timestamps to localStorage:', error);
-      }
+  // Set student context when it changes
+  const setStudentContext = useCallback((studentId: string, tutorId?: string) => {
+    let contextChanged = false;
+    
+    if (studentId !== currentStudentId) {
+      setCurrentStudentId(studentId);
+      contextChanged = true;
     }
-  }, [completedSubTopicsWithTimestamps, currentUserId]);
+    
+    if (tutorId && tutorId !== currentTutorId) {
+      setCurrentTutorId(tutorId);
+      contextChanged = true;
+    }
+    
+    if (contextChanged) {
+      console.log('🎯 Setting student context:', { studentId: studentId.substring(0, 8), tutorId: tutorId?.substring(0, 8) });
+      // Refresh progress for this student
+      refreshProgressFromDatabase(studentId);
+    }
+  }, [currentStudentId, currentTutorId, refreshProgressFromDatabase]);
 
   return (
     <ProgressContext.Provider 
@@ -225,7 +350,10 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
         isSubTopicCompleted,
         getSubTopicCompletionDate,
         resetProgress,
-        initializeFromLessonData
+        initializeFromLessonData,
+        isLoading,
+        refreshProgress,
+        setStudentContext
       }}
     >
       {children}

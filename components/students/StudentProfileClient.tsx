@@ -70,6 +70,7 @@ import EditImprovementAreasDialog from "@/components/students/EditImprovementAre
 import DiscussionTopicsTab from "@/components/students/DiscussionTopicsTab";
 import VocabularyFlashcardsTab from "@/components/students/VocabularyFlashcardsTab";
 import { supabase } from "@/lib/supabase";
+import { lessonHistoryService } from "@/lib/lesson-history-service";
 import { toast } from "sonner";
 import { ProgressContext } from "@/lib/progress-context";
 
@@ -101,7 +102,7 @@ interface StudentProfileClientProps {
 
 
 export default function StudentProfileClient({ student }: StudentProfileClientProps) {
-  const { markSubTopicComplete, initializeFromLessonData, completedSubTopics, getSubTopicCompletionDate } = useContext(ProgressContext);
+  const { markSubTopicComplete, initializeFromLessonData, completedSubTopics, getSubTopicCompletionDate, isLoading: progressLoading, refreshProgress, setStudentContext } = useContext(ProgressContext);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
@@ -168,6 +169,9 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         return;
       }
 
+      // Set the student and tutor context for progress tracking
+      setStudentContext(student.id, user.id);
+
       // Find the most recent upcoming lesson for this student
       const { data: lessons, error } = await supabase
         .from('lessons')
@@ -211,11 +215,24 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
     } finally {
       setLoadingUpcomingLesson(false);
     }
-  }, [initializeFromLessonData, student.id]);
+  }, [initializeFromLessonData, student.id, setStudentContext]);
 
   // Load lesson history with completed sub-topics (based on local progress context)
   const loadLessonHistory = useCallback(async () => {
     try {
+      setLoadingLessonHistory(true);
+      
+      // Try to load from database first
+      try {
+        const { sessions } = await lessonHistoryService.getLessonHistory(student.id, { limit: 50 });
+        setLessonHistory(sessions);
+        console.log('📚 Loaded lesson history from database:', sessions.length, 'completed lessons');
+        return;
+      } catch (dbError) {
+        console.warn('Database lesson history failed, falling back to legacy method:', dbError);
+      }
+
+      // Fallback to legacy method
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         return;
@@ -266,9 +283,9 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       // Sort by actual completion timestamp (most recent first)
       completedLessonEntries.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
 
-      // Debug logging removed to prevent infinite loop
-
       setLessonHistory(completedLessonEntries);
+      console.log('📚 Loaded lesson history from fallback method:', completedLessonEntries.length, 'completed lessons');
+      
     } catch (error) {
       console.error('Error loading lesson history:', error);
     } finally {
@@ -487,9 +504,14 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
       const result = await response.json();
 
       if (result.success) {
-        // Mark the sub-topic as completed
+        // Mark the sub-topic as completed with full context
         console.log('🎯 SUCCESS: Interactive material created for sub-topic:', subTopic.id, subTopic.title);
-        markSubTopicComplete(subTopic.id);
+        await markSubTopicComplete(subTopic.id, subTopic, {
+          lesson_id: upcomingLesson?.id,
+          lesson_template_id: upcomingLesson?.lesson_template_id,
+          interactive_content: result.interactive_content,
+          lesson_materials: result.interactive_content
+        });
 
         // Create the updated lesson data with new interactive content
         const updatedLessonData = {
