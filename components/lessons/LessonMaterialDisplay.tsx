@@ -1199,13 +1199,11 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
       console.log('User session verified:', session.user.id);
 
-      // Generate a unique share token
-      const shareToken = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      // Create a shareable lesson record in the database (using initial schema)
+      // Create a shareable lesson record in the database
       const shareableData = {
         lesson_id: lesson.id,
-        share_token: shareToken,
+        student_name: lesson.student?.name || 'Student',
+        lesson_title: lesson.interactive_lesson_content?.name || lesson.interactive_lesson_content?.selected_sub_topic?.title || 'Interactive Lesson',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
         is_active: true
       };
@@ -1237,8 +1235,8 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         throw new Error('No record returned from database');
       }
 
-      // Generate shareable URL using the share_token
-      const generatedShareUrl = `${window.location.origin}/shared-lesson/${shareRecord.share_token}`;
+      // Generate shareable URL using the record ID
+      const generatedShareUrl = `${window.location.origin}/shared-lesson/${shareRecord.id}`;
       console.log('Generated share URL:', generatedShareUrl);
 
       // Store the share URL in state to show the buttons

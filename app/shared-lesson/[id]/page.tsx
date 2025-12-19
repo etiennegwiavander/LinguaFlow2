@@ -107,7 +107,7 @@ function SharedLessonPage() {
             )
           )
         `)
-        .eq('share_token', shareId)
+        .eq('id', shareId)
         .single();
 
       if (sharedError) {
