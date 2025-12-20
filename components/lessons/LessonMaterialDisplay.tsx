@@ -52,14 +52,6 @@ import DialogueAvatarErrorBoundary from "./DialogueAvatarErrorBoundary";
 import FloatingTranslationToggle from "./FloatingTranslationToggle";
 import { useDialogueAvatars } from "@/hooks/useDialogueAvatars";
 import { supabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
 
 interface LessonTemplate {
   id: string;

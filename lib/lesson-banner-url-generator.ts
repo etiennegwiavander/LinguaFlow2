@@ -3,7 +3,7 @@
  * This extracts or generates the appropriate banner image URL based on lesson content
  */
 
-import { getInstantImage } from './ai-image-generator';
+import { getInstantImage } from './ai-image-utils';
 
 export function getLessonBannerUrl(lesson: any): string | null {
   try {

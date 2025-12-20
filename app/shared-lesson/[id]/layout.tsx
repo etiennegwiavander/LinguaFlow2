@@ -43,9 +43,11 @@ export async function generateMetadata({
     }
 
     // Extract lesson details
-    const lessonContent = sharedLesson.lesson?.interactive_lesson_content;
-    const studentLevel = sharedLesson.lesson_level || sharedLesson.lesson?.student?.level || 'intermediate';
-    const targetLanguage = sharedLesson.lesson?.student?.target_language || 'English';
+    const lesson = Array.isArray(sharedLesson.lesson) ? sharedLesson.lesson[0] : sharedLesson.lesson;
+    const lessonContent = lesson?.interactive_lesson_content;
+    const student = Array.isArray(lesson?.student) ? lesson?.student[0] : lesson?.student;
+    const studentLevel = sharedLesson.lesson_level || student?.level || 'intermediate';
+    const targetLanguage = student?.target_language || 'English';
     
     // Get sub-topic details if available
     const subTopicTitle = lessonContent?.selected_sub_topic?.title || 
