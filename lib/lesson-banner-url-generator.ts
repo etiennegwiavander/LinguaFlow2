@@ -7,6 +7,11 @@ import { getInstantImage } from './ai-image-utils';
 
 export function getLessonBannerUrl(lesson: any): string | null {
   try {
+    // If lesson is null or undefined, return null
+    if (!lesson) {
+      return null;
+    }
+
     // Try to get from interactive lesson content
     const lessonContent = lesson.interactive_lesson_content;
     

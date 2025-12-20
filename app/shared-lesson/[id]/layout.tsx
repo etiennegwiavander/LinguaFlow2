@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { getOGBannerUrl } from '@/lib/lesson-banner-url-generator';
+import { getOGBannerUrl, getLessonBannerUrl } from '@/lib/lesson-banner-url-generator';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -61,8 +61,10 @@ export async function generateMetadata({
                                lessonContent?.description || 
                                '';
 
-    // Get banner image URL (use stored URL with proper OG dimensions or fallback)
-    const bannerImageUrl = getOGBannerUrl(sharedLesson.banner_image_url);
+    // Get banner image URL (prioritize stored URL, then generate from lesson content)
+    const bannerImageUrl = sharedLesson.banner_image_url 
+      ? getOGBannerUrl(sharedLesson.banner_image_url)
+      : getOGBannerUrl(getLessonBannerUrl(lesson));
 
     // Create rich title and description
     const title = `${subTopicTitle} - ${studentLevel.toUpperCase()} Level | LinguaFlow`;
