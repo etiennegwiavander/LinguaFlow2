@@ -8,7 +8,7 @@ import LessonBannerImage from "./LessonBannerImage";
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { supabase, supabaseRequest } from "@/lib/supabase";
+import { getLessonBannerUrl } from "@/lib/lesson-banner-url-generator";
 import { useAuth } from "@/lib/auth-context";
 import { useSupabaseFetch } from "@/hooks/useSupabaseQuery";
 import {
@@ -51,6 +51,15 @@ import DialogueAvatar from "./DialogueAvatar";
 import DialogueAvatarErrorBoundary from "./DialogueAvatarErrorBoundary";
 import FloatingTranslationToggle from "./FloatingTranslationToggle";
 import { useDialogueAvatars } from "@/hooks/useDialogueAvatars";
+import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 interface LessonTemplate {
   id: string;
@@ -1258,7 +1267,12 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         student_name: lesson.student?.name || 'Student',
         lesson_title: lesson.interactive_lesson_content?.name || lesson.interactive_lesson_content?.selected_sub_topic?.title || 'Interactive Lesson',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-        is_active: true
+        is_active: true,
+        // Add metadata for rich previews
+        lesson_category: lesson.interactive_lesson_content?.selected_sub_topic?.category || lesson.interactive_lesson_content?.category || null,
+        lesson_level: lesson.student?.level || lesson.interactive_lesson_content?.level || null,
+        // Generate banner image URL from lesson content
+        banner_image_url: getLessonBannerUrl(lesson)
       };
 
       console.log('Attempting to insert shareableData:', shareableData);
@@ -1299,7 +1313,8 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       await navigator.clipboard.writeText(generatedShareUrl);
 
       toast.success('Lesson link created and copied to clipboard!', {
-        description: 'Use the buttons below to open or copy the link again. Link expires in 7 days.',
+        description: `"${lesson.interactive_lesson_content?.name || lesson.interactive_lesson_content?.selected_sub_topic?.title || 'Interactive Lesson'}" - Link expires in 7 days.`,
+        duration: 5000,
       });
 
     } catch (error: any) {
