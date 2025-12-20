@@ -803,10 +803,25 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     });
 
     if (preloadedLessonData) {
-      console.log('🚀 Using preloaded lesson data - immediate display', preloadedLessonData);
+      console.log('🚀 Using preloaded lesson data - immediate display');
+      console.log('🔍 Preloaded data IDs:', {
+        id: preloadedLessonData.id,
+        lesson_id: preloadedLessonData.lesson_id,
+        tutor_id: preloadedLessonData.tutor_id,
+        student_id: preloadedLessonData.student_id
+      });
+
+      // CRITICAL: Use lesson_id if available (from history), otherwise use id (from fresh lesson)
+      const correctLessonId = preloadedLessonData.lesson_id || preloadedLessonData.id;
+      
+      console.log('✅ Using lesson ID:', correctLessonId);
 
       const lessonData = {
         ...preloadedLessonData,
+        // CRITICAL FIX: Override id with the correct lesson ID
+        id: correctLessonId,  // Use lesson_id from history, or id from fresh lesson
+        tutor_id: preloadedLessonData.tutor_id,  // Preserve tutor_id
+        student_id: preloadedLessonData.student_id,  // Preserve student_id
         student: {
           name: 'Student',
           target_language: 'en',
@@ -814,6 +829,12 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           level: 'intermediate'
         }
       };
+
+      console.log('🎯 Setting lesson state with correct IDs:', {
+        id: lessonData.id,
+        tutor_id: lessonData.tutor_id,
+        student_id: lessonData.student_id
+      });
 
       setLesson(lessonData as Lesson);
       setError(null); // Clear any previous errors
@@ -1185,8 +1206,12 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     setIsSharing(true);
 
     try {
-      console.log('Sharing lesson:', lesson.id);
-      console.log('Current user:', user);
+      console.log('🔍 DEBUG: Sharing lesson');
+      console.log('   Lesson ID:', lesson.id);
+      console.log('   Lesson tutor_id:', lesson.tutor_id);
+      console.log('   Lesson student_id:', lesson.student_id);
+      console.log('   Current user ID:', user.id);
+      console.log('   Do IDs match?', lesson.tutor_id === user.id);
 
       // Check if user is authenticated with Supabase
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -1197,7 +1222,35 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         return;
       }
 
-      console.log('User session verified:', session.user.id);
+      console.log('   Session user ID:', session.user.id);
+      console.log('   Session matches user?', session.user.id === user.id);
+      
+      // Verify the lesson exists and we own it
+      console.log('🔍 Verifying lesson ownership...');
+      const { data: lessonCheck, error: lessonCheckError } = await supabase
+        .from('lessons')
+        .select('id, tutor_id, student_id')
+        .eq('id', lesson.id)
+        .single();
+      
+      if (lessonCheckError) {
+        console.error('❌ Lesson verification failed:', lessonCheckError);
+        toast.error(`Lesson not found: ${lessonCheckError.message}`);
+        setIsSharing(false);
+        return;
+      }
+      
+      console.log('✅ Lesson found in database:', lessonCheck);
+      console.log('   Lesson tutor_id:', lessonCheck.tutor_id);
+      console.log('   Current user ID:', session.user.id);
+      console.log('   Ownership match:', lessonCheck.tutor_id === session.user.id);
+      
+      if (lessonCheck.tutor_id !== session.user.id) {
+        console.error('❌ Ownership mismatch!');
+        toast.error('You do not own this lesson. Cannot share.');
+        setIsSharing(false);
+        return;
+      }
 
       // Create a shareable lesson record in the database
       const shareableData = {

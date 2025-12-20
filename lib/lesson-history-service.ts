@@ -36,6 +36,9 @@ export interface StudentProgress {
 
 export interface LessonHistoryEntry {
   id: string;
+  lesson_id?: string;  // Actual lesson ID for sharing
+  tutor_id?: string;   // Tutor ID for RLS validation
+  student_id?: string; // Student ID for context
   completedAt: string;
   completedSubTopic: any;
   interactive_lesson_content?: any;
@@ -80,6 +83,9 @@ class LessonHistoryService {
       // Transform data to match existing format
       const transformedSessions: LessonHistoryEntry[] = sessions?.map(session => ({
         id: session.id,
+        lesson_id: session.lesson_id,  // ✅ Add actual lesson ID for sharing
+        tutor_id: session.tutor_id,    // ✅ Add tutor ID for RLS validation
+        student_id: session.student_id, // ✅ Add student ID for context
         completedAt: session.completed_at,
         completedSubTopic: session.sub_topic_data,
         interactive_lesson_content: session.interactive_content,

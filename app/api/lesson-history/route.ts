@@ -39,6 +39,9 @@ export async function GET(request: NextRequest) {
     // Transform data to match existing lesson history format
     const transformedSessions = sessions?.map(session => ({
       id: session.id,
+      lesson_id: session.lesson_id,  // ✅ Add actual lesson ID for sharing
+      tutor_id: session.tutor_id,    // ✅ Add tutor ID for RLS validation
+      student_id: session.student_id, // ✅ Add student ID for context
       completedAt: session.completed_at,
       completedSubTopic: session.sub_topic_data,
       interactive_lesson_content: session.interactive_content,

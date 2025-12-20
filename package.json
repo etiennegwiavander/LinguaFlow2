@@ -84,6 +84,7 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "5.2.2",
     "utf-8-validate": "^6.0.5",
+    "uuid": "^13.0.0",
     "vaul": "^0.9.9",
     "zod": "^3.22.4"
   },

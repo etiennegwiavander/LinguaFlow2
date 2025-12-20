@@ -91,7 +91,7 @@ INSERT INTO lesson_templates (
 COMMENT ON COLUMN lesson_templates.template_json IS 'JSONB template structure - B2 pronunciation includes header, pronunciation tips, vocabulary practice with minimal pairs, sentence practice, find the sounds exercise, tongue twister practice, discussion prompts, and wrap-up sections';
 
 -- Verify the insertion
-DO $
+DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM lesson_templates 
@@ -105,4 +105,4 @@ BEGIN
   ELSE
     RAISE NOTICE 'WARNING: B2 Pronunciation Lesson template may not have been created properly';
   END IF;
-END $;
+END $$;

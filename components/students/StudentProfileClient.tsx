@@ -1331,14 +1331,20 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
                           key={lessonEntry.entryId}
                           lessonEntry={lessonEntry}
                           onViewLesson={(lessonEntry) => {
-                            setSelectedLessonId(lessonEntry.id);
+                            // Use the actual lesson ID, not the session ID
+                            const actualLessonId = lessonEntry.lesson_id || lessonEntry.lesson?.id || lessonEntry.id;
+                            
+                            setSelectedLessonId(actualLessonId);
                             setSelectedHistoryLesson(lessonEntry);
 
                             // Set persistent lesson data for history lesson with specific sub-topic context
                             setPersistentLessonData({
-                              lessonId: lessonEntry.id,
+                              lessonId: actualLessonId,
                               lessonData: {
                                 ...lessonEntry,
+                                id: actualLessonId,  // ✅ Ensure the lesson data has the correct lesson ID
+                                tutor_id: lessonEntry.tutor_id || lessonEntry.tutor?.id,  // ✅ Add tutor_id for RLS
+                                student_id: lessonEntry.student_id || lessonEntry.student?.id,  // ✅ Add student_id
                                 // Add context about which specific sub-topic was completed
                                 selectedSubTopic: lessonEntry.completedSubTopic
                               }
