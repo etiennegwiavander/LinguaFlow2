@@ -1226,11 +1226,20 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       console.log('   Session user ID:', session.user.id);
       console.log('   Session matches user?', session.user.id === user.id);
       
-      // Verify the lesson exists and we own it
-      console.log('🔍 Verifying lesson ownership...');
+      // Verify the lesson exists and we own it, AND fetch student data
+      console.log('🔍 Verifying lesson ownership and fetching student data...');
       const { data: lessonCheck, error: lessonCheckError } = await supabase
         .from('lessons')
-        .select('id, tutor_id, student_id')
+        .select(`
+          id, 
+          tutor_id, 
+          student_id,
+          student:students (
+            name,
+            level,
+            target_language
+          )
+        `)
         .eq('id', lesson.id)
         .single();
       
@@ -1243,6 +1252,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
       
       console.log('✅ Lesson found in database:', lessonCheck);
       console.log('   Lesson tutor_id:', lessonCheck.tutor_id);
+      console.log('   Student data:', lessonCheck.student);
       console.log('   Current user ID:', session.user.id);
       console.log('   Ownership match:', lessonCheck.tutor_id === session.user.id);
       
@@ -1253,16 +1263,22 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         return;
       }
 
+      // Extract student name from the fetched data
+      const studentData = Array.isArray(lessonCheck.student) ? lessonCheck.student[0] : lessonCheck.student;
+      const studentName = studentData?.name || lesson.student?.name || 'Student';
+      
+      console.log('📝 Using student name:', studentName);
+
       // Create a shareable lesson record in the database
       const shareableData = {
         lesson_id: lesson.id,
-        student_name: lesson.student?.name || 'Student',
+        student_name: studentName,
         lesson_title: lesson.interactive_lesson_content?.name || lesson.interactive_lesson_content?.selected_sub_topic?.title || 'Interactive Lesson',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
         is_active: true,
         // Add metadata for rich previews
         lesson_category: lesson.interactive_lesson_content?.selected_sub_topic?.category || lesson.interactive_lesson_content?.category || null,
-        lesson_level: lesson.student?.level || lesson.interactive_lesson_content?.level || null,
+        lesson_level: studentData?.level || lesson.student?.level || lesson.interactive_lesson_content?.level || null,
         // Generate banner image URL from lesson content
         banner_image_url: getLessonBannerUrl(lesson)
       };
