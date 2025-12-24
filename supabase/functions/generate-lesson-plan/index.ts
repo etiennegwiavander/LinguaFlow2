@@ -605,7 +605,7 @@ function generateFallbackSubTopics(student: Student, template: any, lessonNumber
   ];
 
   return baseTopics.map((topic, index) => ({
-    id: `subtopic_${lessonNumber}_${index + 1}`,
+    id: `subtopic_${lessonNumber}_${index + 1}`, // Note: This will be prefixed with lesson_id later
     title: topic.title,
     category: template.category,
     level: student.level,
@@ -1164,16 +1164,26 @@ serve(async (req) => {
       throw new Error(`CRITICAL: Function generated ${parsedLessons.lessons.length} lessons instead of 5`);
     }
 
-    // Extract all sub-topics
+    // Extract all sub-topics and prefix with lesson ID for global uniqueness
     let allSubTopics: any[] = [];
-    parsedLessons.lessons.forEach((lesson, index) => {
-      if (lesson.sub_topics && Array.isArray(lesson.sub_topics)) {
-        console.log(`📚 Lesson ${index + 1} has ${lesson.sub_topics.length} sub-topics`);
-        allSubTopics = allSubTopics.concat(lesson.sub_topics);
+    const lessonIdForSubTopics = lesson_id || lesson?.id;
+    
+    parsedLessons.lessons.forEach((lessonPlan, index) => {
+      if (lessonPlan.sub_topics && Array.isArray(lessonPlan.sub_topics)) {
+        console.log(`📚 Lesson ${index + 1} has ${lessonPlan.sub_topics.length} sub-topics`);
+        
+        // Prefix each sub-topic ID with the lesson ID to ensure global uniqueness
+        const prefixedSubTopics = lessonPlan.sub_topics.map((subTopic: any) => ({
+          ...subTopic,
+          id: `${lessonIdForSubTopics}_${subTopic.id}`
+        }));
+        
+        allSubTopics = allSubTopics.concat(prefixedSubTopics);
       }
     });
 
     console.log('✅ Total sub-topics extracted:', allSubTopics.length);
+    console.log('🔑 Sub-topics prefixed with lesson ID for uniqueness:', lessonIdForSubTopics);
 
     if (lesson_id) {
       // Update existing lesson
