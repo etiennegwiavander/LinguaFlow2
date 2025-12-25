@@ -1172,7 +1172,9 @@ serve(async (req) => {
       if (lessonPlan.sub_topics && Array.isArray(lessonPlan.sub_topics)) {
         console.log(`📚 Lesson ${index + 1} has ${lessonPlan.sub_topics.length} sub-topics`);
         
-        // Prefix each sub-topic ID with the lesson ID to ensure global uniqueness
+        // Prefix each sub-topic ID with lesson ID for global uniqueness
+        // The sub_topic_id from AI already includes the base ID (e.g., "subtopic_1_1")
+        // We just add the lesson ID prefix to make it globally unique
         const prefixedSubTopics = lessonPlan.sub_topics.map((subTopic: any) => ({
           ...subTopic,
           id: `${lessonIdForSubTopics}_${subTopic.id}`

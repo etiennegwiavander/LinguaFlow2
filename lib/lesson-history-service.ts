@@ -109,7 +109,7 @@ class LessonHistoryService {
   }
 
   /**
-   * Create a new lesson session
+   * Create a new lesson session OR update existing one if regenerating
    */
   async createLessonSession(sessionData: {
     student_id: string;
@@ -123,6 +123,69 @@ class LessonHistoryService {
     duration_minutes?: number;
   }): Promise<string> {
     try {
+      // Check if we're regenerating an existing lesson session
+      // by looking for a session with the same student + sub-topic title
+      const { data: existingSessions, error: searchError } = await this.supabaseClient
+        .from('lesson_sessions')
+        .select('*')
+        .eq('student_id', sessionData.student_id)
+        .eq('lesson_id', sessionData.lesson_id || '')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (searchError) {
+        console.warn('Error searching for existing sessions:', searchError);
+      }
+
+      // Find if there's an existing session for this sub-topic title
+      const existingSession = existingSessions?.find(
+        s => s.sub_topic_data?.title === sessionData.sub_topic_data?.title
+      );
+
+      if (existingSession) {
+        console.log('🔄 REGENERATION DETECTED: Updating existing lesson session');
+        console.log('   Old sub_topic_id:', existingSession.sub_topic_id);
+        console.log('   New sub_topic_id:', sessionData.sub_topic_id);
+
+        // UPDATE the existing session with new data
+        const { data: updatedSession, error: updateError } = await this.supabaseClient
+          .from('lesson_sessions')
+          .update({
+            sub_topic_id: sessionData.sub_topic_id,
+            sub_topic_data: sessionData.sub_topic_data,
+            interactive_content: sessionData.interactive_content || {},
+            lesson_materials: sessionData.lesson_materials || {},
+            lesson_template_id: sessionData.lesson_template_id,
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            status: 'completed'
+          })
+          .eq('id', existingSession.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Error updating lesson session:', updateError);
+          throw new Error('Failed to update lesson session');
+        }
+
+        // UPDATE the progress entry with new sub_topic_id
+        await this.updateSubTopicProgress({
+          student_id: sessionData.student_id,
+          old_sub_topic_id: existingSession.sub_topic_id,
+          new_sub_topic_id: sessionData.sub_topic_id,
+          sub_topic_title: sessionData.sub_topic_data.title,
+          sub_topic_category: sessionData.sub_topic_data.category,
+          sub_topic_level: sessionData.sub_topic_data.level,
+          lesson_session_id: existingSession.id
+        });
+
+        console.log('✅ Successfully updated existing lesson session');
+        return existingSession.id;
+      }
+
+      // No existing session found - create a new one
+      console.log('✨ Creating NEW lesson session');
       const { data: session, error } = await this.supabaseClient
         .from('lesson_sessions')
         .insert({
@@ -153,6 +216,45 @@ class LessonHistoryService {
       return session.id;
     } catch (error) {
       console.error('Error in createLessonSession:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update sub-topic progress when regenerating (change sub_topic_id)
+   */
+  private async updateSubTopicProgress(progressData: {
+    student_id: string;
+    old_sub_topic_id: string;
+    new_sub_topic_id: string;
+    sub_topic_title?: string;
+    sub_topic_category?: string;
+    sub_topic_level?: string;
+    lesson_session_id?: string;
+  }): Promise<void> {
+    try {
+      // Update the existing progress record with the new sub_topic_id
+      const { error } = await this.supabaseClient
+        .from('student_progress')
+        .update({
+          sub_topic_id: progressData.new_sub_topic_id,
+          sub_topic_title: progressData.sub_topic_title,
+          sub_topic_category: progressData.sub_topic_category,
+          sub_topic_level: progressData.sub_topic_level,
+          completion_date: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('student_id', progressData.student_id)
+        .eq('sub_topic_id', progressData.old_sub_topic_id);
+
+      if (error) {
+        console.error('Error updating sub-topic progress:', error);
+        throw new Error('Failed to update sub-topic progress');
+      }
+
+      console.log('✅ Updated progress record from old to new sub_topic_id');
+    } catch (error) {
+      console.error('Error in updateSubTopicProgress:', error);
       throw error;
     }
   }
