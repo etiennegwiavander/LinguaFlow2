@@ -52,6 +52,14 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
   // Maintain backward compatibility - derive simple array from timestamped data
   const [completedSubTopics, setCompletedSubTopics] = useState<string[]>([]);
 
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('🔄 [Progress Context] completedSubTopics state changed:', completedSubTopics.length, 'items');
+    if (completedSubTopics.length > 0) {
+      console.log('   IDs:', completedSubTopics);
+    }
+  }, [completedSubTopics]);
+
   // Helper function to get user-specific localStorage keys (for migration)
   const getUserSpecificKey = (baseKey: string) => {
     if (!currentUserId) return `${baseKey}_anonymous`;
@@ -81,11 +89,8 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
               setCurrentTutorId(tutorData.id);
             }
 
-            // Try to load from database first
-            await refreshProgressFromDatabase();
-            
-            // Check for localStorage migration
-            await migrateLocalStorageIfNeeded(userId);
+            // Progress will be loaded when setStudentContext is called
+            // No need to load here since we don't have a studentId yet
           } else {
             // No user, clear data
             setCompletedSubTopicsWithTimestamps([]);
@@ -106,25 +111,36 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
   }, [currentUserId]);
 
   // Refresh progress from database
-  const refreshProgressFromDatabase = async (studentId?: string) => {
-    if (!currentUserId) return;
+  const refreshProgressFromDatabase = useCallback(async (studentId?: string) => {
+    console.log('🔍 [Progress Context] refreshProgressFromDatabase called');
+    console.log('   Param studentId:', studentId?.substring(0, 8));
+    console.log('   currentStudentId:', currentStudentId?.substring(0, 8));
     
     try {
       const targetStudentId = studentId || currentStudentId;
-      if (!targetStudentId) return;
+      if (!targetStudentId) {
+        console.log('⚠️  [Progress Context] No targetStudentId, returning early');
+        return;
+      }
 
+      console.log('📊 [Progress Context] Loading progress from database...');
+      console.log('   Target Student ID:', targetStudentId.substring(0, 8));
+      
       const progressData = await lessonHistoryService.getStudentProgress(targetStudentId);
+      
+      console.log('   Found completions:', progressData.completedSubTopics.length);
+      console.log('   Completion IDs:', progressData.completedSubTopics);
       
       setCompletedSubTopicsWithTimestamps(progressData.completedSubTopicsWithTimestamps);
       setCompletedSubTopics(progressData.completedSubTopics);
       
-      console.log('✅ Loaded progress from database:', progressData.completedSubTopics.length, 'completed sub-topics');
+      console.log('✅ [Progress Context] State updated with', progressData.completedSubTopics.length, 'completed sub-topics');
     } catch (error) {
-      console.error('❌ Error loading progress from database:', error);
-      // Fallback to localStorage if database fails
-      await loadFromLocalStorageFallback();
+      console.error('❌ [Progress Context] Error loading progress from database:', error);
+      // Don't fallback to localStorage - just log the error
+      // The database is the source of truth now
     }
-  };
+  }, [currentStudentId]);
 
   // Migrate localStorage data to database if needed
   const migrateLocalStorageIfNeeded = async (userId: string) => {
@@ -214,7 +230,7 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
         return Array.from(new Set([...prev, ...newIds]));
       });
     }
-  }, [currentStudentId]);
+  }, [currentStudentId, refreshProgressFromDatabase]);
 
   const markSubTopicComplete = useCallback(async (
     subTopicId: string, 
