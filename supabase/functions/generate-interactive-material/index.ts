@@ -384,6 +384,15 @@ OTHER INSTRUCTIONS:
    For OTHER sections with content_type "matching" (not pronunciation):
    - Create matching_questions array with question/answer pairs
    - Each should have: {"question": "question text", "answer": "answer text"}
+   
+   For sections with id "example_paragraph" (Short Paragraph Practice):
+   - This section should contain a SUBSTANTIAL paragraph (8-12 sentences, 120-180 words)
+   - The paragraph should tell a coherent story or describe a scenario
+   - Include MANY words with the target pronunciation sounds being practiced
+   - Make it engaging and contextually relevant to the lesson topic
+   - Use natural, flowing language appropriate for the student's level
+   - The paragraph should be long enough to provide meaningful reading practice
+   - Example length: "Hello! My name is Emma, and I work at a busy hospital in the city center. Every day, I help many patients who come in with various health concerns. After my shift ends at the hospital, I usually go home to my cozy apartment. I have a happy cat named Henry who always greets me at the door. In the evenings, I enjoy cooking healthy meals in my kitchen. On weekends, I like to visit the local market to buy fresh herbs and vegetables. My hobby is playing the harp, which I practice for an hour each day. I hope to perform at a charity event next month to help raise money for the hospital. Music and helping people bring me so much happiness!"
 
 10. Ensure all content is appropriate for ${student.level.toUpperCase()} level ${languageName}
 11. Address the student's specific weaknesses and learning goals
