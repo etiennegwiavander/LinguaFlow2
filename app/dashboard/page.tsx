@@ -132,12 +132,12 @@ export default function DashboardPage() {
 
       if (studentsError) throw studentsError;
 
-      // Fetch total lessons count (only lessons with interactive materials created)
+      // Fetch total lessons count from lesson_sessions (only fully generated lessons)
       const { count: lessonsCount, error: totalLessonsError } = await supabase
-        .from('lessons')
+        .from('lesson_sessions')
         .select('*', { count: 'exact', head: true })
         .eq('tutor_id', user.id)
-        .not('interactive_lesson_content', 'is', null);
+        .not('interactive_content', 'is', null);
 
       if (totalLessonsError) throw totalLessonsError;
 
@@ -147,24 +147,24 @@ export default function DashboardPage() {
       const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
-      // Fetch lessons count for this month (only lessons with interactive materials)
+      // Fetch lessons count for this month from lesson_sessions (only fully generated)
       const { count: monthlyLessonsCount, error: monthlyError } = await supabase
-        .from('lessons')
+        .from('lesson_sessions')
         .select('*', { count: 'exact', head: true })
         .eq('tutor_id', user.id)
-        .gte('date', startOfMonth.toISOString())
-        .not('interactive_lesson_content', 'is', null);
+        .gte('created_at', startOfMonth.toISOString())
+        .not('interactive_content', 'is', null);
 
       if (monthlyError) throw monthlyError;
 
-      // Fetch lessons count for last month (for comparison)
+      // Fetch last month's lessons count from lesson_sessions (only fully generated)
       const { count: lastMonthLessonsCount, error: lastMonthError } = await supabase
-        .from('lessons')
+        .from('lesson_sessions')
         .select('*', { count: 'exact', head: true })
         .eq('tutor_id', user.id)
-        .gte('date', startOfLastMonth.toISOString())
-        .lte('date', endOfLastMonth.toISOString())
-        .not('interactive_lesson_content', 'is', null);
+        .gte('created_at', startOfLastMonth.toISOString())
+        .lte('created_at', endOfLastMonth.toISOString())
+        .not('interactive_content', 'is', null);
 
       if (lastMonthError) throw lastMonthError;
 
@@ -177,13 +177,13 @@ export default function DashboardPage() {
 
       if (lastMonthStudentsError) throw lastMonthStudentsError;
 
-      // Calculate historical data for total lessons (compare with last month)
+      // Calculate historical data for total lessons from lesson_sessions (only fully generated)
       const { count: lastMonthTotalLessonsCount, error: lastMonthTotalError } = await supabase
-        .from('lessons')
+        .from('lesson_sessions')
         .select('*', { count: 'exact', head: true })
         .eq('tutor_id', user.id)
         .lte('created_at', endOfLastMonth.toISOString())
-        .not('interactive_lesson_content', 'is', null);
+        .not('interactive_content', 'is', null);
 
       if (lastMonthTotalError) throw lastMonthTotalError;
 
