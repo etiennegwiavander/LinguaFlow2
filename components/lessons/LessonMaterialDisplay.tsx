@@ -2613,11 +2613,11 @@ Consider how native language patterns may interfere with target language structu
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="border-2 border-cyber-400/30 rounded-lg p-4 bg-cyber-50/30 dark:bg-cyber-900/20">
                   <h4 className="font-semibold text-lg mb-2 text-cyber-600 dark:text-cyber-400">Sound 1</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Drag words here</p>
+                  {/* <p className="text-sm text-gray-600 dark:text-gray-400">Drag words here</p> */}
                 </div>
                 <div className="border-2 border-neon-400/30 rounded-lg p-4 bg-neon-50/30 dark:bg-neon-900/20">
                   <h4 className="font-semibold text-lg mb-2 text-neon-600 dark:text-neon-400">Sound 2</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Drag words here</p>
+                  {/* <p className="text-sm text-gray-600 dark:text-gray-400">Drag words here</p> */}
                 </div>
               </div>
               
@@ -2641,11 +2641,11 @@ Consider how native language patterns may interfere with target language structu
                 })}
               </div>
               
-              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              {/* <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
                   💡 <strong>Tip:</strong> Listen carefully to each word and decide which sound it contains. Practice saying each word out loud to help identify the correct sound.
                 </p>
-              </div>
+              </div> */}
             </div>
           );
         }
