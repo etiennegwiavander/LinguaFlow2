@@ -127,17 +127,15 @@ serve(async (req) => {
           continue
         }
 
-        // Get active SMTP config
-        const { data: smtpConfig, error: smtpError } = await supabaseClient
+        // Get active SMTP config (optional - Resend API can work without it)
+        const { data: smtpConfig } = await supabaseClient
           .from('email_smtp_configs')
           .select('*')
           .eq('is_active', true)
           .maybeSingle()
 
-        if (smtpError || !smtpConfig) {
-          errors.push(`No active SMTP configuration found`)
-          continue
-        }
+        // Use default SMTP config ID if none found (Resend will handle it)
+        const smtpConfigId = smtpConfig?.id || 'default'
 
         // Prepare template data
         const appUrl = Deno.env.get('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'
@@ -180,7 +178,7 @@ serve(async (req) => {
         // Send email via integrated email function
         const { data: emailResult, error: emailError } = await supabaseClient.functions.invoke('send-integrated-email', {
           body: {
-            smtpConfigId: smtpConfig.id,
+            smtpConfigId: smtpConfigId,
             templateId: template.id,
             recipientEmail: tutorEmail,
             subject: subject,
