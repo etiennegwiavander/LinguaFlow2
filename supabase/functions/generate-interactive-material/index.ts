@@ -329,15 +329,71 @@ OTHER INSTRUCTIONS:
 8. For example_sentences arrays, create contextual sentences that directly relate to the lesson topic "${
       subTopic.title
     }" and use vocabulary from the lesson
-9. Ensure all content is appropriate for ${student.level.toUpperCase()} level ${languageName}
-10. Address the student's specific weaknesses and learning goals
-11. Focus specifically on the sub-topic: ${subTopic.title}
-12. NEVER leave any dialogue_lines empty - always populate both "character" and "text" fields with meaningful content
-13. For dialogue_elements in fill_in_the_blanks_dialogue, ensure each dialogue element has proper "character" and "text" fields
-14. IMPORTANT: All example sentences must be contextually relevant to "${
+9. 🎯 PRONUNCIATION TEMPLATE SPECIAL INSTRUCTIONS:
+   
+   For sections with content_type "vocabulary_matching":
+   - Create a field named after the ai_placeholder value (e.g., "word_list_sound1")
+   - ALSO create a "vocabulary_items" array DIRECTLY in the section (not nested)
+   - Each vocabulary item should have: {"word": "example_word", "pronunciation": "/ɪɡˈzæmpəl/", "meaning": "definition"}
+   - Generate 5-8 vocabulary items focusing on the target pronunciation sounds
+   
+   Example structure for vocabulary_matching:
+   {
+     "id": "key_vocabulary_sound1",
+     "content_type": "vocabulary_matching",
+     "ai_placeholder": "word_list_sound1",
+     "word_list_sound1": "Practice these words with Sound 1",
+     "vocabulary_items": [
+       {"word": "ship", "pronunciation": "/ʃɪp/", "meaning": "a large boat"},
+       {"word": "sheep", "pronunciation": "/ʃiːp/", "meaning": "a farm animal with wool"},
+       {"word": "shop", "pronunciation": "/ʃɒp/", "meaning": "a place to buy things"}
+     ]
+   }
+   
+   For sections with content_type "matching":
+   - For PRONUNCIATION lessons with id "find_the_sounds", this is a SOUND CATEGORIZATION exercise
+   - Create a field named after the ai_placeholder value (e.g., "find_the_sounds")
+   - MANDATORY: ALSO create a "sound_words" array DIRECTLY in the section (not nested)
+   - Each word object should have: {"word": "example", "sound": "sound1" or "sound2", "pronunciation": "/ɪɡˈzæmpəl/"}
+   - Generate 12-15 words total, mixed between sound1 and sound2
+   - Students will categorize these words by which sound they contain
+   - THIS IS REQUIRED FOR PRONUNCIATION LESSONS - DO NOT SKIP THE sound_words ARRAY
+   
+   Example structure for pronunciation sound identification:
+   {
+     "id": "find_the_sounds",
+     "content_type": "matching",
+     "ai_placeholder": "find_the_sounds",
+     "find_the_sounds": "Sort these words based on which sound they contain.",
+     "sound_words": [
+       {"word": "ship", "sound": "sound1", "pronunciation": "/ʃɪp/"},
+       {"word": "sheep", "sound": "sound2", "pronunciation": "/ʃiːp/"},
+       {"word": "chip", "sound": "sound1", "pronunciation": "/tʃɪp/"},
+       {"word": "cheap", "sound": "sound2", "pronunciation": "/tʃiːp/"},
+       {"word": "sit", "sound": "sound1", "pronunciation": "/sɪt/"},
+       {"word": "seat", "sound": "sound2", "pronunciation": "/siːt/"},
+       {"word": "bit", "sound": "sound1", "pronunciation": "/bɪt/"},
+       {"word": "beat", "sound": "sound2", "pronunciation": "/biːt/"},
+       {"word": "fit", "sound": "sound1", "pronunciation": "/fɪt/"},
+       {"word": "feet", "sound": "sound2", "pronunciation": "/fiːt/"},
+       {"word": "hit", "sound": "sound1", "pronunciation": "/hɪt/"},
+       {"word": "heat", "sound": "sound2", "pronunciation": "/hiːt/"}
+     ]
+   }
+   
+   For OTHER sections with content_type "matching" (not pronunciation):
+   - Create matching_questions array with question/answer pairs
+   - Each should have: {"question": "question text", "answer": "answer text"}
+
+10. Ensure all content is appropriate for ${student.level.toUpperCase()} level ${languageName}
+11. Address the student's specific weaknesses and learning goals
+12. Focus specifically on the sub-topic: ${subTopic.title}
+13. NEVER leave any dialogue_lines empty - always populate both "character" and "text" fields with meaningful content
+14. For dialogue_elements in fill_in_the_blanks_dialogue, ensure each dialogue element has proper "character" and "text" fields
+15. IMPORTANT: All example sentences must be contextually relevant to "${
       subTopic.title
     }" and incorporate lesson vocabulary - NO generic sentences
-15. Each vocabulary word must have 3-5 example sentences that demonstrate its use in the context of "${
+16. Each vocabulary word must have 3-5 example sentences that demonstrate its use in the context of "${
       subTopic.title
     }"
 

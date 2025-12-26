@@ -2600,7 +2600,60 @@ Consider how native language patterns may interfere with target language structu
       }
 
       case 'matching': {
-        const matchingPairs = safeGetArray(section, 'matching_pairs');
+        // Check if this is a pronunciation sound categorization exercise
+        const soundWords = safeGetArray(section, 'sound_words');
+        
+        if (soundWords.length > 0) {
+          // Pronunciation Sound Categorization Exercise
+          // Shuffle the words for display
+          const shuffledWords = [...soundWords].sort(() => Math.random() - 0.5);
+          
+          return (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="border-2 border-cyber-400/30 rounded-lg p-4 bg-cyber-50/30 dark:bg-cyber-900/20">
+                  <h4 className="font-semibold text-lg mb-2 text-cyber-600 dark:text-cyber-400">Sound 1</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Drag words here</p>
+                </div>
+                <div className="border-2 border-neon-400/30 rounded-lg p-4 bg-neon-50/30 dark:bg-neon-900/20">
+                  <h4 className="font-semibold text-lg mb-2 text-neon-600 dark:text-neon-400">Sound 2</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Drag words here</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {shuffledWords.map((wordObj, index) => {
+                  const word = safeGetString(wordObj, 'word', '');
+                  const pronunciation = safeGetString(wordObj, 'pronunciation', '');
+                  
+                  return (
+                    <div
+                      key={index}
+                      className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800 hover:shadow-md transition-shadow cursor-pointer text-center"
+                      onDoubleClick={handleTextDoubleClick}
+                    >
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{word}</p>
+                      {pronunciation && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{pronunciation}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  💡 <strong>Tip:</strong> Listen carefully to each word and decide which sound it contains. Practice saying each word out loud to help identify the correct sound.
+                </p>
+              </div>
+            </div>
+          );
+        }
+        
+        // Regular matching questions (for non-pronunciation exercises)
+        const matchingPairs = safeGetArray(section, 'matching_pairs').length > 0
+          ? safeGetArray(section, 'matching_pairs')
+          : safeGetArray(section, 'matching_questions');
 
         if (matchingPairs.length === 0) {
           return (
