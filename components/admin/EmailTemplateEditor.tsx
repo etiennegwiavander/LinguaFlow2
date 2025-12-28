@@ -204,6 +204,8 @@ export default function EmailTemplateEditor({
         placeholders: template.placeholders,
         isActive: template.is_active
       });
+      // Clear validation errors when loading existing template
+      setValidationErrors([]);
     } else if (isCreating) {
       setFormData({
         type: '',
@@ -214,6 +216,8 @@ export default function EmailTemplateEditor({
         placeholders: [],
         isActive: false
       });
+      // Clear validation errors for new template
+      setValidationErrors([]);
     }
   }, [template, isCreating]);
 
@@ -470,10 +474,10 @@ export default function EmailTemplateEditor({
         type: formData.type,
         name: formData.name,
         subject: formData.subject,
-        htmlContent: formData.htmlContent,
-        textContent: formData.textContent || null,
+        html_content: formData.htmlContent,  // Fixed: snake_case for API
+        text_content: formData.textContent || null,  // Fixed: snake_case for API
         placeholders: extractPlaceholders(formData.htmlContent + ' ' + formData.subject + ' ' + (formData.textContent || '')),
-        isActive: formData.isActive
+        is_active: formData.isActive  // Fixed: snake_case for API
       };
 
       await onSave(templateData);
@@ -488,7 +492,7 @@ export default function EmailTemplateEditor({
 
   // Run validation when form data changes
   useEffect(() => {
-    if (formData.type || formData.name || formData.subject || formData.htmlContent) {
+    if (formData.name || formData.subject || formData.htmlContent) {
       validateTemplate();
     }
   }, [formData, validateTemplate]);
@@ -875,7 +879,7 @@ export default function EmailTemplateEditor({
               <Button variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={saving || validationErrors.length > 0}>
+              <Button onClick={handleSave} disabled={saving}>
                 {saving ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
