@@ -50,6 +50,7 @@ import EnhancedVocabularySection from "./EnhancedVocabularySection";
 import DialogueAvatar from "./DialogueAvatar";
 import DialogueAvatarErrorBoundary from "./DialogueAvatarErrorBoundary";
 import FloatingTranslationToggle from "./FloatingTranslationToggle";
+import VocabularyMatchingQuiz from "./VocabularyMatchingQuiz";
 import { useDialogueAvatars } from "@/hooks/useDialogueAvatars";
 import { supabase } from '@/lib/supabase';
 
@@ -1710,35 +1711,24 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           );
         }
 
-        return (
-          <div className="space-y-4">
-            {items.map((item: any, index: number) => {
-              const english = safeStringify(item.english || item.word || item);
-              const translation = safeStringify(item.translation || item.native || '');
-              
-              return (
-                <div key={index} className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
-                  <div className="flex items-center space-x-4 flex-1">
-                    <span className="w-8 h-8 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                      {index + 1}
-                    </span>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 dark:text-gray-100" onDoubleClick={handleTextDoubleClick}>
-                        {english}
-                      </p>
-                      {translation && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1" onDoubleClick={handleTextDoubleClick}>
-                          {translation}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Globe className="w-5 h-5 text-gray-400 flex-shrink-0 ml-4" />
-                </div>
-              );
-            })}
-          </div>
-        );
+        // Transform items to ensure they have english and translation properties
+        const vocabularyPairs = items.map((item: any) => ({
+          english: safeStringify(item.english || item.word || item),
+          translation: safeStringify(item.translation || item.native || '')
+        })).filter(pair => pair.english && pair.translation);
+
+        if (vocabularyPairs.length === 0) {
+          return (
+            <div className="text-center py-4 text-gray-500">
+              <p>No valid vocabulary pairs available.</p>
+            </div>
+          );
+        }
+
+        // Check if this is a kids template
+        const isKidsTemplate = template?.category === 'English for Kids';
+
+        return <VocabularyMatchingQuiz items={vocabularyPairs} isKidsTemplate={isKidsTemplate} />;
       }
 
       // English for Kids B1 content types - map to list rendering
