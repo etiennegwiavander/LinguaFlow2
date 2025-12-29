@@ -168,13 +168,12 @@ async function migrateEnglishForKidsTemplates() {
             image_url: 'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
           },
           {
-            id: 'learning_objectives',
-            type: 'info_card',
-            title: 'Learning Objectives',
-            background_color_var: 'primary_bg',
-            content_type: 'list',
-            items: [],
-            ai_placeholder: 'objectives'
+            id: "introduction_overview",
+            type: "info_card",
+            title: "Learning Objectives",
+            background_color_var: "primary_bg",
+            content_type: "text",
+            ai_placeholder: "introduction_overview"
           },
           {
             id: 'warm_up',
@@ -185,6 +184,26 @@ async function migrateEnglishForKidsTemplates() {
             content_type: 'drawing_tool_match',
             items: [],
             ai_placeholder: 'warmup_content'
+          },
+          {
+            id: "key_vocabulary",
+            type: "exercise",
+            title: "Key Vocabulary",
+            instruction: "Essential words with simple definitions and example sentences.",
+            instruction_bg_color_var: "secondary_bg",
+            content_type: "vocabulary_matching",
+            vocabulary_items: [],
+            ai_placeholder: "vocabulary_items"
+          },
+          {
+            id: 'listen_and_repeat',
+            type: 'exercise',
+            title: 'Listen and Repeat',
+            instruction: 'Listen to your tutor and repeat the sentences.',
+            instruction_bg_color_var: 'secondary_bg',
+            content_type: 'listen_repeat',
+            items: [],
+            ai_placeholder: 'listen_repeat_sentences'
           },
           {
             id: 'story_reading_section',
@@ -207,14 +226,14 @@ async function migrateEnglishForKidsTemplates() {
             ai_placeholder: 'comprehension_questions'
           },
           {
-            id: 'listen_and_repeat',
+            id: 'fill_in_the_blanks',
             type: 'exercise',
-            title: 'Listen and Repeat',
-            instruction: 'Listen to your tutor and repeat the sentences.',
+            title: 'Fill in the Blanks',
+            instruction: 'Read the dialogue with your tutor and fill in the missing words.',
             instruction_bg_color_var: 'secondary_bg',
-            content_type: 'listen_repeat',
-            items: [],
-            ai_placeholder: 'listen_repeat_sentences'
+            content_type: 'fill_in_the_blanks_dialogue',
+            dialogue_elements: [],
+            ai_placeholder: 'fill_in_the_blanks_content'
           },
           {
             id: 'which_picture',
@@ -255,17 +274,7 @@ async function migrateEnglishForKidsTemplates() {
             content_type: 'answer_questions',
             items: [],
             ai_placeholder: 'answer_questions_items'
-          },
-          {
-            id: 'fill_in_the_blanks',
-            type: 'exercise',
-            title: 'Fill in the Blanks',
-            instruction: 'Read the dialogue with your tutor and fill in the missing words.',
-            instruction_bg_color_var: 'secondary_bg',
-            content_type: 'fill_in_the_blanks_dialogue',
-            dialogue_elements: [],
-            ai_placeholder: 'fill_in_the_blanks_content'
-          },
+          }, 
           {
             id: 'review_wrap_up',
             type: 'info_card',

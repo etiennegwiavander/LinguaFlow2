@@ -1,10 +1,8 @@
--- Insert English for Kids B1 Lesson Template
-INSERT INTO lesson_templates (name, category, level, template_json)
-VALUES (
-  'English for Kids Lesson',
-  'English for Kids',
-  'b1',
-  '{
+-- Update English for Kids B1 Template to remove image/audio-dependent sections
+-- and change warm-up to vocabulary translation matching
+
+UPDATE lesson_templates
+SET template_json = '{
     "name": "English for Kids Lesson",
     "category": "English for Kids",
     "level": "b1",
@@ -35,7 +33,7 @@ VALUES (
         "id": "warm_up",
         "type": "exercise",
         "title": "Warm-up",
-        "instruction": "Match the words with their translations in your native language.",
+        "instruction": "Match the English words with their translations in your native language.",
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "vocabulary_translation_match",
         "items": [],
@@ -92,7 +90,6 @@ VALUES (
         "dialogue_elements": [],
         "ai_placeholder": "fill_in_the_blanks_content"
       },
-
       {
         "id": "complete_the_sentence",
         "type": "exercise",
@@ -113,4 +110,4 @@ VALUES (
       }
     ]
   }'::jsonb
-);
+WHERE category = 'English for Kids' AND level = 'b1';

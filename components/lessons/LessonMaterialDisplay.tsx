@@ -1689,6 +1689,65 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
     // console.log('🔍 renderExerciseContent - contentType:', contentType, 'section:', safeGetString(section, 'title', 'No title'));
 
     switch (contentType) {
+      // Vocabulary translation matching (English for Kids warm-up)
+      case 'vocabulary_translation_match': {
+        const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+        let items = safeGetArray(section, 'items');
+        
+        // Check AI-generated content
+        if (items.length === 0 && aiPlaceholderKey) {
+          const aiContent = (section as any)[aiPlaceholderKey];
+          if (aiContent && Array.isArray(aiContent)) {
+            items = aiContent;
+          }
+        }
+
+        if (items.length === 0) {
+          return (
+            <div className="text-center py-4 text-gray-500">
+              <p>No vocabulary items available for translation matching.</p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="space-y-4">
+            {items.map((item: any, index: number) => {
+              const english = safeStringify(item.english || item.word || item);
+              const translation = safeStringify(item.translation || item.native || '');
+              
+              return (
+                <div key={index} className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1">
+                    <span className="w-8 h-8 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                      {index + 1}
+                    </span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 dark:text-gray-100" onDoubleClick={handleTextDoubleClick}>
+                        {english}
+                      </p>
+                      {translation && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1" onDoubleClick={handleTextDoubleClick}>
+                          {translation}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Globe className="w-5 h-5 text-gray-400 flex-shrink-0 ml-4" />
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+
+      // English for Kids B1 content types - map to list rendering
+      case 'drawing_tool_match':
+      case 'listen_repeat':
+      case 'audio_picture_choice':
+      case 'say_what_you_see':
+      case 'complete_sentence':
+      case 'answer_questions':
       case 'list': {
         // PRIORITY 1: Check AI-generated content first
         const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');

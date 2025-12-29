@@ -74,7 +74,7 @@ The English for Kids lesson generation system creates age-appropriate, engaging,
 ┌─────────────────────────────────────────────────────────────────────┐
 │              INTERACTIVE MATERIAL GENERATION                         │
 │  Function: generate-interactive-material/index.ts                   │
-│  • Fetches English for Kids B2 template from database               │
+│  • Fetches English for Kids A1, A2, B1 or B2 template from database               │
 │  • Constructs hyper-personalized AI prompt                          │
 │  • Calls DeepSeek AI to fill template sections                      │
 │  • Validates and fixes generated JSON                               │
