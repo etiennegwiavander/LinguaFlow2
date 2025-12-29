@@ -52,6 +52,16 @@ VALUES (
         "ai_placeholder": "example_content"
       },
       {
+        "id": "comprehension_check",
+        "type": "exercise",
+        "title": "Comprehension Check",
+        "instruction": "Questions to check understanding (multiple choice, true/false, or short answer).",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "matching",
+        "matching_pairs": [],
+        "ai_placeholder": "comprehension_questions"
+      },
+      {
         "id": "image_based_practice_comprehension",
         "type": "exercise",
         "title": "Image-Based Practice/Comprehension",

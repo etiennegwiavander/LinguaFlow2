@@ -43,6 +43,26 @@ VALUES (
         "ai_placeholder": "warmup_content"
       },
       {
+        "id": "story_reading_section",
+        "type": "exercise",
+        "title": "Story/Reading Section",
+        "instruction": "A short, illustrated story or informational text.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "full_dialogue",
+        "dialogue_lines": [],
+        "ai_placeholder": "story_reading_content"
+      },
+      {
+        "id": "comprehension_check",
+        "type": "exercise",
+        "title": "Comprehension Check",
+        "instruction": "Questions to check understanding (multiple choice, true/false, or short answer).",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "matching",
+        "matching_pairs": [],
+        "ai_placeholder": "comprehension_questions"
+      },
+      {
         "id": "listen_and_repeat",
         "type": "exercise",
         "title": "Listen and Repeat",
@@ -101,6 +121,14 @@ VALUES (
         "content_type": "fill_in_the_blanks_dialogue",
         "dialogue_elements": [],
         "ai_placeholder": "fill_in_the_blanks_content"
+      },
+      {
+        "id": "review_wrap_up",
+        "type": "info_card",
+        "title": "Review/Wrap-up",
+        "background_color_var": "primary_bg",
+        "content_type": "text",
+        "ai_placeholder": "review_wrap_up"
       }
     ]
   }'::jsonb
