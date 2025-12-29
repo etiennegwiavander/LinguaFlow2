@@ -475,7 +475,7 @@ export default function EmailTemplateEditor({
         name: formData.name,
         subject: formData.subject,
         html_content: formData.htmlContent,  // Fixed: snake_case for API
-        text_content: formData.textContent || null,  // Fixed: snake_case for API
+        text_content: formData.textContent || undefined,  // Fixed: use undefined instead of null
         placeholders: extractPlaceholders(formData.htmlContent + ' ' + formData.subject + ' ' + (formData.textContent || '')),
         is_active: formData.isActive  // Fixed: snake_case for API
       };
