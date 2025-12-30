@@ -406,7 +406,18 @@ OTHER INSTRUCTIONS:
 11. Address the student's specific weaknesses and learning goals
 12. Focus specifically on the sub-topic: ${subTopic.title}
 13. NEVER leave any dialogue_lines empty - always populate both "character" and "text" fields with meaningful content
-14. For dialogue_elements in fill_in_the_blanks_dialogue, ensure each dialogue element has proper "character" and "text" fields
+14. For dialogue_elements in fill_in_the_blanks_dialogue, ensure each dialogue element has proper "character" and "text" fields. CRITICAL: 
+   - Each dialogue element with a blank MUST also include a "missing_word" field containing the word that fills the blank
+   - Use _____ (5 underscores) to indicate blanks in the text
+   - **STRATEGICALLY use vocabulary words from the "Key Vocabulary" section as the missing words** - this reinforces vocabulary learning
+   - The blanks should test the student's understanding of the key vocabulary in context
+   - Aim for 4-6 blanks total in the dialogue, each using a different vocabulary word from the lesson
+   - Example:
+   {
+     "character": "Teacher",
+     "text": "How are you _____ today?",
+     "missing_word": "feeling"  // This should be one of the vocabulary words from the Key Vocabulary section
+   }
 15. IMPORTANT: All example sentences must be contextually relevant to "${
       subTopic.title
     }" and incorporate lesson vocabulary - NO generic sentences

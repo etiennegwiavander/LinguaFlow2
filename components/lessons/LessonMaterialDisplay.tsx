@@ -2614,6 +2614,33 @@ Consider how native language patterns may interfere with target language structu
           );
         }
 
+        // Extract all missing words from dialogue elements for the answer key
+        const missingWords: string[] = [];
+        dialogueElements.forEach((element) => {
+          if (element && typeof element === 'object') {
+            // Check if there's a missing_word field
+            const missingWord = safeGetString(element, 'missing_word', '');
+            if (missingWord) {
+              missingWords.push(missingWord);
+            } else {
+              // Fallback: try to extract from text with brackets [word]
+              const text = safeGetString(element, 'text', '');
+              const bracketMatches = text.match(/\[([^\]]+)\]/g);
+              if (bracketMatches) {
+                bracketMatches.forEach((match: string) => {
+                  const word = match.replace(/[\[\]]/g, '');
+                  if (word && word !== '_____') {
+                    missingWords.push(word);
+                  }
+                });
+              }
+            }
+          }
+        });
+
+        // Shuffle the missing words for the answer key
+        const shuffledAnswers = [...missingWords].sort(() => Math.random() - 0.5);
+
         return (
           <div className="space-y-4">
             {dialogueElements.map((element, index) => {
@@ -2735,6 +2762,26 @@ Consider how native language patterns may interfere with target language structu
                 );
               }
             })}
+
+            {/* Shuffled Answer Key at the bottom */}
+            {shuffledAnswers.length > 0 && (
+              <div className="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-2 border-indigo-200 dark:border-indigo-800 rounded-lg">
+                <h4 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-3 flex items-center gap-2">
+                  <span className="text-lg">📝</span>
+                  Answer Key
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {shuffledAnswers.map((word, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-indigo-300 dark:border-indigo-700 rounded-md text-sm font-medium text-indigo-700 dark:text-indigo-300 shadow-sm"
+                    >
+                      {word}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
       }
