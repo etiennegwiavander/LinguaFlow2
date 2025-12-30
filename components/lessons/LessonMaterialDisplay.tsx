@@ -96,6 +96,12 @@ interface TemplateSection {
   sentences?: string[];
 }
 
+interface SentenceQuestion {
+  sentence: string;
+  options: string[];
+  answer: string;
+}
+
 interface Lesson {
   id: string;
   student_id: string;
@@ -1763,7 +1769,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
         // Parse items into sentence questions
         const sentenceQuestions = items.map((item: any, index: number) => {
-          let question = null;
+          let question: SentenceQuestion | null = null;
           
           // If item is already an object with sentence and options
           if (typeof item === 'object' && item !== null && item.sentence && item.options) {
@@ -1790,7 +1796,7 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
           }
           
           return question;
-        }).filter(q => q !== null && q.sentence && q.options.length > 0);
+        }).filter((q): q is SentenceQuestion => q !== null && !!q.sentence && q.options.length > 0);
 
         console.log('✅ Complete Sentence - Parsed questions:', sentenceQuestions);
 
