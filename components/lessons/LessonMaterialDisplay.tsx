@@ -648,6 +648,11 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [template, setTemplate] = useState<LessonTemplate | null>(null);
+  
+  // Detect if this is an English for Kids template for special styling
+  const isKidsTemplate = template?.template_json?.category === 'English for Kids' || 
+                         template?.category === 'English for Kids';
+  
   const [generatedLessons, setGeneratedLessons] = useState<LessonPlan[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
@@ -1724,9 +1729,6 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
             </div>
           );
         }
-
-        // Check if this is a kids template
-        const isKidsTemplate = template?.category === 'English for Kids';
 
         return <VocabularyMatchingQuiz items={vocabularyPairs} isKidsTemplate={isKidsTemplate} />;
       }
