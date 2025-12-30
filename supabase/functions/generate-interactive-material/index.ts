@@ -261,7 +261,15 @@ OTHER INSTRUCTIONS:
       subTopic.title
     }"
 - Generate specific, detailed content for each section that matches the student's level and needs
-4. For vocabulary_items arrays, create EXACTLY 5-7 relevant vocabulary words (minimum 5, maximum 7). Each vocabulary item MUST have this exact structure with the correct number of examples based on student level:
+4. For "complete_sentence" content_type (Complete the Sentence exercises), create EXACTLY 8-10 sentence completion items (minimum 8, maximum 10). Each item MUST have:
+   {
+     "sentence": "A sentence with a blank (use _____)",
+     "options": ["option1", "option2", "option3", "option4"],
+     "answer": "correct_option"
+   }
+   Make sure the sentences are contextually relevant to "${subTopic.title}" and appropriate for ${student.level.toUpperCase()} level.
+
+5. For vocabulary_items arrays, create EXACTLY 5-7 relevant vocabulary words (minimum 5, maximum 7). Each vocabulary item MUST have this exact structure with the correct number of examples based on student level:
    - A1/A2 levels: Generate 5 example sentences per vocabulary word
    - B1/B2 levels: Generate 4 example sentences per vocabulary word  
    - C1/C2 levels: Generate 3 example sentences per vocabulary word
@@ -309,7 +317,7 @@ OTHER INSTRUCTIONS:
    - VERBS: Show different tenses and conjugations (I walk, she walks, they walked, will walk)
    - ADJECTIVES: Use to modify nouns (the happy child, a difficult situation)
    - ADVERBS: Use to modify verbs, adjectives, or other adverbs (speaks quickly, very important)
-5. For dialogue_lines arrays, create realistic conversations with the following line counts based on student level:
+6. For dialogue_lines arrays, create realistic conversations with the following line counts based on student level:
    - A1 level: 4-7 dialogue lines
    - A2 level: 6-8 dialogue lines
    - B1 level: 7-10 dialogue lines
@@ -324,12 +332,12 @@ OTHER INSTRUCTIONS:
    ]
    
    Ensure natural conversation flow with appropriate turn-taking between characters.
-6. For matching_pairs arrays, create 3-5 question-answer pairs
-7. For list items, create 3-5 relevant items
-8. For example_sentences arrays, create contextual sentences that directly relate to the lesson topic "${
+7. For matching_pairs arrays, create 3-5 question-answer pairs
+8. For list items, create 3-5 relevant items
+9. For example_sentences arrays, create contextual sentences that directly relate to the lesson topic "${
       subTopic.title
     }" and use vocabulary from the lesson
-9. 🎯 PRONUNCIATION TEMPLATE SPECIAL INSTRUCTIONS:
+10. 🎯 PRONUNCIATION TEMPLATE SPECIAL INSTRUCTIONS:
    
    For sections with content_type "vocabulary_matching":
    - Create a field named after the ai_placeholder value (e.g., "word_list_sound1")

@@ -51,6 +51,7 @@ import DialogueAvatar from "./DialogueAvatar";
 import DialogueAvatarErrorBoundary from "./DialogueAvatarErrorBoundary";
 import FloatingTranslationToggle from "./FloatingTranslationToggle";
 import VocabularyMatchingQuiz from "./VocabularyMatchingQuiz";
+import CompleteSentenceQuiz from "./CompleteSentenceQuiz";
 import { useDialogueAvatars } from "@/hooks/useDialogueAvatars";
 import { supabase } from '@/lib/supabase';
 
@@ -1733,12 +1734,94 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         return <VocabularyMatchingQuiz items={vocabularyPairs} isKidsTemplate={isKidsTemplate} />;
       }
 
+      // Complete the Sentence - Interactive Quiz
+      case 'complete_sentence': {
+        const sectionId = safeGetString(section, 'id', 'complete-sentence');
+        const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+        let items = safeGetArray(section, 'items');
+        
+        // Try to get AI-generated content
+        if (items.length === 0 && aiPlaceholderKey) {
+          const aiContent = (section as any)[aiPlaceholderKey];
+          if (aiContent) {
+            if (Array.isArray(aiContent)) {
+              items = aiContent;
+            } else if (typeof aiContent === 'string') {
+              try {
+                const parsed = JSON.parse(aiContent);
+                if (Array.isArray(parsed)) {
+                  items = parsed;
+                }
+              } catch (e) {
+                items = aiContent.split('\n').filter(line => line.trim());
+              }
+            }
+          }
+        }
+
+        console.log('🔍 Complete Sentence - Raw items:', items);
+
+        // Parse items into sentence questions
+        const sentenceQuestions = items.map((item: any, index: number) => {
+          let question = null;
+          
+          // If item is already an object with sentence and options
+          if (typeof item === 'object' && item !== null && item.sentence && item.options) {
+            question = {
+              sentence: item.sentence,
+              options: Array.isArray(item.options) ? item.options : [],
+              answer: item.answer || item.options[0] || '' // Use first option as default if no answer
+            };
+          }
+          // If item is a JSON string, parse it
+          else if (typeof item === 'string') {
+            try {
+              const parsed = JSON.parse(item);
+              if (parsed.sentence && parsed.options) {
+                question = {
+                  sentence: parsed.sentence,
+                  options: Array.isArray(parsed.options) ? parsed.options : [],
+                  answer: parsed.answer || parsed.options[0] || ''
+                };
+              }
+            } catch (e) {
+              console.warn(`Failed to parse item ${index}:`, item);
+            }
+          }
+          
+          return question;
+        }).filter(q => q !== null && q.sentence && q.options.length > 0);
+
+        console.log('✅ Complete Sentence - Parsed questions:', sentenceQuestions);
+
+        if (sentenceQuestions.length === 0) {
+          return (
+            <div key={sectionId} className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                ⚠️ No sentence completion questions available. Please regenerate the lesson material.
+              </p>
+              <details className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                <summary className="cursor-pointer">Debug Info</summary>
+                <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded overflow-auto max-h-96">
+                  {JSON.stringify({ items, aiPlaceholderKey }, null, 2)}
+                </pre>
+              </details>
+            </div>
+          );
+        }
+
+        return (
+          <div key={sectionId}>
+            <CompleteSentenceQuiz items={sentenceQuestions} isKidsTemplate={isKidsTemplate} />
+          </div>
+        );
+      }
+
       // English for Kids B1 content types - map to list rendering
       case 'drawing_tool_match':
       case 'listen_repeat':
       case 'audio_picture_choice':
       case 'say_what_you_see':
-      case 'complete_sentence':
       case 'answer_questions':
       case 'list': {
         // PRIORITY 1: Check AI-generated content first
