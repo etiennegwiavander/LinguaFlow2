@@ -425,6 +425,23 @@ OTHER INSTRUCTIONS:
       subTopic.title
     }"
 
+17. 🎯 ENGLISH FOR KIDS B2 SPECIAL INSTRUCTIONS:
+    - For "interactive_question_cards" content_type: Create 3-5 engaging questions that activate prior knowledge about "${subTopic.title}". Each question should:
+      * Be personalized and relatable to ${student.level.toUpperCase()} level students
+      * Include a relevant emoji icon
+      * Connect to the student's learning goals: "${student.end_goals}"
+      * Address their weaknesses: "${student.grammar_weaknesses || student.vocabulary_gaps}"
+      * Spark curiosity about the lesson topic
+      * Format: {"question": "...", "icon": "🤔", "purpose": "activate prior knowledge about..."}
+    
+    - For "engaging_moral_story" content_type: Create a complete, engaging story (200-300 words) that:
+      * Uses 80% of the vocabulary words from the Key Vocabulary section
+      * Has a clear moral or educational message
+      * Is age-appropriate and interesting for B2 level kids
+      * Sparks curiosity and encourages reading
+      * Includes dialogue and descriptive language
+      * Format: {"title": "Story Title", "story": "Complete story text...", "moral": "The lesson learned..."}
+
 RESPOND ONLY WITH THE FILLED TEMPLATE JSON - NO OTHER TEXT.`;
   } else {
     // Use basic prompt for fallback

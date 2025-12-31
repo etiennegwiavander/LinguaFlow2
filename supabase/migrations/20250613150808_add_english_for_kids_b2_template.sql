@@ -35,10 +35,11 @@ VALUES (
         "id": "warm_up_engagement",
         "type": "exercise",
         "title": "Warm-Up/Engagement",
-        "instruction": "A simple question or activity to activate prior knowledge or spark curiosity.",
+        "instruction": "Interactive questions to activate prior knowledge and spark curiosity about the topic.",
         "instruction_bg_color_var": "secondary_bg",
-        "content_type": "text",
-        "ai_placeholder": "warm_up_engagement"
+        "content_type": "interactive_question_cards",
+        "items": [],
+        "ai_placeholder": "warm_up_questions"
       },
       {
         "id": "key_vocabulary",
@@ -74,11 +75,10 @@ VALUES (
         "id": "pronunciation_listening_practice",
         "type": "exercise",
         "title": "Pronunciation/Listening Practice",
-        "instruction": "Practice key words or phrases aloud, possibly with audio support.",
+        "instruction": "Read this engaging story that uses the key vocabulary from today's lesson.",
         "instruction_bg_color_var": "secondary_bg",
-        "content_type": "list",
-        "items": [],
-        "ai_placeholder": "pronunciation_listening_content"
+        "content_type": "engaging_moral_story",
+        "ai_placeholder": "moral_story_content"
       },
       {
         "id": "speaking_role_play",
