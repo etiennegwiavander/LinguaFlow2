@@ -1288,7 +1288,7 @@ function SharedLessonPage() {
               setSelectedTranslation(null);
               setTimeout(() => setIncorrectPair(null), 1000);
             }
-          }, [selectedEnglish, selectedTranslation]);
+          }, [matchedEnglish, matchedTranslation, scrambledTranslations, selectedEnglish, selectedTranslation]);
 
           const handleEnglishClick = (index: number) => {
             if (matchedEnglish.includes(index)) return;
@@ -1627,6 +1627,127 @@ function SharedLessonPage() {
 
         return <CompleteSentenceGame />;
       }
+
+      // Interactive Question Cards - B2 Kids Warm-Up
+      case 'interactive_question_cards': {
+        const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+        let items = safeGetArray(section, 'items');
+        
+        // Check if AI filled the placeholder field
+        if (items.length === 0 && aiPlaceholderKey && aiPlaceholderKey.length < 100) {
+          const aiContent = (section as any)[aiPlaceholderKey];
+          if (aiContent) {
+            if (Array.isArray(aiContent)) {
+              items = aiContent;
+            } else if (typeof aiContent === 'string') {
+              try {
+                items = JSON.parse(aiContent);
+              } catch (e) {
+                console.warn('Failed to parse question cards:', e);
+              }
+            }
+          }
+        }
+        
+        if (items.length === 0) {
+          return (
+            <div className="text-center py-4 text-gray-500">
+              <p>No questions available for this warm-up activity.</p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {items.map((item: any, index: number) => {
+              const question = safeGetString(item, 'question', '');
+              const icon = safeGetString(item, 'icon', '🤔');
+              const purpose = safeGetString(item, 'purpose', '');
+              
+              return (
+                <div key={index} className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg border-2 border-yellow-200 dark:border-yellow-800 hover:shadow-lg transition-all duration-200">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">{icon}</span>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 dark:text-gray-100 mb-2">{question}</p>
+                      {purpose && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+                          💡 {purpose}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+
+      // Engaging Moral Story - B2 Kids Pronunciation Practice
+      case 'engaging_moral_story': {
+        const aiPlaceholderKey = safeGetString(section, 'ai_placeholder');
+        let storyContent = null;
+        
+        // Check if AI filled the placeholder field
+        if (aiPlaceholderKey && aiPlaceholderKey.length < 100) {
+          const aiContent = (section as any)[aiPlaceholderKey];
+          if (aiContent) {
+            if (typeof aiContent === 'object') {
+              storyContent = aiContent;
+            } else if (typeof aiContent === 'string') {
+              try {
+                storyContent = JSON.parse(aiContent);
+              } catch (e) {
+                // If not JSON, treat as plain story text
+                storyContent = { story: aiContent };
+              }
+            }
+          }
+        }
+        
+        if (!storyContent || !storyContent.story) {
+          return (
+            <div className="text-center py-4 text-gray-500">
+              <p>No story available for this section.</p>
+            </div>
+          );
+        }
+
+        const title = safeGetString(storyContent, 'title', 'A Story for You');
+        const story = safeGetString(storyContent, 'story', '');
+        const moral = safeGetString(storyContent, 'moral', '');
+
+        return (
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-800 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-2xl">📚</span>
+              <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100">{title}</h3>
+            </div>
+            
+            <div className="prose prose-lg max-w-none text-gray-800 dark:text-gray-200 leading-relaxed mb-4">
+              {story.split('\n').map((paragraph: string, index: number) => (
+                paragraph.trim() && (
+                  <p key={index} className="mb-3">{paragraph.trim()}</p>
+                )
+              ))}
+            </div>
+            
+            {moral && (
+              <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-lg border border-purple-300 dark:border-purple-700">
+                <div className="flex items-start gap-2">
+                  <span className="text-lg flex-shrink-0">💡</span>
+                  <div>
+                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">Lesson Learned:</h4>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm">{moral}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
       default:
         return (
           <div className="prose max-w-none">
