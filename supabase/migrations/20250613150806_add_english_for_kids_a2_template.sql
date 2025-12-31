@@ -32,6 +32,16 @@ VALUES (
         "ai_placeholder": "introduction_overview"
       },
       {
+        "id": "warm_up",
+        "type": "exercise",
+        "title": "Warm-up",
+        "instruction": "Match the words with their translations in your native language.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "vocabulary_translation_match",
+        "items": [],
+        "ai_placeholder": "warmup_content"
+      },      
+      {
         "id": "key_vocabulary",
         "type": "exercise",
         "title": "Key Vocabulary",
@@ -62,16 +72,6 @@ VALUES (
         "ai_placeholder": "comprehension_questions"
       },
       {
-        "id": "image_based_practice_comprehension",
-        "type": "exercise",
-        "title": "Image-Based Practice/Comprehension",
-        "instruction": "Look at the picture and answer the question: What do you need? or What do you want?",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "image_based_practice",
-        "items": [],
-        "ai_placeholder": "image_based_practice_items"
-      },
-      {
         "id": "guided_practice_matching_exercise",
         "type": "exercise",
         "title": "Guided Practice/Matching Exercise",
@@ -80,6 +80,16 @@ VALUES (
         "content_type": "matching",
         "matching_pairs": [],
         "ai_placeholder": "guided_practice_content"
+      },
+      {
+        "id": "complete_the_sentence",
+        "type": "exercise",
+        "title": "Complete the Sentence",
+        "instruction": "Choose the correct word to complete the sentence, then read it aloud.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "complete_sentence",
+        "items": [],
+        "ai_placeholder": "complete_sentence_items"
       },
       {
         "id": "speaking_practice_role_play",
