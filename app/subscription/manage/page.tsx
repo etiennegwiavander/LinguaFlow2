@@ -4,8 +4,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, CreditCard, Calendar, TrendingUp, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { createClient } from '@supabase/supabase-js';
 import UsageDashboard from '@/components/subscription/UsageDashboard';
 import Link from 'next/link';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface Subscription {
   id: string;
@@ -23,21 +29,27 @@ interface Subscription {
 
 export default function ManageSubscriptionPage() {
   const router = useRouter();
-  const { user, session } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
     if (!user) {
       router.push('/auth/login?redirect=/subscription/manage');
       return;
     }
 
     fetchSubscription();
-  }, [user, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading]);
 
   async function fetchSubscription() {
+    // Get session directly from Supabase
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
     try {
@@ -66,7 +78,15 @@ export default function ManageSubscriptionPage() {
   }
 
   async function handleCancelSubscription() {
-    if (!session || !confirm('Are you sure you want to cancel your subscription? You will still have access until the end of your billing period.')) {
+    if (!confirm('Are you sure you want to cancel your subscription? You will still have access until the end of your billing period.')) {
+      return;
+    }
+
+    // Get session directly from Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert('Session expired. Please log in again.');
+      router.push('/auth/login?redirect=/subscription/manage');
       return;
     }
 
@@ -94,7 +114,7 @@ export default function ManageSubscriptionPage() {
     }
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-ocean-500" />

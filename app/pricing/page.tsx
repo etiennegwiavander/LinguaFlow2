@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
@@ -36,7 +36,7 @@ interface Plan {
 
 export default function PricingPage() {
   const router = useRouter();
-  const { user, session } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
@@ -47,47 +47,7 @@ export default function PricingPage() {
     fetchPlans();
   }, []);
 
-  // Check for pending plan selection after login
-  useEffect(() => {
-    if (user && session && typeof window !== 'undefined') {
-      const pendingPlan = sessionStorage.getItem('pending_plan');
-      if (pendingPlan) {
-        try {
-          const { planName, billingCycle: savedCycle, currency: savedCurrency } = JSON.parse(pendingPlan);
-          // Set the saved preferences
-          setBillingCycle(savedCycle);
-          setCurrency(savedCurrency);
-          // Clear from storage
-          sessionStorage.removeItem('pending_plan');
-          // Auto-trigger checkout
-          setTimeout(() => {
-            handleSelectPlan(planName);
-          }, 500);
-        } catch (error) {
-          console.error('Error resuming checkout:', error);
-        }
-      }
-    }
-  }, [user, session, handleSelectPlan]);
-
-  async function fetchPlans() {
-    try {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order');
-
-      if (error) throw error;
-      setPlans(data || []);
-    } catch (error) {
-      console.error('Error fetching plans:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleSelectPlan(planName: string) {
+  const handleSelectPlan = useCallback(async (planName: string) => {
     // Free plan doesn't require payment - just redirect to dashboard
     if (planName === 'free') {
       if (!user) {
@@ -99,8 +59,23 @@ export default function PricingPage() {
     }
 
     // For paid plans, check authentication
-    if (!user || !session) {
+    if (!user) {
       // Store the selected plan in sessionStorage to resume after login
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('pending_plan', JSON.stringify({
+          planName,
+          billingCycle,
+          currency,
+        }));
+      }
+      router.push('/auth/login?redirect=/pricing');
+      return;
+    }
+
+    // Get session directly from Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      // Session expired, redirect to login
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('pending_plan', JSON.stringify({
           planName,
@@ -147,6 +122,49 @@ export default function PricingPage() {
       alert('Failed to start checkout. Please try again.');
       setProcessingPlan(null);
     }
+  }, [user, billingCycle, currency, router]);
+
+  // Check for pending plan selection after login
+  useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
+    if (user && typeof window !== 'undefined') {
+      const pendingPlan = sessionStorage.getItem('pending_plan');
+      if (pendingPlan) {
+        try {
+          const { planName, billingCycle: savedCycle, currency: savedCurrency } = JSON.parse(pendingPlan);
+          // Set the saved preferences
+          setBillingCycle(savedCycle);
+          setCurrency(savedCurrency);
+          // Clear from storage
+          sessionStorage.removeItem('pending_plan');
+          // Auto-trigger checkout
+          setTimeout(() => {
+            handleSelectPlan(planName);
+          }, 500);
+        } catch (error) {
+          console.error('Error resuming checkout:', error);
+        }
+      }
+    }
+  }, [user, authLoading, handleSelectPlan]);
+
+  async function fetchPlans() {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
+
+      if (error) throw error;
+      setPlans(data || []);
+    } catch (error) {
+      console.error('Error fetching plans:', error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function getPrice(plan: Plan) {
@@ -161,7 +179,7 @@ export default function PricingPage() {
     return currency === 'USD' ? `$${price}` : `${price.toLocaleString()} XAF`;
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-ocean-500" />
