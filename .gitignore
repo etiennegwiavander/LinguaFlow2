@@ -97,3 +97,4 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+docs/scalability-analysis-50k-users.md

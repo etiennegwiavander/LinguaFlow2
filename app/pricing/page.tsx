@@ -1,371 +1,333 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import LandingLayout from "@/components/landing/LandingLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import {
-  CheckCircle,
-  Zap,
-  Crown,
-  Star,
-  Users,
-  Brain,
-  Globe,
-  Shield,
-  Headphones,
-  ArrowRight,
-  Sparkles,
-} from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Check, Loader2 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+interface Plan {
+  id: string;
+  name: string;
+  display_name: string;
+  price_usd: number;
+  price_xaf: number;
+  annual_price_usd: number | null;
+  annual_price_xaf: number | null;
+  lessons_per_month: number | null;
+  max_students: number | null;
+  vocabulary_sessions_per_month: number | null;
+  discussion_prompts_per_month: number | null;
+  calendar_sync_enabled: boolean;
+  priority_support: boolean;
+  phone_support: boolean;
+  features: {
+    description: string;
+    highlights: string[];
+    popular?: boolean;
+  };
+  sort_order: number;
+}
 
 export default function PricingPage() {
-  const [isAnnual, setIsAnnual] = useState(false);
+  const router = useRouter();
+  const { user, session } = useAuth();
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [currency, setCurrency] = useState<'USD' | 'XAF'>('USD');
 
-  const plans = [
-    {
-      name: "Starter",
-      description: "Perfect for individual tutors getting started",
-      icon: Zap,
-      color: "text-cyber-400",
-      bgColor: "bg-cyber-400/10",
-      borderColor: "border-cyber-400/30",
-      monthly: 19,
-      annual: 15,
-      features: [
-        "Up to 50 students",
-        "100 AI-generated lessons/month",
-        "Basic lesson templates",
-        "Student progress tracking",
-        "Email support",
-        "Mobile app access",
-      ],
-      limitations: [
-        "Limited customization options",
-        "Standard AI models only",
-      ],
-      cta: "Start Free Trial",
-      popular: false,
-    },
-    {
-      name: "Professional",
-      description: "For serious educators and small language schools",
-      icon: Crown,
-      color: "text-neon-400",
-      bgColor: "bg-neon-400/10",
-      borderColor: "border-neon-400/30",
-      monthly: 49,
-      annual: 39,
-      features: [
-        "Up to 200 students",
-        "Unlimited AI-generated lessons",
-        "Premium lesson templates",
-        "Advanced analytics & insights",
-        "Calendar integration",
-        "Custom branding",
-        "Priority support",
-        "Advanced AI models",
-        "Bulk student import",
-        "Export capabilities",
-      ],
-      limitations: [],
-      cta: "Start Free Trial",
-      popular: true,
-    },
-  ];
+  useEffect(() => {
+    fetchPlans();
+  }, []);
 
-  const features = [
-    {
-      category: "AI & Content Generation",
-      icon: Brain,
-      items: [
-        { name: "AI-Powered Lesson Generation", starter: true, pro: true },
-        { name: "Basic Lesson Templates", starter: true, pro: false },
-        { name: "Premium Lesson Templates", starter: false, pro: true },
-        { name: "Custom Template Creation", starter: false, pro: true },
-        { name: "Advanced AI Models", starter: false, pro: true },
-      ],
-    },
-    {
-      category: "Student Management",
-      icon: Users,
-      items: [
-        { name: "Student Profiles", starter: true, pro: true },
-        { name: "Progress Tracking", starter: true, pro: true },
-        { name: "Advanced Analytics", starter: false, pro: true },
-        { name: "Bulk Import/Export", starter: false, pro: true },
-      ],
-    },
-    {
-      category: "Integration & Support",
-      icon: Globe,
-      items: [
-        { name: "Calendar Integration", starter: false, pro: true },
-        { name: "Email Support", starter: true, pro: true },
-        { name: "Priority Support", starter: false, pro: true },
-      ],
-    },
-  ];
+  // Check for pending plan selection after login
+  useEffect(() => {
+    if (user && session && typeof window !== 'undefined') {
+      const pendingPlan = sessionStorage.getItem('pending_plan');
+      if (pendingPlan) {
+        try {
+          const { planName, billingCycle: savedCycle, currency: savedCurrency } = JSON.parse(pendingPlan);
+          // Set the saved preferences
+          setBillingCycle(savedCycle);
+          setCurrency(savedCurrency);
+          // Clear from storage
+          sessionStorage.removeItem('pending_plan');
+          // Auto-trigger checkout
+          setTimeout(() => {
+            handleSelectPlan(planName);
+          }, 500);
+        } catch (error) {
+          console.error('Error resuming checkout:', error);
+        }
+      }
+    }
+  }, [user, session, handleSelectPlan]);
 
-  const faqs = [
-    {
-      question: "Can I change plans anytime?",
-      answer: "Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate any billing differences.",
-    },
-    {
-      question: "What happens to my data if I cancel?",
-      answer: "Your data remains accessible for 30 days after cancellation. You can export all your content during this period. After 30 days, data is permanently deleted.",
-    },
-    {
-      question: "Do you offer discounts for educational institutions?",
-      answer: "Yes! We offer special pricing for schools, universities, and non-profit educational organizations. Contact our sales team for custom pricing.",
-    },
-    {
-      question: "Is there a free trial?",
-      answer: "Absolutely! All plans come with a 14-day free trial. No credit card required to start. You can explore all features during the trial period.",
-    },
-    {
-      question: "What languages are supported?",
-      answer: "LinguaFlow supports 10+ languages including English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese, and Russian, with more being added regularly.",
-    },
-  ];
+  async function fetchPlans() {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
+
+      if (error) throw error;
+      setPlans(data || []);
+    } catch (error) {
+      console.error('Error fetching plans:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSelectPlan(planName: string) {
+    // Free plan doesn't require payment - just redirect to dashboard
+    if (planName === 'free') {
+      if (!user) {
+        router.push('/auth/login?redirect=/pricing');
+        return;
+      }
+      router.push('/dashboard');
+      return;
+    }
+
+    // For paid plans, check authentication
+    if (!user || !session) {
+      // Store the selected plan in sessionStorage to resume after login
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('pending_plan', JSON.stringify({
+          planName,
+          billingCycle,
+          currency,
+        }));
+      }
+      router.push('/auth/login?redirect=/pricing');
+      return;
+    }
+
+    setProcessingPlan(planName);
+
+    try {
+      const response = await fetch('/api/payments/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          planName,
+          billingCycle,
+          currency,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout');
+      }
+
+      // Clear pending plan from storage
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('pending_plan');
+      }
+
+      // Redirect to Tranzak payment page
+      window.location.href = data.payment_url;
+
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to start checkout. Please try again.');
+      setProcessingPlan(null);
+    }
+  }
+
+  function getPrice(plan: Plan) {
+    if (billingCycle === 'annual') {
+      return currency === 'USD' ? plan.annual_price_usd : plan.annual_price_xaf;
+    }
+    return currency === 'USD' ? plan.price_usd : plan.price_xaf;
+  }
+
+  function formatPrice(price: number | null) {
+    if (price === null || price === 0) return 'Free';
+    return currency === 'USD' ? `$${price}` : `${price.toLocaleString()} XAF`;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-ocean-500" />
+      </div>
+    );
+  }
 
   return (
-    <LandingLayout>
-      {/* Hero Section */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-neural-50 via-cyber-50/30 to-neon-50/20 dark:from-neural-900 dark:via-neural-800 dark:to-neural-900"></div>
-        <div className="absolute inset-0 grid-background opacity-30"></div>
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge className="mb-6 bg-gradient-to-r from-cyber-400/20 to-neon-400/20 text-cyber-600 dark:text-cyber-400 border-cyber-400/30">
-            <Star className="w-3 h-3 mr-1" />
-            Simple, Transparent Pricing
-          </Badge>
-          
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Choose Your
-            <span className="gradient-text"> Perfect Plan</span>
+    <div className="min-h-screen bg-gradient-to-b from-ocean-50 to-white py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Choose Your Plan
           </h1>
-          
-          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Start with a 14-day free trial. No credit card required. 
-            Scale as you grow with flexible pricing that adapts to your needs.
+          <p className="text-xl text-gray-600 mb-8">
+            Select the perfect plan for your tutoring needs
           </p>
 
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center space-x-4 mb-12">
-            <span className={`text-sm font-medium ${!isAnnual ? 'text-foreground' : 'text-muted-foreground'}`}>
+          {/* Login prompt if not authenticated */}
+          {/* {!user && (
+            <div className="bg-ocean-50 border border-ocean-200 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
+              <p className="text-ocean-800">
+                <span className="font-medium">Not logged in?</span> You can browse plans now and{' '}
+                <button
+                  onClick={() => router.push('/auth/login?redirect=/pricing')}
+                  className="text-ocean-600 hover:text-ocean-700 underline font-medium"
+                >
+                  sign in
+                </button>{' '}
+                when you're ready to subscribe.
+              </p>
+            </div>
+          )} */}
+
+          {/* Billing Cycle Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                billingCycle === 'monthly'
+                  ? 'bg-ocean-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
               Monthly
-            </span>
-            <Switch
-              checked={isAnnual}
-              onCheckedChange={setIsAnnual}
-              className="data-[state=checked]:bg-cyber-400"
-            />
-            <span className={`text-sm font-medium ${isAnnual ? 'text-foreground' : 'text-muted-foreground'}`}>
+            </button>
+            <button
+              onClick={() => setBillingCycle('annual')}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                billingCycle === 'annual'
+                  ? 'bg-ocean-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
               Annual
-            </span>
-            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-              Save 20%
-            </Badge>
+              <span className="ml-2 text-sm">(Save 17%)</span>
+            </button>
+          </div>
+
+          {/* Currency Toggle */}
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => setCurrency('USD')}
+              className={`px-4 py-1 rounded-md text-sm font-medium transition-colors ${
+                currency === 'USD'
+                  ? 'bg-ocean-100 text-ocean-700'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              USD ($)
+            </button>
+            <button
+              onClick={() => setCurrency('XAF')}
+              className={`px-4 py-1 rounded-md text-sm font-medium transition-colors ${
+                currency === 'XAF'
+                  ? 'bg-ocean-100 text-ocean-700'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              XAF (FCFA)
+            </button>
           </div>
         </div>
-      </section>
 
-      {/* Pricing Cards */}
-      <section className="py-12 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {plans.map((plan, index) => (
-              <Card
-                key={index}
-                className={`relative floating-card ${
-                  plan.popular
-                    ? 'border-2 border-neon-400 shadow-neon scale-105'
-                    : `border ${plan.borderColor}`
-                } transition-all duration-300 group`}
+        {/* Pricing Cards */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {plans.map((plan) => {
+            const price = getPrice(plan);
+            const isPopular = plan.features.popular;
+            const isProcessing = processingPlan === plan.name;
+
+            return (
+              <div
+                key={plan.id}
+                className={`relative bg-white rounded-2xl shadow-lg p-8 ${
+                  isPopular ? 'ring-2 ring-ocean-500 scale-105' : ''
+                }`}
               >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-neon-400 to-purple-400 text-white px-4 py-1">
-                      <Sparkles className="w-3 h-3 mr-1" />
+                {isPopular && (
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <span className="bg-ocean-500 text-white px-4 py-1 rounded-full text-sm font-medium">
                       Most Popular
-                    </Badge>
+                    </span>
                   </div>
                 )}
-                
-                <CardHeader className="text-center pb-8">
-                  <div className={`w-16 h-16 rounded-full ${plan.bgColor} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <plan.icon className={`w-8 h-8 ${plan.color}`} />
-                  </div>
-                  <CardTitle className="text-2xl group-hover:text-cyber-400 transition-colors duration-300">
-                    {plan.name}
-                  </CardTitle>
-                  <CardDescription className="text-base">
-                    {plan.description}
-                  </CardDescription>
-                  <div className="mt-6">
-                    <div className="flex items-baseline justify-center">
-                      <span className="text-4xl font-bold gradient-text">
-                        ${isAnnual ? plan.annual : plan.monthly}
+
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    {plan.display_name}
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    {plan.features.description}
+                  </p>
+                  <div className="text-4xl font-bold text-gray-900">
+                    {formatPrice(price)}
+                    {price !== null && price > 0 && (
+                      <span className="text-lg font-normal text-gray-600">
+                        /{billingCycle === 'annual' ? 'year' : 'month'}
                       </span>
-                      <span className="text-muted-foreground ml-2">/month</span>
-                    </div>
-                    {isAnnual && (
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Billed annually (${plan.annual * 12}/year)
-                      </div>
                     )}
                   </div>
-                </CardHeader>
-
-                <CardContent className="space-y-6">
-                  <div className="space-y-3">
-                    {plan.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-start">
-                        <CheckCircle className="w-5 h-5 text-emerald-500 mr-3 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    className={`w-full ${
-                      plan.popular
-                        ? 'bg-gradient-to-r from-neon-400 to-purple-400 hover:from-neon-500 hover:to-purple-500 text-white border-0 shadow-glow hover:shadow-glow-lg'
-                        : 'border-cyber-400/30 text-cyber-600 dark:text-cyber-400 hover:bg-cyber-400/10 hover:border-cyber-400'
-                    } transition-all duration-300 group`}
-                    variant={plan.popular ? 'default' : 'outline'}
-                  >
-                    {plan.cta}
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Comparison */}
-      <section className="py-24 bg-muted/30 relative overflow-hidden">
-        <div className="absolute inset-0 grid-background opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Compare
-              <span className="gradient-text"> All Features</span>
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              See exactly what's included in each plan to make the best choice for your needs.
-            </p>
-          </div>
-
-          <div className="space-y-12">
-            {features.map((category, categoryIndex) => (
-              <div key={categoryIndex}>
-                <div className="flex items-center mb-6">
-                  <category.icon className="w-6 h-6 text-cyber-400 mr-3" />
-                  <h3 className="text-xl font-semibold">{category.category}</h3>
                 </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 pr-6 font-medium">Feature</th>
-                        <th className="text-center py-3 px-4 font-medium">Starter</th>
-                        <th className="text-center py-3 px-4 font-medium">Professional</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {category.items.map((item, itemIndex) => (
-                        <tr key={itemIndex} className="border-b border-border/50">
-                          <td className="py-3 pr-6 text-sm">{item.name}</td>
-                          <td className="text-center py-3 px-4">
-                            {item.starter ? (
-                              <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto" />
-                            ) : (
-                              <div className="w-5 h-5 mx-auto"></div>
-                            )}
-                          </td>
-                          <td className="text-center py-3 px-4">
-                            {item.pro ? (
-                              <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto" />
-                            ) : (
-                              <div className="w-5 h-5 mx-auto"></div>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+
+                <ul className="space-y-3 mb-8">
+                  {plan.features.highlights.map((highlight, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-700 text-sm">{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => handleSelectPlan(plan.name)}
+                  disabled={isProcessing}
+                  className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+                    isPopular
+                      ? 'bg-ocean-500 text-white hover:bg-ocean-600'
+                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                  } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Get Started'
+                  )}
+                </button>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      </section>
 
-      {/* FAQ Section */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Frequently Asked
-              <span className="gradient-text"> Questions</span>
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              Everything you need to know about our pricing and plans.
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            {faqs.map((faq, index) => (
-              <Card key={index} className="floating-card glass-effect border-0 hover:border-cyber-400/30 transition-all duration-300">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-3 text-cyber-600 dark:text-cyber-400">
-                    {faq.question}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {faq.answer}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-cyber-900 via-neon-900 to-purple-900 relative overflow-hidden">
-        <div className="absolute inset-0 grid-background opacity-30"></div>
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Ready to Get Started?
-          </h2>
-          <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-            Join thousands of educators who are already transforming their teaching with LinguaFlow.
+        {/* FAQ or Additional Info */}
+        <div className="mt-16 text-center">
+          <p className="text-gray-600">
+            All plans include a 7-day money-back guarantee. Cancel anytime.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/signup">
-              <Button size="lg" className="bg-white text-cyber-900 hover:bg-white/90 border-0 shadow-glow hover:shadow-glow-lg transition-all duration-300 group px-8 py-6 text-lg">
-                <Sparkles className="w-5 h-5 mr-2 group-hover:animate-pulse" />
-                Start Free Trial
-              </Button>
-            </Link>
-            <Link href="#contact">
-              <Button variant="outline" size="lg" className="border-white/30 text-white hover:bg-white/10 hover:border-white transition-all duration-300 px-8 py-6 text-lg">
-                <Headphones className="w-5 h-5 mr-2" />
-                Contact Sales
-              </Button>
-            </Link>
-          </div>
+          <p className="text-gray-600 mt-2">
+            Need help choosing? <a href="/contact" className="text-ocean-500 hover:underline">Contact us</a>
+          </p>
         </div>
-      </section>
-    </LandingLayout>
+      </div>
+    </div>
   );
 }

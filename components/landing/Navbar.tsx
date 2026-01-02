@@ -23,7 +23,7 @@ export default function Navbar() {
   }, []);
 
   const navItems: { href: string; label: string }[] = [
-    // { href: "/pricing", label: "Pricing" },
+    { href: "/pricing", label: "Pricing" },
     // { href: "/faq", label: "FAQ" },
   ];
 

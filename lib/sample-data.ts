@@ -32,6 +32,11 @@ export const navItems: NavItem[] = [
     icon: 'CalendarClock'
   },
   {
+    title: 'Manage Subscription',
+    href: '/subscription/manage',
+    icon: 'CreditCard'
+  },
+  {
     title: 'Settings',
     href: '/settings',
     icon: 'Settings2'

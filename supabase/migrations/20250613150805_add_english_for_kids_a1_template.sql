@@ -26,15 +26,25 @@ VALUES (
       {
         "id": "introduction_overview",
         "type": "info_card",
-        "title": "Introduction/Overview",
+        "title": "Introduction",
         "background_color_var": "primary_bg",
         "content_type": "text",
         "ai_placeholder": "introduction_overview"
       },
       {
+        "id": "warm_up",
+        "type": "exercise",
+        "title": "Warm-up",
+        "instruction": "Match the words with their translations in your native language.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "vocabulary_translation_match",
+        "items": [],
+        "ai_placeholder": "warmup_content"
+      },
+      {
         "id": "target_vocabulary_expressions",
         "type": "exercise",
-        "title": "Target Vocabulary/Expressions",
+        "title": "Target Vocabulary",
         "instruction": "Key words and phrases with simple example sentences.",
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "vocabulary_matching",

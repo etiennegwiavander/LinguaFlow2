@@ -255,7 +255,11 @@ export default function Sidebar({ className, onToggle }: SidebarProps) {
           {/* Secondary Navigation */}
           <nav className="space-y-1 px-2 pb-4">
             <TooltipProvider delayDuration={0}>
-              {filteredNavItems.filter(item => item.title === 'Calendar Sync' || item.title === 'Settings').map((item, index) => {
+              {filteredNavItems.filter(item => 
+                item.title === 'Calendar Sync' || 
+                item.title === 'Manage Subscription' || 
+                item.title === 'Settings'
+              ).map((item, index) => {
                 const active = isActive(item.href);
                 
                 return (
