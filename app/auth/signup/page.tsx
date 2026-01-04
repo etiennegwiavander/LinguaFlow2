@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Languages, Check, X } from "lucide-react";
+import { Eye, EyeOff, Check, X } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -53,11 +54,13 @@ const formSchema = z
     path: ["confirmPassword"],
   });
 
-export default function SignUpPage() {
+function SignUpPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -97,6 +100,13 @@ export default function SignUpPage() {
     try {
       await signUp(values.email, values.password, values.firstName, values.lastName);
       toast.success("Account created successfully!");
+      
+      // Check if there's a redirect parameter
+      const redirect = searchParams?.get('redirect');
+      if (redirect) {
+        // User will be auto-redirected by auth context, but we can help
+        router.push(redirect);
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -340,7 +350,7 @@ export default function SignUpPage() {
               <p className="text-center w-full text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link
-                  href="/auth/login"
+                  href={searchParams?.get('redirect') ? `/auth/login?redirect=${searchParams.get('redirect')}` : '/auth/login'}
                   className="font-medium text-cyber-400 hover:text-cyber-500 hover:underline transition-colors"
                 >
                   Sign in
@@ -351,5 +361,28 @@ export default function SignUpPage() {
         </div>
       </div>
     </LandingLayout>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <LandingLayout>
+        <div className="page-container">
+          <div className="page-background"></div>
+          <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+            <Card className="w-full max-w-md cyber-card">
+              <CardHeader className="space-y-2 text-center">
+                <CardTitle className="text-2xl font-bold">
+                  Loading...
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </LandingLayout>
+    }>
+      <SignUpPageContent />
+    </Suspense>
   );
 }

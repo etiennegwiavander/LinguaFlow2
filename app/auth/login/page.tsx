@@ -201,14 +201,14 @@ function LoginPageContent() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
+                    New to LinguaFlow?
                   </span>
                 </div>
               </div>
               <p className="text-center text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}
                 <Link
-                  href="/auth/signup"
+                  href={searchParams?.get('redirect') ? `/auth/signup?redirect=${searchParams.get('redirect')}` : '/auth/signup'}
                   className="font-medium text-cyber-400 hover:text-cyber-500 hover:underline transition-colors"
                 >
                   Sign up

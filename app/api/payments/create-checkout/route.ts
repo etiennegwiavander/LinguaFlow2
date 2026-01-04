@@ -161,8 +161,14 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Checkout error:', error);
+    // Log more details for debugging
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }

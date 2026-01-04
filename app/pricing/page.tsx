@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@supabase/supabase-js';
+import Link from 'next/link';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -42,10 +43,38 @@ export default function PricingPage() {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [currency, setCurrency] = useState<'USD' | 'XAF'>('USD');
+  const [currentPlanName, setCurrentPlanName] = useState<string>('free');
+
+  const fetchCurrentPlan = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/subscription/current', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentPlanName(data.plan.name);
+      }
+    } catch (error) {
+      console.error('Error fetching current plan:', error);
+      // Default to free if error
+      setCurrentPlanName('free');
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchPlans();
-  }, []);
+    if (user) {
+      fetchCurrentPlan();
+    }
+  }, [user, fetchCurrentPlan]);
 
   const handleSelectPlan = useCallback(async (planName: string) => {
     // Free plan doesn't require payment - just redirect to dashboard
@@ -119,8 +148,14 @@ export default function PricingPage() {
 
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Failed to start checkout. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start checkout. Please try again.';
+      alert(errorMessage);
       setProcessingPlan(null);
+      
+      // Clear pending plan on error to prevent auto-retry loops
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('pending_plan');
+      }
     }
   }, [user, billingCycle, currency, router]);
 
@@ -137,14 +172,17 @@ export default function PricingPage() {
           // Set the saved preferences
           setBillingCycle(savedCycle);
           setCurrency(savedCurrency);
-          // Clear from storage
+          // Clear from storage BEFORE triggering checkout to prevent loops
           sessionStorage.removeItem('pending_plan');
-          // Auto-trigger checkout
+          // Auto-trigger checkout with a slight delay to ensure state is updated
           setTimeout(() => {
+            console.log('Auto-resuming checkout for plan:', planName);
             handleSelectPlan(planName);
           }, 500);
         } catch (error) {
           console.error('Error resuming checkout:', error);
+          // Clear invalid data
+          sessionStorage.removeItem('pending_plan');
         }
       }
     }
@@ -190,6 +228,17 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-ocean-50 to-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
+        {/* Back Button */}
+        <div className="mb-8">
+          <Link
+            href={user ? "/dashboard" : "/"}
+            className="inline-flex items-center gap-2 text-ocean-600 hover:text-ocean-700 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to {user ? "Dashboard" : "Home"}</span>
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -271,18 +320,27 @@ export default function PricingPage() {
             const price = getPrice(plan);
             const isPopular = plan.features.popular;
             const isProcessing = processingPlan === plan.name;
+            const isCurrentPlan = user && plan.name === currentPlanName;
 
             return (
               <div
                 key={plan.id}
                 className={`relative bg-white rounded-2xl shadow-lg p-8 ${
                   isPopular ? 'ring-2 ring-ocean-500 scale-105' : ''
-                }`}
+                } ${isCurrentPlan ? 'ring-2 ring-emerald-500' : ''}`}
               >
-                {isPopular && (
+                {isPopular && !isCurrentPlan && (
                   <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                     <span className="bg-ocean-500 text-white px-4 py-1 rounded-full text-sm font-medium">
                       Most Popular
+                    </span>
+                  </div>
+                )}
+                
+                {isCurrentPlan && (
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <span className="bg-emerald-500 text-white px-4 py-1 rounded-full text-sm font-medium">
+                      Current Plan
                     </span>
                   </div>
                 )}
@@ -315,9 +373,11 @@ export default function PricingPage() {
 
                 <button
                   onClick={() => handleSelectPlan(plan.name)}
-                  disabled={isProcessing}
+                  disabled={isProcessing || Boolean(isCurrentPlan)}
                   className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-                    isPopular
+                    isCurrentPlan
+                      ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                      : isPopular
                       ? 'bg-ocean-500 text-white hover:bg-ocean-600'
                       : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                   } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
@@ -327,6 +387,8 @@ export default function PricingPage() {
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Processing...
                     </>
+                  ) : isCurrentPlan ? (
+                    'Current Plan'
                   ) : (
                     'Get Started'
                   )}
