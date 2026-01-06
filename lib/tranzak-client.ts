@@ -1,5 +1,5 @@
 // Tranzak Payment Gateway Client
-// Documentation: https://developers.tranzak.net
+// Documentation: https://docs.developer.tranzak.me
 
 interface TranzakConfig {
   apiKey: string;
@@ -10,22 +10,21 @@ interface TranzakConfig {
 
 interface TranzakPaymentRequest {
   amount: number;
-  currency: 'XAF' | 'USD';
+  currencyCode: string; // Changed from 'currency' to 'currencyCode'
   description: string;
-  return_url: string;
-  cancel_url: string;
-  customer_email: string;
-  customer_name: string;
-  metadata?: Record<string, any>;
+  returnUrl: string; // Changed from 'return_url' to 'returnUrl'
+  mchTransactionRef?: string; // Optional merchant transaction reference
 }
 
 interface TranzakPaymentResponse {
   success: boolean;
   data?: {
-    request_id: string;
-    payment_url: string;
+    requestId: string; // Changed from 'request_id' to 'requestId'
+    links: {
+      paymentUrl: string; // Nested in 'links' object
+    };
     amount: number;
-    currency: string;
+    currencyCode: string;
     status: string;
   };
   error?: {
@@ -55,12 +54,17 @@ class TranzakClient {
     this.config = {
       apiKey: process.env.TRANZAK_API_KEY || '',
       appId: process.env.TRANZAK_APP_ID || '',
-      baseUrl: process.env.TRANZAK_BASE_URL || 'https://api.tranzak.net/v1',
+      baseUrl: process.env.TRANZAK_BASE_URL || 'https://sandbox.dsapi.tranzak.me',
       environment: (process.env.TRANZAK_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
     };
+  }
 
+  /**
+   * Check if credentials are configured
+   */
+  private checkCredentials(): void {
     if (!this.config.apiKey || !this.config.appId) {
-      throw new Error('Tranzak API credentials not configured');
+      throw new Error('Tranzak API credentials not configured. Please set TRANZAK_API_KEY and TRANZAK_APP_ID in your environment variables.');
     }
   }
 
@@ -69,7 +73,12 @@ class TranzakClient {
    */
   async createPayment(request: TranzakPaymentRequest): Promise<TranzakPaymentResponse> {
     try {
-      const response = await fetch(`${this.config.baseUrl}/payments`, {
+      // Check credentials before making request
+      this.checkCredentials();
+
+      console.log('Creating Tranzak payment with request:', request);
+      
+      const response = await fetch(`${this.config.baseUrl}/xp021/v1/request-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,13 +89,25 @@ class TranzakClient {
       });
 
       const data = await response.json();
+      console.log('Tranzak API response:', { status: response.status, data });
 
       if (!response.ok) {
         return {
           success: false,
           error: {
-            code: data.error?.code || 'PAYMENT_ERROR',
-            message: data.error?.message || 'Failed to create payment',
+            code: data.errorCode?.toString() || 'PAYMENT_ERROR',
+            message: data.errorMsg || data.message || 'Failed to create payment',
+          },
+        };
+      }
+
+      // Check if response indicates success
+      if (!data.success) {
+        return {
+          success: false,
+          error: {
+            code: data.errorCode?.toString() || 'PAYMENT_ERROR',
+            message: data.errorMsg || 'Payment request failed',
           },
         };
       }
@@ -94,11 +115,13 @@ class TranzakClient {
       return {
         success: true,
         data: {
-          request_id: data.request_id,
-          payment_url: data.payment_url,
-          amount: data.amount,
-          currency: data.currency,
-          status: data.status,
+          requestId: data.data.requestId,
+          links: {
+            paymentUrl: data.data.links.paymentUrl,
+          },
+          amount: data.data.amount,
+          currencyCode: data.data.currencyCode,
+          status: data.data.status,
         },
       };
     } catch (error) {
@@ -118,7 +141,10 @@ class TranzakClient {
    */
   async verifyPayment(requestId: string): Promise<TranzakPaymentResponse> {
     try {
-      const response = await fetch(`${this.config.baseUrl}/payments/${requestId}`, {
+      // Check credentials before making request
+      this.checkCredentials();
+      
+      const response = await fetch(`${this.config.baseUrl}/xp021/v1/request-payment/${requestId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.config.apiKey}`,
@@ -128,12 +154,12 @@ class TranzakClient {
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || !data.success) {
         return {
           success: false,
           error: {
-            code: data.error?.code || 'VERIFICATION_ERROR',
-            message: data.error?.message || 'Failed to verify payment',
+            code: data.errorCode?.toString() || 'VERIFICATION_ERROR',
+            message: data.errorMsg || 'Failed to verify payment',
           },
         };
       }
@@ -141,11 +167,13 @@ class TranzakClient {
       return {
         success: true,
         data: {
-          request_id: data.request_id,
-          payment_url: data.payment_url,
-          amount: data.amount,
-          currency: data.currency,
-          status: data.status,
+          requestId: data.data.requestId,
+          links: {
+            paymentUrl: data.data.links.paymentUrl,
+          },
+          amount: data.data.amount,
+          currencyCode: data.data.currencyCode,
+          status: data.data.status,
         },
       };
     } catch (error) {

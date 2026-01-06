@@ -1,8 +1,8 @@
 // Create Tranzak payment checkout session
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { tranzakClient } from '@/lib/tranzak-client';
 import type { SubscriptionPlanName } from '@/types/subscription';
+import { tranzakClient } from '@/lib/tranzak-client';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,21 +112,17 @@ export async function POST(request: NextRequest) {
     // Create Tranzak payment request
     const paymentRequest = {
       amount,
-      currency: currency as 'XAF' | 'USD',
+      currencyCode: currency, // Use currencyCode instead of currency
       description: `LinguaFlow ${plan.display_name} - ${billingCycle === 'annual' ? 'Annual' : 'Monthly'} Subscription`,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://linguaflow.online'}/subscription/success?transaction_id=${transaction.id}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://linguaflow.online'}/subscription/cancel?transaction_id=${transaction.id}`,
-      customer_email: tutor.email,
-      customer_name: `${tutor.first_name || ''} ${tutor.last_name || ''}`.trim() || tutor.email,
-      metadata: {
-        tutor_id: tutor.id,
-        transaction_id: transaction.id,
-        plan_name: planName,
-        billing_cycle: billingCycle,
-      },
+      returnUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/subscription/success?transaction_id=${transaction.id}`, // Use returnUrl instead of return_url
+      mchTransactionRef: transaction.id, // Add merchant transaction reference
     };
 
+    console.log('Creating payment with request:', paymentRequest);
+
     const paymentResponse = await tranzakClient.createPayment(paymentRequest);
+
+    console.log('Payment response:', paymentResponse);
 
     if (!paymentResponse.success || !paymentResponse.data) {
       // Update transaction with error
@@ -148,15 +144,15 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('payment_transactions')
       .update({
-        tranzak_request_id: paymentResponse.data.request_id,
+        tranzak_request_id: paymentResponse.data.requestId, // Use requestId instead of request_id
       })
       .eq('id', transaction.id);
 
     return NextResponse.json({
       success: true,
-      payment_url: paymentResponse.data.payment_url,
+      payment_url: paymentResponse.data.links.paymentUrl, // Access nested paymentUrl
       transaction_id: transaction.id,
-      request_id: paymentResponse.data.request_id,
+      request_id: paymentResponse.data.requestId,
     });
 
   } catch (error) {

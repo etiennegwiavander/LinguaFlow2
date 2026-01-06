@@ -33,10 +33,26 @@ export async function GET(request: NextRequest) {
     const subscriptionData = await SubscriptionService.getTutorSubscription(user.id);
 
     if (!subscriptionData) {
-      return NextResponse.json(
-        { error: 'No active subscription found' },
-        { status: 404 }
-      );
+      // User is on free plan - return free plan details
+      const freePlan = await SubscriptionService.getPlanByName('free');
+      
+      if (!freePlan) {
+        return NextResponse.json(
+          { error: 'Free plan not found in database' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        subscription: null,
+        plan: freePlan,
+        usage: {
+          lessons_generated: 0,
+          vocabulary_sessions_created: 0,
+          discussion_prompts_created: 0,
+          students_count: 0,
+        },
+      });
     }
 
     return NextResponse.json({
