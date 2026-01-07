@@ -48,22 +48,47 @@ interface TranzakWebhookPayload {
 }
 
 class TranzakClient {
-  private config: TranzakConfig;
+  private config: TranzakConfig | null = null;
 
-  constructor() {
-    this.config = {
-      apiKey: process.env.TRANZAK_API_KEY || '',
-      appId: process.env.TRANZAK_APP_ID || '',
-      baseUrl: process.env.TRANZAK_BASE_URL || 'https://sandbox.dsapi.tranzak.me',
-      environment: (process.env.TRANZAK_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
-    };
+  /**
+   * Get configuration (lazy load)
+   */
+  private getConfig(): TranzakConfig {
+    if (!this.config) {
+      this.config = {
+        apiKey: process.env.TRANZAK_API_KEY || '',
+        appId: process.env.TRANZAK_APP_ID || '',
+        baseUrl: process.env.TRANZAK_BASE_URL || 'https://sandbox.dsapi.tranzak.me',
+        environment: (process.env.TRANZAK_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
+      };
+      
+      // Log configuration status (without exposing full keys)
+      console.log('Tranzak config loaded:', {
+        hasApiKey: !!this.config.apiKey,
+        hasAppId: !!this.config.appId,
+        baseUrl: this.config.baseUrl,
+        environment: this.config.environment,
+        apiKeyPrefix: this.config.apiKey ? this.config.apiKey.substring(0, 10) + '...' : 'MISSING',
+      });
+    }
+    return this.config;
   }
 
   /**
    * Check if credentials are configured
    */
   private checkCredentials(): void {
-    if (!this.config.apiKey || !this.config.appId) {
+    const config = this.getConfig();
+    
+    if (!config.apiKey || !config.appId) {
+      console.error('Tranzak credentials check failed:', {
+        hasApiKey: !!config.apiKey,
+        hasAppId: !!config.appId,
+        envVars: {
+          TRANZAK_API_KEY: process.env.TRANZAK_API_KEY ? 'SET' : 'MISSING',
+          TRANZAK_APP_ID: process.env.TRANZAK_APP_ID ? 'SET' : 'MISSING',
+        }
+      });
       throw new Error('Tranzak API credentials not configured. Please set TRANZAK_API_KEY and TRANZAK_APP_ID in your environment variables.');
     }
   }
@@ -75,15 +100,22 @@ class TranzakClient {
     try {
       // Check credentials before making request
       this.checkCredentials();
+      
+      const config = this.getConfig();
 
       console.log('Creating Tranzak payment with request:', request);
+      console.log('Using config:', {
+        baseUrl: config.baseUrl,
+        hasApiKey: !!config.apiKey,
+        hasAppId: !!config.appId,
+      });
       
-      const response = await fetch(`${this.config.baseUrl}/xp021/v1/request-payment`, {
+      const response = await fetch(`${config.baseUrl}/xp021/v1/request-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'X-App-Id': this.config.appId,
+          'Authorization': `Bearer ${config.apiKey}`,
+          'X-App-Id': config.appId,
         },
         body: JSON.stringify(request),
       });
@@ -144,11 +176,13 @@ class TranzakClient {
       // Check credentials before making request
       this.checkCredentials();
       
-      const response = await fetch(`${this.config.baseUrl}/xp021/v1/request-payment/${requestId}`, {
+      const config = this.getConfig();
+      
+      const response = await fetch(`${config.baseUrl}/xp021/v1/request-payment/${requestId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'X-App-Id': this.config.appId,
+          'Authorization': `Bearer ${config.apiKey}`,
+          'X-App-Id': config.appId,
         },
       });
 
