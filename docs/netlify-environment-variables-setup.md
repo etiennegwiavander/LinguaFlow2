@@ -198,20 +198,20 @@ TRANZAK_API_KEY=SAND_DAD99DEC07124C36939663D56E35DC5C
 TRANZAK_APP_ID=ap6n2xfl5md3lu
 TRANZAK_BASE_URL=https://sandbox.dsapi.tranzak.me
 TRANZAK_ENVIRONMENT=sandbox
-TRANZAK_WEBHOOK_SECRET=KP[QqH1FRcpWbF92E9zg3_mZ79PH9mHbW*f
+TRANZAK_WEBHOOK_SECRET=your-tranzak-webhook-secret
 ```
 
 ### Google OAuth (Required for calendar)
 ```
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=630010123392-tpf2fk7je8828j8qnqdtfq9hc31srpp0.apps.googleusercontent.com
-GOOGLE_CLIENT_ID=630010123392-tpf2fk7je8828j8qnqdtfq9hc31srpp0.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
 
 ### AI Services (Required for lesson generation)
 ```
-GEMINI_API_KEY=AIzaSyCOK7Uim0JUd3Gzg0dfmhFwTSjL7NyTDJ8
-OPENROUTER_API_KEY=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
+GEMINI_API_KEY=your-gemini-api-key
+OPENROUTER_API_KEY=your-openrouter-api-key
 ```
 
 ### Email (Required for notifications)

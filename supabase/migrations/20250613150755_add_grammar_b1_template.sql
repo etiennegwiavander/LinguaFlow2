@@ -1,4 +1,7 @@
--- Insert Grammar B1 Lesson Template
+-- Delete existing Grammar B1 template if it exists
+DELETE FROM lesson_templates WHERE name = 'Grammar Lesson' AND category = 'Grammar' AND level = 'b1';
+
+-- Insert corrected Grammar B1 Lesson Template
 INSERT INTO lesson_templates (name, category, level, template_json)
 VALUES (
   'Grammar Lesson',
@@ -26,7 +29,7 @@ VALUES (
       {
         "id": "introduction_overview",
         "type": "info_card",
-        "title": "Introduction/Overview",
+        "title": "Introduction",
         "background_color_var": "primary_bg",
         "content_type": "text",
         "ai_placeholder": "introduction_overview"
@@ -61,35 +64,26 @@ VALUES (
         "ai_placeholder": "dialogue_content"
       },
       {
-        "id": "comprehension_practice_questions",
+        "id": "comprehension_questions",
         "type": "exercise",
-        "title": "Comprehension/Practice Questions",
+        "title": "Comprehension Questions",
         "instruction": "Answer these questions about yourself or the dialogue.",
         "instruction_bg_color_var": "secondary_bg",
-        "content_type": "list",
-        "items": [],
+        "content_type": "matching",
+        "matching_pairs": [],
         "ai_placeholder": "comprehension_questions"
       },
       {
         "id": "guided_practice_fill_in_the_blank",
         "type": "exercise",
-        "title": "Guided Practice/Fill-in-the-Blank",
-        "instruction": "Fill-in-the-blank or matching exercises using ''can'' and ''can’t''.",
+        "title": "Fill-in-the-Blank",
+        "instruction": "Fill-in-the-blank or matching exercises.",
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "fill_in_the_blanks_dialogue",
         "dialogue_elements": [],
         "ai_placeholder": "fill_in_the_blanks_content"
       },
-      {
-        "id": "speaking_practice_role_play",
-        "type": "exercise",
-        "title": "Speaking Practice/Role-Play",
-        "instruction": "Practice asking and answering about abilities with a partner.",
-        "instruction_bg_color_color_var": "secondary_bg",
-        "content_type": "list",
-        "items": [],
-        "ai_placeholder": "speaking_practice_prompts"
-      },
+      
       {
         "id": "wrap_up_reflection",
         "type": "info_card",
