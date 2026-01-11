@@ -26,50 +26,10 @@ VALUES (
       {
         "id": "introduction_overview",
         "type": "info_card",
-        "title": "Introduction/Overview",
+        "title": "Introduction",
         "background_color_var": "primary_bg",
         "content_type": "text",
         "ai_placeholder": "introduction_overview"
-      },
-      {
-        "id": "key_vocabulary_grammar_focus",
-        "type": "exercise",
-        "title": "Key Vocabulary/Grammar Focus",
-        "instruction": "Essential words and phrases with example sentences using the target grammar structure.",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "vocabulary_matching",
-        "vocabulary_items": [],
-        "ai_placeholder": "vocabulary_grammar_focus"
-      },
-      {
-        "id": "example_sentences_dialogue",
-        "type": "exercise",
-        "title": "Example Sentences/Dialogue",
-        "instruction": "Demonstrating the grammar in context.",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "full_dialogue",
-        "dialogue_lines": [],
-        "ai_placeholder": "example_content"
-      },
-      {
-        "id": "comprehension_practice",
-        "type": "exercise",
-        "title": "Comprehension Questions/Practice",
-        "instruction": "Check your understanding and practice the grammar point.",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "matching",
-        "matching_pairs": [],
-        "ai_placeholder": "comprehension_practice"
-      },
-      {
-        "id": "discussion_production_prompts",
-        "type": "exercise",
-        "title": "Discussion/Production Prompts",
-        "instruction": "Use the grammar to talk about yourself.",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "list",
-        "items": [],
-        "ai_placeholder": "discussion_prompts"
       },
       {
         "id": "useful_expressions",
@@ -80,6 +40,55 @@ VALUES (
         "content_type": "list",
         "items": [],
         "ai_placeholder": "useful_expressions"
+      },      
+      {
+        "id": "key_vocabulary_grammar_focus",
+        "type": "exercise",
+        "title": "Key Vocabulary",
+        "instruction": "Essential words and phrases with example sentences using the target grammar structure.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "vocabulary_matching",
+        "vocabulary_items": [],
+        "ai_placeholder": "vocabulary_grammar_focus"
+      },
+      {
+        "id": "grammar_explanation",
+        "type": "exercise",
+        "title": "Grammar Explanation",
+        "instruction": "Brief, clear explanation of the target grammar, with example sentences.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "text",
+        "ai_placeholder": "grammar_explanation"
+      },
+      {
+        "id": "example_sentences_dialogue",
+        "type": "exercise",
+        "title": "Dialogue",
+        "instruction": "Demonstrating the grammar in context.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "full_dialogue",
+        "dialogue_lines": [],
+        "ai_placeholder": "example_content"
+      },
+      {
+        "id": "comprehension_practice",
+        "type": "exercise",
+        "title": "Comprehension Questions",
+        "instruction": "Check your understanding and practice the grammar point.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "matching",
+        "matching_pairs": [],
+        "ai_placeholder": "comprehension_practice"
+      },
+      {
+        "id": "discussion_production_prompts",
+        "type": "exercise",
+        "title": "Discussion",
+        "instruction": "Use the grammar to talk about yourself.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "items": [],
+        "ai_placeholder": "discussion_prompts"
       },
       {
         "id": "practice_activities",
