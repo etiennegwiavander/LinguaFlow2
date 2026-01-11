@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useContext } from "react";
 import { SubTopic } from "@/types";
+import { toast } from "sonner";
 import { 
   Dialog, 
   DialogContent, 
@@ -229,6 +230,15 @@ function SubTopicSelectionDialogContent({
   };
 
   const handleSelectSubTopic = (subTopic: SubTopic) => {
+    // ✅ Validate category is not empty before proceeding
+    if (!subTopic.category || subTopic.category.trim() === '') {
+      toast.error('Please select a category before creating interactive material', {
+        description: 'The category field cannot be empty. Please choose a category from the dropdown.',
+        duration: 5000,
+      });
+      return; // Stop execution
+    }
+    
     setIsCompletingLesson(true);
     onSelectSubTopic(subTopic);
   };
@@ -347,14 +357,21 @@ function SubTopicSelectionDialogContent({
                     <div>
                       <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">
                         Category
+                        {(!subTopic.category || subTopic.category.trim() === '') && (
+                          <span className="text-red-500 ml-1">*</span>
+                        )}
                       </Label>
                       <Select
                         value={subTopic.category}
                         onValueChange={(value) => handleSubTopicEdit(index, 'category', value)}
                         disabled={isGenerating || isCompletingLesson}
                       >
-                        <SelectTrigger className="border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-cyan-400">
-                          <SelectValue />
+                        <SelectTrigger className={`border-2 rounded-lg focus:border-cyan-400 ${
+                          (!subTopic.category || subTopic.category.trim() === '')
+                            ? 'border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-950/20'
+                            : 'border-gray-300 dark:border-gray-600'
+                        }`}>
+                          <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
                         <SelectContent>
                           {availableCategories.map(category => (
@@ -362,6 +379,9 @@ function SubTopicSelectionDialogContent({
                           ))}
                         </SelectContent>
                       </Select>
+                      {(!subTopic.category || subTopic.category.trim() === '') && (
+                        <p className="text-xs text-red-500 mt-1">Category is required</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">

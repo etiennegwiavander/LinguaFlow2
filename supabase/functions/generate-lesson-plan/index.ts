@@ -336,6 +336,19 @@ Return ONLY a JSON object with this exact structure:
     const aiResponse = await callGeminiAPI(prompt);
     console.log(`✅ AI generated lesson ${lessonNumber} successfully`);
     console.log(`📝 Generated sub-topics: ${aiResponse.sub_topics?.map(st => st.title).join(', ')}`);
+    
+    // ✅ ENFORCE: Override AI category/level with template values to prevent AI hallucination
+    // This fixes issues where AI generates wrong categories (e.g., "English for Kids" for adults)
+    // or leaves category empty, causing UI breakage
+    if (aiResponse.sub_topics && Array.isArray(aiResponse.sub_topics)) {
+      aiResponse.sub_topics = aiResponse.sub_topics.map(subTopic => ({
+        ...subTopic,
+        category: template.category,  // Force correct category from template
+        level: student.level           // Force correct level from student profile
+      }));
+      console.log(`✅ Enforced category "${template.category}" and level "${student.level}" for all sub-topics`);
+    }
+    
     return aiResponse;
   } catch (error) {
     console.error(`❌ AI generation failed for lesson ${lessonNumber}:`, error);
@@ -546,6 +559,18 @@ Return ONLY a JSON object with this exact structure:
 
   try {
     const aiResponse = await callGeminiAPI(prompt);
+    
+    // ✅ ENFORCE: Override AI category/level to prevent hallucination
+    // For additional lessons without specific templates, use "General" category
+    if (aiResponse.sub_topics && Array.isArray(aiResponse.sub_topics)) {
+      aiResponse.sub_topics = aiResponse.sub_topics.map(subTopic => ({
+        ...subTopic,
+        category: subTopic.category || 'General',  // Use AI category if valid, otherwise "General"
+        level: student.level                        // Force correct level from student profile
+      }));
+      console.log(`✅ Enforced level "${student.level}" for additional lesson sub-topics`);
+    }
+    
     return aiResponse;
   } catch (error) {
     console.error(`❌ AI generation failed for additional lesson ${lessonNumber}:`, error);
