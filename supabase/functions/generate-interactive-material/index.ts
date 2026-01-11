@@ -342,8 +342,17 @@ OTHER INSTRUCTIONS:
    For sections with content_type "vocabulary_matching":
    - Create a field named after the ai_placeholder value (e.g., "word_list_sound1")
    - ALSO create a "vocabulary_items" array DIRECTLY in the section (not nested)
-   - Each vocabulary item should have: {"word": "example_word", "pronunciation": "/ɪɡˈzæmpəl/", "meaning": "definition"}
+   - Each vocabulary item MUST have: {"word": "example_word", "pronunciation": "/ɪɡˈzæmpəl/", "meaning": "definition", "examples": [...]}
    - Generate 5-8 vocabulary items focusing on the target pronunciation sounds
+   - **CRITICAL**: Each vocabulary item MUST include an "examples" array with EXACTLY 3 contextual example sentences
+   - The example sentences MUST:
+     * Use the actual word in realistic, natural contexts
+     * Demonstrate proper pronunciation usage in different sentence structures
+     * Be contextually relevant to the word's meaning and usage
+     * Show the word in varied grammatical contexts (subject, object, different tenses)
+     * Be appropriate for ${student.level.toUpperCase()} level learners
+     * Avoid generic or repetitive sentence patterns
+   - Make examples relevant to "${subTopic.title}" and appropriate for ${student.level.toUpperCase()} level
    
    Example structure for vocabulary_matching:
    {
@@ -352,9 +361,36 @@ OTHER INSTRUCTIONS:
      "ai_placeholder": "word_list_sound1",
      "word_list_sound1": "Practice these words with Sound 1",
      "vocabulary_items": [
-       {"word": "ship", "pronunciation": "/ʃɪp/", "meaning": "a large boat"},
-       {"word": "sheep", "pronunciation": "/ʃiːp/", "meaning": "a farm animal with wool"},
-       {"word": "shop", "pronunciation": "/ʃɒp/", "meaning": "a place to buy things"}
+       {
+         "word": "ship",
+         "pronunciation": "/ʃɪp/",
+         "meaning": "a large boat",
+         "examples": [
+           "The ship sailed across the ocean.",
+           "We watched the cruise ship leave the harbor.",
+           "My grandfather worked on a cargo ship."
+         ]
+       },
+       {
+         "word": "sheep",
+         "pronunciation": "/ʃiːp/",
+         "meaning": "a farm animal with wool",
+         "examples": [
+           "The farmer counted his sheep every evening.",
+           "Sheep graze peacefully in the green meadow.",
+           "We saw hundreds of sheep on the hillside."
+         ]
+       },
+       {
+         "word": "shop",
+         "pronunciation": "/ʃɒp/",
+         "meaning": "a place to buy things",
+         "examples": [
+           "I need to shop for groceries this afternoon.",
+           "The coffee shop opens at 7 AM every day.",
+           "She loves to shop for vintage clothing."
+         ]
+       }
      ]
    }
    
