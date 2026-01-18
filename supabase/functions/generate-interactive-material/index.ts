@@ -269,7 +269,15 @@ OTHER INSTRUCTIONS:
    }
    Make sure the sentences are contextually relevant to "${subTopic.title}" and appropriate for ${student.level.toUpperCase()} level.
 
-5. For vocabulary_items arrays, create EXACTLY 5-7 relevant vocabulary words (minimum 5, maximum 7). Each vocabulary item MUST have this exact structure with the correct number of examples based on student level:
+5. For vocabulary_items arrays, create EXACTLY 5-7 relevant vocabulary words (minimum 5, maximum 7). Each vocabulary item MUST have this exact structure with the correct number of examples based on lesson type and student level:
+   
+   🎯 FOR PRONUNCIATION LESSONS ONLY:
+   - Generate EXACTLY 3 example sentences per vocabulary word (ALL LEVELS: A1, A2, B1, B2, C1, C2)
+   - Focus on demonstrating the TARGET SOUND in clear, simple contexts
+   - Prioritize PRONUNCIATION practice over vocabulary depth
+   - Keep examples SHORT and CLEAR for sound repetition practice
+   
+   📚 FOR ALL OTHER LESSON TYPES:
    - A1/A2 levels: Generate 5 example sentences per vocabulary word
    - B1/B2 levels: Generate 4 example sentences per vocabulary word  
    - C1/C2 levels: Generate 3 example sentences per vocabulary word
@@ -288,7 +296,9 @@ OTHER INSTRUCTIONS:
        "DISTINCT sentence 3 using ALTERNATIVE sentence patterns in ${
          subTopic.title
        } context"${
-      student.level.toLowerCase().startsWith("a")
+      subTopic.category === 'Pronunciation' 
+        ? '' // Pronunciation: Stop at 3 examples
+        : student.level.toLowerCase().startsWith("a")
         ? ',\n       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context",\n       "ADDITIONAL sentence 5 with UNIQUE structure and context in ${subTopic.title} context"'
         : student.level.toLowerCase().startsWith("b")
         ? ',\n       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context"'
@@ -740,6 +750,15 @@ function validateAndEnsureExamples(
 ): any {
   console.log("🔍 Validating and ensuring vocabulary examples...");
 
+  // Detect if this is a pronunciation lesson
+  const isPronunciationLesson = 
+    template?.category === 'Pronunciation' || 
+    subTopic?.category === 'Pronunciation';
+
+  if (isPronunciationLesson) {
+    console.log("🎯 Pronunciation lesson detected - using 3-example limit for all levels");
+  }
+
   // Helper function to generate diverse, word-specific contextual examples
   const generateContextualExamples = (
     word: string,
@@ -861,34 +880,56 @@ function validateAndEnsureExamples(
               );
             }
 
-            // Ensure we have the right number of examples based on level
-            const levelLower = student.level.toLowerCase();
-            const targetCount = levelLower.startsWith("a")
-              ? 5
-              : levelLower.startsWith("b")
-              ? 4
-              : 3;
+            // Ensure we have the right number of examples based on lesson type and level
+            let targetCount;
+            
+            if (isPronunciationLesson) {
+              // Pronunciation lessons: Always 3 examples for all levels
+              // This prevents generic fallback sentences and focuses on sound practice
+              targetCount = 3;
+              console.log(`   📢 Pronunciation lesson: Target count set to 3 examples (regardless of level ${student.level})`);
+            } else {
+              // Other lesson types: Level-based count
+              const levelLower = student.level.toLowerCase();
+              targetCount = levelLower.startsWith("a")
+                ? 5
+                : levelLower.startsWith("b")
+                ? 4
+                : 3;
+              console.log(`   📚 Non-pronunciation lesson: Target count set to ${targetCount} examples for level ${student.level}`);
+            }
 
             if (item.examples.length > targetCount) {
               item.examples = item.examples.slice(0, targetCount);
             } else if (item.examples.length < targetCount) {
-              // Add more examples if needed
-              const word = item.word || "word";
-              const definition = item.definition || "definition";
-              const partOfSpeech = item.part_of_speech || "noun";
-              const additionalExamples = generateContextualExamples(
-                word,
-                definition,
-                partOfSpeech
-              );
+              // For pronunciation lessons, only add fallbacks if we have fewer than 2 examples
+              // This prevents generic sentences while ensuring minimum quality
+              if (isPronunciationLesson && item.examples.length >= 2) {
+                console.log(
+                  `   ✅ Pronunciation lesson: "${item.word}" has ${item.examples.length} examples (acceptable, not adding fallbacks)`
+                );
+              } else {
+                // Add more examples if needed
+                console.log(
+                  `   ⚠️ Adding fallback examples for "${item.word}" (current: ${item.examples.length}, target: ${targetCount})`
+                );
+                const word = item.word || "word";
+                const definition = item.definition || "definition";
+                const partOfSpeech = item.part_of_speech || "noun";
+                const additionalExamples = generateContextualExamples(
+                  word,
+                  definition,
+                  partOfSpeech
+                );
 
-              while (
-                item.examples.length < targetCount &&
-                additionalExamples.length > 0
-              ) {
-                const newExample = additionalExamples.pop();
-                if (newExample && !item.examples.includes(newExample)) {
-                  item.examples.push(newExample);
+                while (
+                  item.examples.length < targetCount &&
+                  additionalExamples.length > 0
+                ) {
+                  const newExample = additionalExamples.pop();
+                  if (newExample && !item.examples.includes(newExample)) {
+                    item.examples.push(newExample);
+                  }
                 }
               }
             }
