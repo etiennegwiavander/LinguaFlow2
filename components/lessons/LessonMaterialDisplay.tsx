@@ -675,6 +675,13 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
 
+  // Reset share URL when lesson changes to prevent sharing wrong lesson
+  useEffect(() => {
+    console.log('🔄 Lesson changed, resetting shareUrl state');
+    setShareUrl(null);
+    setIsSharing(false);
+  }, [lesson?.id]);
+
   // Initialize dialogue avatars hook
   const { getCharacterInfo, preloadAvatars } = useDialogueAvatars();
 
@@ -825,10 +832,11 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         student_id: preloadedLessonData.student_id
       });
 
-      // CRITICAL: Use lesson_id if available (from history), otherwise use id (from fresh lesson)
-      const correctLessonId = preloadedLessonData.lesson_id || preloadedLessonData.id;
+      // CRITICAL FIX: Always use lessonId prop as the source of truth
+      // The lessonId prop tells us which lesson we're viewing
+      const correctLessonId = lessonId;
       
-      console.log('✅ Using lesson ID:', correctLessonId);
+      console.log('✅ Using lesson ID from prop (source of truth):', correctLessonId);
 
       const lessonData = {
         ...preloadedLessonData,
@@ -1289,6 +1297,10 @@ export default function LessonMaterialDisplay({ lessonId, studentNativeLanguage,
         lesson_title: lesson.interactive_lesson_content?.name || lesson.interactive_lesson_content?.selected_sub_topic?.title || 'Interactive Lesson',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
         is_active: true,
+        // CRITICAL FIX: Store a snapshot of the interactive content
+        // This ensures the shared link always shows the correct content
+        // even if the parent lesson is regenerated with different content
+        interactive_content_snapshot: lesson.interactive_lesson_content || null,
         // Add metadata for rich previews
         lesson_category: lesson.interactive_lesson_content?.selected_sub_topic?.category || lesson.interactive_lesson_content?.category || null,
         lesson_level: studentData?.level || lesson.student?.level || lesson.interactive_lesson_content?.level || null,

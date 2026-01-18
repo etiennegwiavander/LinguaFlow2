@@ -133,14 +133,18 @@ function SharedLessonPage() {
 
       setSharedLesson(sharedData);
 
-      // Parse lesson materials - prioritize interactive_lesson_content
-      if (sharedData.lesson?.interactive_lesson_content) {
+      // CRITICAL FIX: Use the interactive_content_snapshot if available
+      // This ensures we show the content that was shared, not the current lesson content
+      const interactiveContentToUse = sharedData.interactive_content_snapshot || sharedData.lesson?.interactive_lesson_content;
+
+      // Parse lesson materials - prioritize interactive_content_snapshot
+      if (interactiveContentToUse) {
         try {
           let interactiveContent;
-          if (typeof sharedData.lesson.interactive_lesson_content === 'string') {
-            interactiveContent = JSON.parse(sharedData.lesson.interactive_lesson_content);
+          if (typeof interactiveContentToUse === 'string') {
+            interactiveContent = JSON.parse(interactiveContentToUse);
           } else {
-            interactiveContent = sharedData.lesson.interactive_lesson_content;
+            interactiveContent = interactiveContentToUse;
           }
 
           setLessonContent(interactiveContent);

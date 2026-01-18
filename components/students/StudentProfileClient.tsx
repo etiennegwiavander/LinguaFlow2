@@ -1234,6 +1234,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
                   return (selectedLessonId || persistentLessonData) ? (
                     <LessonMaterialDisplay
+                      key={lessonId || 'no-lesson'}
                       lessonId={lessonId}
                       studentNativeLanguage={student.native_language}
                       preloadedLessonData={preloadedData}
