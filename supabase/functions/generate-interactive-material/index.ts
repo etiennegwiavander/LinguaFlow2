@@ -1192,7 +1192,7 @@ serve(async (req) => {
             },
           ],
           temperature: 0.1,
-          max_tokens: 4000,
+          max_tokens: 10000,
         }),
       }
     );
