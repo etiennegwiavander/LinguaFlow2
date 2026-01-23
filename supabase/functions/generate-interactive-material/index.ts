@@ -608,6 +608,12 @@ Create a basic interactive lesson focused on this sub-topic. Respond with this J
           }",
           "Contextual sentence 3 using word5 in the context of ${
             subTopic.title
+          }",
+          "Contextual sentence 4 using word5 in the context of ${
+            subTopic.title
+          }",
+          "Contextual sentence 5 using word5 in the context of ${
+            subTopic.title
           }"
         ]
       }
@@ -648,6 +654,14 @@ Create a basic interactive lesson focused on this sub-topic. Respond with this J
 }
 
 CRITICAL INSTRUCTIONS FOR CONTEXTUAL EXAMPLE SENTENCES:
+
+🚨 IMPORTANT: The JSON example above shows 5 example sentences for demonstration.
+However, you MUST generate the correct number based on the student's actual level:
+- Current Student Level: ${student.level.toUpperCase()}
+- Required Examples Per Word: ${student.level.toLowerCase().startsWith('a') ? '5 examples' : student.level.toLowerCase().startsWith('b') ? '4 examples' : '3 examples'}
+
+DO NOT blindly copy the example structure. Adjust the number of examples to match the student's level.
+
 1. Focus specifically on the sub-topic: ${subTopic.title}
 2. Make content appropriate for ${student.level.toUpperCase()} level ${languageName}
 3. Address the student's specific learning needs: ${
