@@ -23,9 +23,9 @@ export default function Footer() {
   };
 
   const socialLinks = [
-    { icon: Github, href: "https://github.com", label: "GitHub" },
-    { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
-    { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
+    // { icon: Github, href: "https://github.com", label: "GitHub" },
+    // { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
+    { icon: Linkedin, href: "https://www.linkedin.com/company/linguaflow-online", label: "LinkedIn" },
     { icon: Mail, href: "mailto:linguaflowservices@gmail.com", label: "Email" },
   ];
 
