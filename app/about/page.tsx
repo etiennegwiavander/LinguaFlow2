@@ -47,7 +47,7 @@ export default function AboutPage() {
               
               <div className="prose prose-lg dark:prose-invert">
                 <p>
-                  LinguaFlow was born from a deeply personal challenge faced by our founder, Etienne Gwiavander. As a part-time online language tutor managing over 50 students monthly, Etienne experienced firsthand the overwhelming burden of lesson preparation.
+                  LinguaFlow was born from a deeply personal challenge faced by our founder, Etienne G. As a part-time online language tutor managing over 50 students monthly, Etienne experienced firsthand the overwhelming burden of lesson preparation.
                 </p>
                 
                 <p>
@@ -295,7 +295,7 @@ export default function AboutPage() {
       </section>
 
       {/* About the Founder */}
-      <section className="py-16 relative">
+      {/* <section className="py-16 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-slide-up">
@@ -344,7 +344,7 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-br from-cyber-900 via-neon-900 to-purple-900 relative overflow-hidden">
