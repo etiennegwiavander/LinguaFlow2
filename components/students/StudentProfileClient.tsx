@@ -226,10 +226,10 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       try {
         const { sessions } = await lessonHistoryService.getLessonHistory(student.id, { limit: 50 });
         setLessonHistory(sessions);
-        console.log('📚 Loaded lesson history from database:', sessions.length, 'completed lessons');
+        // console.log('📚 Loaded lesson history from database:', sessions.length, 'completed lessons');
         return;
       } catch (dbError) {
-        console.warn('Database lesson history failed, falling back to legacy method:', dbError);
+        dbError;
       }
 
       // Fallback to legacy method
@@ -249,7 +249,7 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
         .limit(20);
 
       if (error) {
-        console.error('Error loading lesson history:', error);
+        error;
         return;
       }
 
@@ -284,10 +284,10 @@ export default function StudentProfileClient({ student }: StudentProfileClientPr
       completedLessonEntries.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
 
       setLessonHistory(completedLessonEntries);
-      console.log('📚 Loaded lesson history from fallback method:', completedLessonEntries.length, 'completed lessons');
+      // console.log('📚 Loaded lesson history from fallback method:', completedLessonEntries.length, 'completed lessons');
       
     } catch (error) {
-      console.error('Error loading lesson history:', error);
+      error;
     } finally {
       setLoadingLessonHistory(false);
     }
@@ -505,7 +505,7 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
 
       if (result.success) {
         // Mark the sub-topic as completed with full context
-        console.log('🎯 SUCCESS: Interactive material created for sub-topic:', subTopic.id, subTopic.title);
+        // console.log('🎯 SUCCESS: Interactive material created for sub-topic:', subTopic.id, subTopic.title);
         await markSubTopicComplete(subTopic.id, subTopic, {
           lesson_id: upcomingLesson?.id,
           lesson_template_id: upcomingLesson?.lesson_template_id,
@@ -520,12 +520,12 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           lesson_template_id: result.lesson_template_id
         };
 
-        console.log('🎯 Setting persistent lesson data:', {
-          lessonId: upcomingLesson.id,
-          hasInteractiveContent: !!result.interactive_content,
-          templateId: result.lesson_template_id,
-          interactiveContentKeys: result.interactive_content ? Object.keys(result.interactive_content) : []
-        });
+        // console.log('🎯 Setting persistent lesson data:', {
+        //   lessonId: upcomingLesson.id,
+        //   hasInteractiveContent: !!result.interactive_content,
+        //   templateId: result.lesson_template_id,
+        //   interactiveContentKeys: result.interactive_content ? Object.keys(result.interactive_content) : []
+        // });
 
         // Set persistent lesson data for the newly created interactive material
         setPersistentLessonData({
@@ -533,11 +533,11 @@ ${lesson.assessment.map(ass => `• ${ass}`).join('\n')}
           lessonData: updatedLessonData
         });
 
-        console.log('✅ Persistent lesson data set successfully:', {
-          lessonId: upcomingLesson.id,
-          hasUpdatedLessonData: !!updatedLessonData,
-          hasInteractiveContentInUpdated: !!updatedLessonData.interactive_lesson_content
-        });
+        // console.log('✅ Persistent lesson data set successfully:', {
+        //   lessonId: upcomingLesson.id,
+        //   hasUpdatedLessonData: !!updatedLessonData,
+        //   hasInteractiveContentInUpdated: !!updatedLessonData.interactive_lesson_content
+        // });
 
         // Update the upcoming lesson state with the new interactive content
         setUpcomingLesson(updatedLessonData);

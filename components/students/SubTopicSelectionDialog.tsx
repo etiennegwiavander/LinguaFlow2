@@ -116,7 +116,7 @@ const getIntelligentCategory = (subTopic: SubTopic, availableCategories: string[
     }
   }
 
-  console.log(`🎯 Intelligent category selection for "${subTopic.title}": ${bestCategory} (score: ${bestScore})`);
+  // console.log(`🎯 Intelligent category selection for "${subTopic.title}": ${bestCategory} (score: ${bestScore})`);
   return bestCategory;
 };
 
@@ -146,7 +146,7 @@ function SubTopicSelectionDialogContent({
           .eq('is_active', true);
 
         if (error) {
-          console.error('Error fetching templates:', error);
+          // console.error('Error fetching templates:', error);
           // Fallback to default categories
           setAvailableCategories([
             'Grammar', 'Conversation', 'Business English', 'English for Kids',
@@ -161,9 +161,9 @@ function SubTopicSelectionDialogContent({
           .filter(cat => cat !== 'English for Travel') // Hide English for Travel from dropdown
           .sort();
         setAvailableCategories(uniqueCategories);
-        console.log('📋 Available categories from active templates:', uniqueCategories);
+        // console.log('📋 Available categories from active templates:', uniqueCategories);
       } catch (error) {
-        console.error('Error fetching available categories:', error);
+        // console.error('Error fetching available categories:', error);
         // Fallback to default categories
         setAvailableCategories([
           'Grammar', 'Conversation', 'Business English', 'English for Kids',

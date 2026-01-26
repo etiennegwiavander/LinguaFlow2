@@ -53,12 +53,12 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
   const [completedSubTopics, setCompletedSubTopics] = useState<string[]>([]);
 
   // Debug logging for state changes
-  useEffect(() => {
-    console.log('🔄 [Progress Context] completedSubTopics state changed:', completedSubTopics.length, 'items');
-    if (completedSubTopics.length > 0) {
-      console.log('   IDs:', completedSubTopics);
-    }
-  }, [completedSubTopics]);
+  // useEffect(() => {
+  //   console.log('🔄 [Progress Context] completedSubTopics state changed:', completedSubTopics.length, 'items');
+  //   if (completedSubTopics.length > 0) {
+  //     console.log('   IDs:', completedSubTopics);
+  //   }
+  // }, [completedSubTopics]);
 
   // Helper function to get user-specific localStorage keys (for migration)
   const getUserSpecificKey = (baseKey: string) => {
@@ -102,7 +102,7 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('❌ Error in loadProgressData:', error);
+        // console.error('❌ Error in loadProgressData:', error);
         setIsLoading(false);
       }
     };
@@ -112,31 +112,31 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
 
   // Refresh progress from database
   const refreshProgressFromDatabase = useCallback(async (studentId?: string) => {
-    console.log('🔍 [Progress Context] refreshProgressFromDatabase called');
-    console.log('   Param studentId:', studentId?.substring(0, 8));
-    console.log('   currentStudentId:', currentStudentId?.substring(0, 8));
+    // console.log('🔍 [Progress Context] refreshProgressFromDatabase called');
+    // console.log('   Param studentId:', studentId?.substring(0, 8));
+    // console.log('   currentStudentId:', currentStudentId?.substring(0, 8));
     
     try {
       const targetStudentId = studentId || currentStudentId;
       if (!targetStudentId) {
-        console.log('⚠️  [Progress Context] No targetStudentId, returning early');
+        // console.log('⚠️  [Progress Context] No targetStudentId, returning early');
         return;
       }
 
-      console.log('📊 [Progress Context] Loading progress from database...');
-      console.log('   Target Student ID:', targetStudentId.substring(0, 8));
+      // console.log('📊 [Progress Context] Loading progress from database...');
+      // console.log('   Target Student ID:', targetStudentId.substring(0, 8));
       
       const progressData = await lessonHistoryService.getStudentProgress(targetStudentId);
       
-      console.log('   Found completions:', progressData.completedSubTopics.length);
-      console.log('   Completion IDs:', progressData.completedSubTopics);
+      // console.log('   Found completions:', progressData.completedSubTopics.length);
+      // console.log('   Completion IDs:', progressData.completedSubTopics);
       
       setCompletedSubTopicsWithTimestamps(progressData.completedSubTopicsWithTimestamps);
       setCompletedSubTopics(progressData.completedSubTopics);
       
-      console.log('✅ [Progress Context] State updated with', progressData.completedSubTopics.length, 'completed sub-topics');
+      // console.log('✅ [Progress Context] State updated with', progressData.completedSubTopics.length, 'completed sub-topics');
     } catch (error) {
-      console.error('❌ [Progress Context] Error loading progress from database:', error);
+      // console.error('❌ [Progress Context] Error loading progress from database:', error);
       // Don't fallback to localStorage - just log the error
       // The database is the source of truth now
     }
@@ -153,7 +153,7 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          console.log('🔄 Migrating localStorage data to database...');
+          // console.log('🔄 Migrating localStorage data to database...');
           
           await lessonHistoryService.migrateLocalStorageData(
             currentStudentId,
@@ -165,34 +165,34 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
           localStorage.removeItem(timestampedKey);
           localStorage.removeItem(`completedSubTopics_${userId}`);
           
-          console.log('✅ Successfully migrated localStorage data to database');
+          // console.log('✅ Successfully migrated localStorage data to database');
         }
       }
     } catch (error) {
-      console.error('❌ Error migrating localStorage data:', error);
+      console.error(error);
     }
   };
 
   // Fallback to localStorage if database fails
-  const loadFromLocalStorageFallback = async () => {
-    if (!currentUserId || typeof window === 'undefined') return;
+  // const loadFromLocalStorageFallback = async () => {
+  //   if (!currentUserId || typeof window === 'undefined') return;
     
-    try {
-      const timestampedKey = `completedSubTopicsWithTimestamps_${currentUserId}`;
-      const stored = localStorage.getItem(timestampedKey);
+  //   try {
+  //     const timestampedKey = `completedSubTopicsWithTimestamps_${currentUserId}`;
+  //     const stored = localStorage.getItem(timestampedKey);
       
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setCompletedSubTopicsWithTimestamps(parsed);
-          setCompletedSubTopics(parsed.map((item: CompletedSubTopic) => item.id));
-          console.log('⚠️ Loaded from localStorage fallback');
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error loading localStorage fallback:', error);
-    }
-  };
+  //     if (stored) {
+  //       const parsed = JSON.parse(stored);
+  //       if (Array.isArray(parsed)) {
+  //         setCompletedSubTopicsWithTimestamps(parsed);
+  //         setCompletedSubTopics(parsed.map((item: CompletedSubTopic) => item.id));
+  //         // console.log('⚠️ Loaded from localStorage fallback');
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('❌ Error loading localStorage fallback:', error);
+  //   }
+  // };
 
   // Function to initialize completed sub-topics from lesson data
   const initializeFromLessonData = useCallback((lessonData: any) => {
@@ -238,12 +238,12 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
     lessonSessionData?: any
   ) => {
     const completionTimestamp = new Date().toISOString();
-    console.log('🎯 Marking sub-topic as complete:', subTopicId, 'at', completionTimestamp);
+    // console.log('🎯 Marking sub-topic as complete:', subTopicId, 'at', completionTimestamp);
     
     // Update local state immediately for responsive UI
     setCompletedSubTopicsWithTimestamps(prev => {
       if (prev.some(item => item.id === subTopicId)) {
-        console.log('⚠️ Sub-topic already marked as complete:', subTopicId);
+        // console.log('⚠️ Sub-topic already marked as complete:', subTopicId);
         return prev;
       }
       const newCompleted = [...prev, { id: subTopicId, completedAt: completionTimestamp }];
@@ -281,9 +281,9 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
           });
         }
         
-        console.log('✅ Successfully saved progress to database');
+        // console.log('✅ Successfully saved progress to database');
       } else {
-        console.warn('⚠️ Missing student or tutor context, saving to localStorage fallback');
+        // console.warn('⚠️ Missing student or tutor context, saving to localStorage fallback');
         // Fallback to localStorage
         if (typeof window !== 'undefined' && currentUserId) {
           const timestampedKey = `completedSubTopicsWithTimestamps_${currentUserId}`;
@@ -293,7 +293,7 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
         }
       }
     } catch (error) {
-      console.error('❌ Error saving progress to database, using localStorage fallback:', error);
+      // console.error('❌ Error saving progress to database, using localStorage fallback:', error);
       
       // Fallback to localStorage
       if (typeof window !== 'undefined' && currentUserId) {
@@ -326,7 +326,7 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
       localStorage.removeItem(timestampedKey);
     }
     
-    console.log('🗑️ Cleared progress data');
+    // console.log('🗑️ Cleared progress data');
   }, [currentUserId]);
 
   // Refresh progress function
@@ -351,7 +351,7 @@ export function ProgressProvider({ children }: ProgressProviderProps) {
     }
     
     if (contextChanged) {
-      console.log('🎯 Setting student context:', { studentId: studentId.substring(0, 8), tutorId: tutorId?.substring(0, 8) });
+      // console.log('🎯 Setting student context:', { studentId: studentId.substring(0, 8), tutorId: tutorId?.substring(0, 8) });
       // Refresh progress for this student
       refreshProgressFromDatabase(studentId);
     }
