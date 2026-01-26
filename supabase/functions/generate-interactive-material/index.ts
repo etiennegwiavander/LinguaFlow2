@@ -879,19 +879,17 @@ function validateAndEnsureExamples(
               !Array.isArray(item.examples) ||
               item.examples.length === 0
             ) {
-              console.log(
-                `⚠️ Missing examples for vocabulary word: ${item.word}, generating contextual examples...`
+              // Log warning but DO NOT generate fallback content
+              // This indicates an AI generation issue that should be investigated
+              console.warn(
+                `⚠️ CRITICAL: No examples generated for vocabulary word: ${item.word}`
               );
-
-              const word = item.word || "word";
-              const definition = item.definition || "definition";
-              const partOfSpeech = item.part_of_speech || "noun";
-
-              item.examples = generateContextualExamples(
-                word,
-                definition,
-                partOfSpeech
+              console.warn(
+                `   This may indicate an AI generation issue. Keeping empty to maintain quality.`
               );
+              
+              // Initialize empty array to prevent errors
+              item.examples = [];
             }
 
             // Ensure we have the right number of examples based on lesson type and level
@@ -914,38 +912,21 @@ function validateAndEnsureExamples(
             }
 
             if (item.examples.length > targetCount) {
+              // Trim excess examples to match target count
               item.examples = item.examples.slice(0, targetCount);
+              console.log(
+                `   ✂️ Trimmed "${item.word}" examples from ${item.examples.length} to ${targetCount}`
+              );
             } else if (item.examples.length < targetCount) {
-              // For pronunciation lessons, only add fallbacks if we have fewer than 2 examples
-              // This prevents generic sentences while ensuring minimum quality
-              if (isPronunciationLesson && item.examples.length >= 2) {
-                console.log(
-                  `   ✅ Pronunciation lesson: "${item.word}" has ${item.examples.length} examples (acceptable, not adding fallbacks)`
-                );
-              } else {
-                // Add more examples if needed
-                console.log(
-                  `   ⚠️ Adding fallback examples for "${item.word}" (current: ${item.examples.length}, target: ${targetCount})`
-                );
-                const word = item.word || "word";
-                const definition = item.definition || "definition";
-                const partOfSpeech = item.part_of_speech || "noun";
-                const additionalExamples = generateContextualExamples(
-                  word,
-                  definition,
-                  partOfSpeech
-                );
-
-                while (
-                  item.examples.length < targetCount &&
-                  additionalExamples.length > 0
-                ) {
-                  const newExample = additionalExamples.pop();
-                  if (newExample && !item.examples.includes(newExample)) {
-                    item.examples.push(newExample);
-                  }
-                }
-              }
+              // Log warning but DO NOT add fallback content
+              // Trust the AI-generated content even if fewer than target
+              console.log(
+                `   ⚠️ "${item.word}" has ${item.examples.length} examples (target: ${targetCount}) - keeping AI-generated content only`
+              );
+            } else {
+              console.log(
+                `   ✅ "${item.word}" has exactly ${targetCount} examples`
+              );
             }
 
             return item;
