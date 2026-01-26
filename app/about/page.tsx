@@ -12,7 +12,7 @@ export default function AboutPage() {
     <LandingLayout>
       {/* Hero Section */}
       <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-neural-50 via-cyber-50/30 to-neon-50/20 dark:from-neural-900 dark:via-neural-800 dark:to-neural-900"></div>
+        <div className="absolute inset-0  dark:from-neural-900 dark:via-neural-800 dark:to-neural-900"></div>
         <div className="absolute inset-0 grid-background opacity-30"></div>
         
         {/* Floating Elements */}
@@ -209,7 +209,7 @@ export default function AboutPage() {
                 </li>
                 <li className="flex items-start">
                   <div className="w-5 h-5 rounded-full bg-gradient-to-r from-cyber-400 to-neon-400 flex items-center justify-center text-white font-bold text-xs mt-1 mr-3">✓</div>
-                  <span>Integrates with calendar systems for seamless scheduling</span>
+                  <span>Integrates with calendar systems to keep you updated</span>
                 </li>
               </ul>
             </div>
@@ -377,7 +377,7 @@ export default function AboutPage() {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="border-white/30 hover:bg-white/10 hover:border-white transition-all duration-300 px-8 py-6 text-lg text-white"
+                className="border-white/30 hover:bg-white/10 hover:border-white transition-all duration-300 px-8 py-6 text-lg text-neural-900"
               >
                 View Pricing
               </Button>

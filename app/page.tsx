@@ -196,13 +196,13 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-br from-neural-50 via-cyber-50/30 to-neon-50/20 dark:from-neural-900 dark:via-neural-800 dark:to-neural-900"></div>
+        <div className="absolute inset-0 via-cyber-50 dark:from-neural-900 dark:via-neural-800 dark:to-neural-900"></div>
         <div className="absolute inset-0 grid-background opacity-30"></div>
 
         {/* Floating Elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-cyber-400/20 rounded-full blur-xl animate-float"></div>
+        {/* <div className="absolute top-20 left-10 w-20 h-20 bg-cyber-400/20 rounded-full blur-xl animate-float"></div>
         <div className="absolute top-40 right-20 w-32 h-32 bg-neon-400/20 rounded-full blur-xl animate-float" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute bottom-40 left-20 w-24 h-24 bg-purple-400/20 rounded-full blur-xl animate-float" style={{ animationDelay: '4s' }}></div>
+        <div className="absolute bottom-40 left-20 w-24 h-24 bg-purple-400/20 rounded-full blur-xl animate-float" style={{ animationDelay: '4s' }}></div> */}
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="animate-slide-up">
@@ -212,17 +212,20 @@ export default function HomePage() {
             </Badge>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="gradient-text">Hyper-Personalized Lessons</span>
+              <span className="gradient-text">Lessons That Remember </span>
               <br />
-              <span className="text-foreground">That Adapts to Every</span>
+              <span className="text-foreground">Your Students,</span>
               <br />
-              <span className="text-foreground/80">Student in Seconds</span>
+              <span className="text-foreground/80"> Even When You’re Exhausted</span>
             </h1>
 
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-4xl mx-auto leading-relaxed">
+              Show up prepared every time — without spending hours planning or forgetting what matters to each student.
+            </p>
+            {/* <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-4xl mx-auto leading-relaxed">
               Create engaging personalized interactive lesson materials with interactive discussion topics, vocabulary flashcards,
               and adaptive exercises. Reduce prep time by 95% while increasing student engagement by 85%.
-            </p>
+            </p> */}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
               <Link href="/auth/signup">
