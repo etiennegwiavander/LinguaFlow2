@@ -282,30 +282,30 @@ OTHER INSTRUCTIONS:
    - B1/B2 levels: Generate 4 example sentences per vocabulary word  
    - C1/C2 levels: Generate 3 example sentences per vocabulary word
    
+   
+   🚨 CRITICAL: Example Structure Below
+   The example structure shows 5 sentences for demonstration. 
+   YOU MUST generate the correct number for THIS student's level:
+   - Current Student: ${student.name}
+   - Student Level: ${student.level.toUpperCase()}
+   - Required Examples: ${student.level.toLowerCase().startsWith('a') ? '5 examples per word' : student.level.toLowerCase().startsWith('b') ? '4 examples per word' : '3 examples per word'}
+   
+   DO NOT copy the example blindly - adjust to match the student's level!
+   
    {
      "word": "vocabulary_word",
      "definition": "clear definition appropriate for ${student.level.toUpperCase()} level",
      "part_of_speech": "ACCURATE part of speech (noun/verb/adjective/adverb/preposition/conjunction/pronoun/interjection)",
      "examples": [
-       "UNIQUE sentence 1 showing REAL-WORLD usage in ${
-         subTopic.title
-       } context",
-       "DIFFERENT sentence 2 with VARIED structure and vocabulary in ${
-         subTopic.title
-       } context", 
-       "DISTINCT sentence 3 using ALTERNATIVE sentence patterns in ${
-         subTopic.title
-       } context"${
-      subTopic.category === 'Pronunciation' 
-        ? '' // Pronunciation: Stop at 3 examples
-        : student.level.toLowerCase().startsWith("a")
-        ? ',\n       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context",\n       "ADDITIONAL sentence 5 with UNIQUE structure and context in ${subTopic.title} context"'
-        : student.level.toLowerCase().startsWith("b")
-        ? ',\n       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context"'
-        : ""
-    }
+       "UNIQUE sentence 1 showing REAL-WORLD usage in ${subTopic.title} context",
+       "DIFFERENT sentence 2 with VARIED structure and vocabulary in ${subTopic.title} context", 
+       "DISTINCT sentence 3 using ALTERNATIVE sentence patterns in ${subTopic.title} context",
+       "ORIGINAL sentence 4 with DIVERSE vocabulary and contexts in ${subTopic.title} context",
+       "ADDITIONAL sentence 5 with UNIQUE structure and context in ${subTopic.title} context"
      ]
    }
+   
+   ⚠️ REMEMBER: The example above shows 5 sentences. For ${student.name} (${student.level.toUpperCase()} level), generate ${student.level.toLowerCase().startsWith('a') ? '5' : student.level.toLowerCase().startsWith('b') ? '4' : '3'} examples per word.
    
    PART OF SPEECH ACCURACY RULES:
    - Analyze the word's actual grammatical function, not just its ending
