@@ -71,14 +71,14 @@ const languageMap: Record<string, string> = {
 function constructInteractiveMaterialPrompt(
   student: Student,
   subTopic: any,
-  template: LessonTemplate | null
+  template: LessonTemplate
 ): string {
   const languageName =
     languageMap[student.target_language] || student.target_language;
 
-  if (template) {
-    // Use template-based prompt with hyper-personalization
-    return `You are an expert ${languageName} tutor creating hyper-personalized interactive lesson materials for ${student.name}. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
+  // ALWAYS use template-based prompt with hyper-personalization
+  // The fallback prompt has been removed to prevent generic sentence generation
+  return `You are an expert ${languageName} tutor creating hyper-personalized interactive lesson materials for ${student.name}. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
 
 CRITICAL INSTRUCTIONS:
 1. Generate ALL lesson content in ${languageName} (target language)
@@ -489,219 +489,6 @@ OTHER INSTRUCTIONS:
       * Format: {"title": "Story Title", "story": "Complete story text...", "moral": "The lesson learned..."}
 
 RESPOND ONLY WITH THE FILLED TEMPLATE JSON - NO OTHER TEXT.`;
-  } else {
-    // Use basic prompt for fallback
-    return `You are an expert language tutor creating basic interactive lesson content. You must respond ONLY with valid JSON - no explanations, no additional text, no markdown formatting.
-
-Student Profile:
-- Name: ${student.name}
-- Target Language: ${languageName}
-- Proficiency Level: ${student.level.toUpperCase()}
-- End Goals: ${student.end_goals || "General language improvement"}
-- Grammar Weaknesses: ${student.grammar_weaknesses || "None specified"}
-- Vocabulary Gaps: ${student.vocabulary_gaps || "None specified"}
-- Pronunciation Challenges: ${
-      student.pronunciation_challenges || "None specified"
-    }
-- Conversational Fluency Barriers: ${
-      student.conversational_fluency_barriers || "None specified"
-    }
-- Learning Styles: ${student.learning_styles?.join(", ") || "Not specified"}
-- Additional Notes: ${student.notes || "None"}
-
-Sub-Topic to Focus On:
-- Title: ${subTopic.title}
-- Category: ${subTopic.category}
-- Level: ${subTopic.level}
-- Description: ${subTopic.description || "No description provided"}
-
-Create a basic interactive lesson focused on this sub-topic. Respond with this JSON structure:
-
-{
-  "name": "${subTopic.title}",
-  "category": "${subTopic.category}",
-  "level": "${subTopic.level}",
-  "content": {
-    "title": "${subTopic.title}",
-    "introduction": "Brief introduction to the topic",
-    "main_content": "Detailed explanation and examples",
-    "practice_exercises": [
-      "Exercise 1 description",
-      "Exercise 2 description",
-      "Exercise 3 description"
-    ],
-    "vocabulary": [
-      {
-        "word": "word1", 
-        "definition": "definition1",
-        "part_of_speech": "noun",
-        "examples": [
-          "Contextual sentence 1 using word1 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 2 using word1 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 3 using word1 in the context of ${
-            subTopic.title
-          }"
-        ]
-      },
-      {
-        "word": "word2", 
-        "definition": "definition2",
-        "part_of_speech": "verb",
-        "examples": [
-          "Contextual sentence 1 using word2 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 2 using word2 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 3 using word2 in the context of ${
-            subTopic.title
-          }"
-        ]
-      },
-      {
-        "word": "word3", 
-        "definition": "definition3",
-        "part_of_speech": "adjective",
-        "examples": [
-          "Contextual sentence 1 using word3 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 2 using word3 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 3 using word3 in the context of ${
-            subTopic.title
-          }"
-        ]
-      },
-      {
-        "word": "word4", 
-        "definition": "definition4",
-        "part_of_speech": "adverb",
-        "examples": [
-          "Contextual sentence 1 using word4 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 2 using word4 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 3 using word4 in the context of ${
-            subTopic.title
-          }"
-        ]
-      },
-      {
-        "word": "word5", 
-        "definition": "definition5",
-        "part_of_speech": "noun",
-        "examples": [
-          "Contextual sentence 1 using word5 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 2 using word5 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 3 using word5 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 4 using word5 in the context of ${
-            subTopic.title
-          }",
-          "Contextual sentence 5 using word5 in the context of ${
-            subTopic.title
-          }"
-        ]
-      }
-    ],
-    "example_sentences": [
-      "Sentence 1 that directly relates to ${
-        subTopic.title
-      } and uses lesson vocabulary",
-      "Sentence 2 that directly relates to ${
-        subTopic.title
-      } and uses lesson vocabulary",
-      "Sentence 3 that directly relates to ${
-        subTopic.title
-      } and uses lesson vocabulary"
-    ],
-    "dialogue_example": [
-      {"character": "Teacher", "text": "Example dialogue line 1 related to ${
-        subTopic.title
-      }"},
-      {"character": "Student", "text": "Example dialogue line 2 related to ${
-        subTopic.title
-      }"},
-      {"character": "Teacher", "text": "Example dialogue line 3 related to ${
-        subTopic.title
-      }"},
-      {"character": "Student", "text": "Example dialogue line 4 related to ${
-        subTopic.title
-      }"},
-      {"character": "Teacher", "text": "Example dialogue line 5 related to ${
-        subTopic.title
-      }"},
-      {"character": "Student", "text": "Example dialogue line 6 related to ${
-        subTopic.title
-      }"}
-    ],
-    "wrap_up": "Summary and key takeaways"
-  }
-}
-
-CRITICAL INSTRUCTIONS FOR CONTEXTUAL EXAMPLE SENTENCES:
-
-🚨 IMPORTANT: The JSON example above shows 5 example sentences for demonstration.
-However, you MUST generate the correct number based on the student's actual level:
-- Current Student Level: ${student.level.toUpperCase()}
-- Required Examples Per Word: ${student.level.toLowerCase().startsWith('a') ? '5 examples' : student.level.toLowerCase().startsWith('b') ? '4 examples' : '3 examples'}
-
-DO NOT blindly copy the example structure. Adjust the number of examples to match the student's level.
-
-1. Focus specifically on the sub-topic: ${subTopic.title}
-2. Make content appropriate for ${student.level.toUpperCase()} level ${languageName}
-3. Address the student's specific learning needs: ${
-      student.grammar_weaknesses || "general improvement"
-    }, ${student.vocabulary_gaps || "general vocabulary"}, ${
-      student.conversational_fluency_barriers || "general fluency"
-    }
-4. Create practical, engaging content that relates directly to ${subTopic.title}
-5. Generate EXACTLY 5-7 vocabulary words (minimum 5, maximum 7) - the example above shows 5 words, but you can include up to 7 if appropriate for the topic
-6. For vocabulary items, each word MUST have the correct number of example sentences based on student level:
-   - A1/A2 levels: Generate 5 example sentences per vocabulary word
-   - B1/B2 levels: Generate 4 example sentences per vocabulary word  
-   - C1/C2 levels: Generate 3 example sentences per vocabulary word
-   
-   Each example sentence must:
-   - Use the word in the specific context of ${subTopic.title}
-   - Be appropriate for ${student.level.toUpperCase()} level
-   - Show practical, real-world usage related to the lesson topic
-   - Be contextually relevant to the lesson (NOT generic sentences)
-7. For dialogue_example arrays, create realistic conversations with the following line counts based on student level:
-   - A1 level: 4-7 dialogue lines
-   - A2 level: 6-8 dialogue lines
-   - B1 level: 7-10 dialogue lines
-   - B2 level: 9-12 dialogue lines
-   - C1/C2 levels: 10-12 dialogue lines
-   Each dialogue line must have "character" and "text" properties with natural conversation flow.
-8. For example_sentences arrays, create sentences that:
-   - Directly relate to and demonstrate concepts from ${subTopic.title}
-   - Incorporate vocabulary words from the lesson
-   - Are contextually coherent with the lesson theme
-   - Provide meaningful practice for the student's level
-9. ALWAYS populate dialogue arrays with objects containing "character" and "text" properties
-10. NEVER create generic example sentences - all examples must be contextually relevant to ${
-      subTopic.title
-    }
-11. Ensure all example sentences work together to reinforce the lesson's main concepts
-12. Include "part_of_speech" field for each vocabulary word (noun/verb/adjective/adverb/etc.)
-
-RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT.`;
-  }
 }
 
 function cleanJsonResponse(content: string): string {
@@ -772,96 +559,6 @@ function validateAndEnsureExamples(
   if (isPronunciationLesson) {
     console.log("🎯 Pronunciation lesson detected - using 3-example limit for all levels");
   }
-
-  // Helper function to generate diverse, word-specific contextual examples
-  const generateContextualExamples = (
-    word: string,
-    definition: string,
-    partOfSpeech: string
-  ): string[] => {
-    const examples = [];
-    const level = student.level.toLowerCase();
-    const wordLower = word.toLowerCase();
-    const pos = partOfSpeech.toLowerCase();
-
-    // Word-specific examples for common vocabulary (prevents repetition)
-    if (wordLower === "extended family") {
-      examples.push(
-        `My extended family includes grandparents, aunts, uncles, and cousins.`,
-        `We have a large extended family reunion every summer.`,
-        `Extended family members often provide support during difficult times.`,
-        `Children benefit from close relationships with their extended family.`
-      );
-    } else if (wordLower === "nuclear family") {
-      examples.push(
-        `A nuclear family typically consists of parents and their children.`,
-        `The nuclear family is the most common family structure in many countries.`,
-        `Our nuclear family includes mom, dad, and two children.`,
-        `Nuclear family dynamics can vary greatly between cultures.`
-      );
-    } else if (wordLower === "sibling rivalry") {
-      examples.push(
-        `Sibling rivalry is common between brothers and sisters.`,
-        `Parents should address sibling rivalry with patience and fairness.`,
-        `Healthy competition can reduce sibling rivalry over time.`,
-        `Sibling rivalry often decreases as children grow older.`
-      );
-    } else if (wordLower === "relationship status") {
-      examples.push(
-        `Social media profiles often display your relationship status.`,
-        `Her relationship status changed from single to married.`,
-        `Some people prefer to keep their relationship status private.`,
-        `Relationship status can affect tax filing and insurance benefits.`
-      );
-    } else if (wordLower === "cohabitate") {
-      examples.push(
-        `Many couples choose to cohabitate before getting married.`,
-        `They decided to cohabitate after dating for two years.`,
-        `Some people cohabitate to test their compatibility.`,
-        `Legal rights differ for couples who cohabitate versus marry.`
-      );
-    } else if (wordLower === "in-laws") {
-      examples.push(
-        `My in-laws are very welcoming and kind people.`,
-        `Building good relationships with in-laws takes time and effort.`,
-        `We visit my in-laws every holiday season.`,
-        `Some couples struggle with in-laws who are too involved.`
-      );
-    }
-    // Generate diverse examples based on part of speech
-    else if (pos.includes("noun")) {
-      examples.push(
-        `The ${word} is an important concept in family relationships.`,
-        `Understanding different types of ${word} helps with communication.`,
-        `Every ${word} has its own unique characteristics and challenges.`,
-        `A healthy ${word} requires mutual respect and understanding.`
-      );
-    } else if (pos.includes("verb")) {
-      examples.push(
-        `Many people ${word} to strengthen their relationships.`,
-        `She ${word}s naturally in social situations.`,
-        `We should ${word} with respect and consideration.`,
-        `They ${word}ed successfully after years of practice.`
-      );
-    } else if (pos.includes("adjective")) {
-      examples.push(
-        `The relationship was very ${word} and supportive.`,
-        `A ${word} approach works better in family situations.`,
-        `This method is ${word} for building strong connections.`,
-        `The ${word} nature of the interaction impressed everyone.`
-      );
-    } else {
-      // Generic fallback with variety
-      examples.push(
-        `The concept of "${word}" is important in family dynamics.`,
-        `Understanding "${word}" helps improve relationships.`,
-        `People often discuss "${word}" in social contexts.`,
-        `Learning about "${word}" enhances communication skills.`
-      );
-    }
-
-    return examples;
-  };
 
   // Recursively process the template to find and validate vocabulary items
   const processObject = (obj: any): any => {
@@ -964,7 +661,7 @@ function validateAndEnsureExamples(
 function selectAppropriateTemplate(
   subTopic: any,
   templates: LessonTemplate[]
-): LessonTemplate | null {
+): LessonTemplate {
   console.log(`🔍 Searching for template matching:`, {
     category: subTopic.category,
     level: subTopic.level || 'NOT PROVIDED',
@@ -1022,11 +719,32 @@ function selectAppropriateTemplate(
     }
   }
 
-  console.error(
-    `❌ No suitable template found for category: "${subTopic.category}", level: "${subTopic.level || 'MISSING'}"`
-  );
-  console.error(`   Available categories: ${[...new Set(templates.map(t => t.category))].join(', ')}`);
-  return null;
+  // FALLBACK: Use ANY available template rather than returning null
+  // This ensures we NEVER use the basic fallback prompt
+  if (templates.length > 0) {
+    // Prefer Conversation templates as they're most generic
+    const conversationTemplate = templates.find(
+      (t) => t.category === "Conversation"
+    );
+    if (conversationTemplate) {
+      console.warn(
+        `⚠️ No matching template found, using generic Conversation template: ${conversationTemplate.name}`
+      );
+      return conversationTemplate;
+    }
+
+    // Use first available template as last resort
+    console.warn(
+      `⚠️ No matching template found, using first available template: ${templates[0].name}`
+    );
+    return templates[0];
+  }
+
+  // Only throw error if NO templates exist at all in the database
+  const errorMsg = `❌ CRITICAL: No lesson templates found in database! Cannot generate lesson.`;
+  console.error(errorMsg);
+  console.error(`   Requested: category="${subTopic.category}", level="${subTopic.level || 'MISSING'}"`);
+  throw new Error(errorMsg);
 }
 
 serve(async (req) => {
