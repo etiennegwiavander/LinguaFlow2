@@ -44,7 +44,7 @@ export default function LessonHistoryCard({ lessonEntry, onViewLesson }: LessonH
         </div>
 
         {/* Date Badge Overlay */}
-        <div className="absolute top-3 right-3">
+        {/* <div className="absolute top-3 right-3">
           <Badge variant="secondary" className="bg-white/90 text-gray-800 border-0 shadow-lg backdrop-blur-sm">
             <Calendar className="w-3 h-3 mr-1" />
             {completionDate.toLocaleDateString(undefined, {
@@ -52,7 +52,7 @@ export default function LessonHistoryCard({ lessonEntry, onViewLesson }: LessonH
               day: 'numeric'
             })}
           </Badge>
-        </div>
+        </div> */}
       </div>
 
       {/* Content Section */}
@@ -95,7 +95,7 @@ export default function LessonHistoryCard({ lessonEntry, onViewLesson }: LessonH
         </div>
 
         {/* Feature Badges */}
-        <div className="flex flex-wrap gap-2">
+        {/* <div className="flex flex-wrap gap-2">
           {hasInteractiveContent && (
             <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
               <BookOpen className="w-3 h-3 mr-1" />
@@ -108,7 +108,7 @@ export default function LessonHistoryCard({ lessonEntry, onViewLesson }: LessonH
               Template Applied
             </Badge>
           )}
-        </div>
+        </div> */}
 
         {/* Action Button */}
         <div className="pt-2">
@@ -119,7 +119,7 @@ export default function LessonHistoryCard({ lessonEntry, onViewLesson }: LessonH
                   variant="outline"
                   size="sm"
                   onClick={() => onViewLesson(lessonEntry)}
-                  className="w-full border-cyber-400/30 hover:bg-cyber-400/10 group-hover:border-cyber-400/50 transition-colors"
+                  className="w-full border-cyber-400/30 hover:bg-cyber-600/80 group-hover:border-cyber-400/50 transition-colors"
                 >
                   <BookOpen className="h-4 w-4 mr-2" />
                   View Lesson Material

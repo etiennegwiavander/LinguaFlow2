@@ -410,13 +410,9 @@ const generateAIContextualExamples = async (word: string, partOfSpeech: string, 
   } catch (error) {
     console.error('❌ Failed to generate AI examples for:', word, error);
 
-    // Minimal fallback - just return a simple contextual sentence
-    const lessonContext = lesson?.interactive_lesson_content?.selected_sub_topic?.title || 'language learning';
-    return [
-      `The word "${word}" is used in the context of ${lessonContext}.`,
-      `Understanding "${word}" helps with communication skills.`,
-      `Students practice using "${word}" in relevant situations.`
-    ].slice(0, count);
+    // Return empty array - do NOT show generic fallback sentences
+    // This will hide the vocabulary word if AI generation fails
+    return [];
   }
 };
 
@@ -2611,13 +2607,9 @@ Consider how native language patterns may interfere with target language structu
             console.log(`✅ Using AI-generated sentences from lesson content for: ${word}`, examples);
           } else {
             // Fallback: Use minimal contextual examples (no hardcoded generic ones)
-            const lessonContext = lesson?.interactive_lesson_content?.selected_sub_topic?.title || 'language learning';
-            examples = [
-              `The word "${word}" is used in the context of ${lessonContext}.`,
-              `Understanding "${word}" helps with communication skills.`,
-              `Students practice using "${word}" in relevant situations.`
-            ].slice(0, exampleCount);
-            console.log(`⚠️ Using minimal fallback examples for: ${word} (AI examples missing)`);
+            // Do NOT show generic fallback sentences - return empty array
+            examples = [];
+            console.log(`⚠️ No examples available for: ${word} - hiding from display`);
           }
 
           // Bold the vocabulary word in the examples for better visual emphasis
@@ -2641,19 +2633,40 @@ Consider how native language patterns may interfere with target language structu
           };
         });
 
+        // Filter out vocabulary items without examples (hide incomplete items)
+        const vocabularyItemsWithExamples = enhancedVocabularyItems.filter(item => {
+          const hasExamples = item.examples && item.examples.length > 0;
+          if (!hasExamples) {
+            console.warn(`⚠️ Hiding vocabulary word "${item.word}" - no examples available`);
+          }
+          return hasExamples;
+        });
+
         // Debug logging before passing to EnhancedVocabularySection
         console.log('🔍 LessonMaterialDisplay - Passing vocabulary items to EnhancedVocabularySection:', {
-          itemsCount: enhancedVocabularyItems.length,
-          sampleItem: enhancedVocabularyItems[0] ? {
-            word: enhancedVocabularyItems[0].word,
-            examplesCount: enhancedVocabularyItems[0].examples?.length || 0,
-            examples: enhancedVocabularyItems[0].examples
+          totalItems: enhancedVocabularyItems.length,
+          itemsWithExamples: vocabularyItemsWithExamples.length,
+          hiddenItems: enhancedVocabularyItems.length - vocabularyItemsWithExamples.length,
+          sampleItem: vocabularyItemsWithExamples[0] ? {
+            word: vocabularyItemsWithExamples[0].word,
+            examplesCount: vocabularyItemsWithExamples[0].examples?.length || 0,
+            examples: vocabularyItemsWithExamples[0].examples
           } : null
         });
 
+        // If no vocabulary items have examples, show a message
+        if (vocabularyItemsWithExamples.length === 0) {
+          return (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-lg font-medium mb-2">Vocabulary section is being prepared</p>
+              <p className="text-sm">Example sentences are currently unavailable for this lesson.</p>
+            </div>
+          );
+        }
+
         return (
           <EnhancedVocabularySection
-            vocabularyItems={enhancedVocabularyItems}
+            vocabularyItems={vocabularyItemsWithExamples}
             level={lesson?.student?.level || 'intermediate'}
             onTextDoubleClick={handleTextDoubleClick}
           />

@@ -47,11 +47,7 @@ VALUES (
         "instruction": "Essential words and phrases with definitions and example sentences.",
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "vocabulary_matching",
-        "vocabulary_items": [
-          { "image_url": "", "name": "House", "prompt": "A building where people live." },
-          { "image_url": "", "name": "Apartment", "prompt": "A set of rooms for living in, usually on one floor of a larger building." },
-          { "image_url": "", "name": "City", "prompt": "A large town." }
-        ],
+        "vocabulary_items": [],
         "ai_placeholder": "vocabulary_items"
       },
       {

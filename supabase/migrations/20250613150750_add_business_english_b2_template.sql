@@ -31,19 +31,25 @@ VALUES (
         "content_type": "text",
         "ai_placeholder": "introduction_overview"
       },
+            {
+        "id": "useful_expressions",
+        "type": "exercise",
+        "title": "Useful Expressions",
+        "instruction": "Practical business phrases or sentence starters for networking.",
+        "instruction_bg_color_var": "secondary_bg",
+        "content_type": "list",
+        "items": [],
+        "ai_placeholder": "useful_expressions"
+      },
       {
         "id": "key_vocabulary",
         "type": "exercise",
         "title": "Key Vocabulary",
         "instruction": "Essential business and networking terms, with definitions and example sentences.",
-        "instruction_bg_color_var": "secondary_bg",
         "content_type": "vocabulary_matching",
-        "vocabulary_items": [
-          { "image_url": "https://images.pexels.com/photos/3184416/pexels-photo-3184416.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2", "name": "Networking", "prompt": "The action or process of interacting with others to exchange information and develop professional or social contacts." },
-          { "image_url": "https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2", "name": "Business Card", "prompt": "A small card printed with one name, professional occupation, company, and contact information." },
-          { "image_url": "https://images.pexels.com/photos/356043/pexels-photo-356043.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2", "name": "Global Network", "prompt": "A worldwide system of interconnected business or professional contacts." }
-        ],
-        "ai_placeholder": "vocabulary_items"
+        "ai_placeholder": "vocabulary_items",
+        "vocabulary_items": [],
+        "instruction_bg_color_var": "secondary_bg"
       },
       {
         "id": "example_dialogue_reading",
@@ -74,16 +80,6 @@ VALUES (
         "content_type": "list",
         "items": [],
         "ai_placeholder": "discussion_prompts"
-      },
-      {
-        "id": "useful_expressions",
-        "type": "exercise",
-        "title": "Useful Expressions",
-        "instruction": "Practical business phrases or sentence starters for networking.",
-        "instruction_bg_color_var": "secondary_bg",
-        "content_type": "list",
-        "items": [],
-        "ai_placeholder": "useful_expressions"
       },
       {
         "id": "practice_activities",

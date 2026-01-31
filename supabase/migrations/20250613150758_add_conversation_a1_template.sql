@@ -19,13 +19,12 @@ SET template_json = '{
         "subtitle": "Topic Overview"
       },
       {
-        "id": "learning_objectives",
+        "id": "introduction_overview",
         "type": "info_card",
-        "title": "Learning Objectives",
+        "title": "Introduction/Overview",
         "background_color_var": "primary_bg",
-        "content_type": "list",
-        "items": [],
-        "ai_placeholder": "objectives"
+        "content_type": "text",
+        "ai_placeholder": "introduction_overview"
       },
       {
         "id": "useful_expressions",
@@ -41,13 +40,10 @@ SET template_json = '{
         "id": "key_vocabulary",
         "type": "exercise",
         "title": "Key Vocabulary",
-        "instruction": "Listen and repeat the new words and phrases.",
+        "instruction": "Essential words and phrases with definitions and example sentences.",
         "instruction_bg_color_var": "secondary_bg",
         "content_type": "vocabulary_matching",
-        "vocabulary_items": [
-          { "image_url": "", "name": "Word 1", "prompt": "Meaning of word 1" },
-          { "image_url": "", "name": "Word 2", "prompt": "Meaning of word 2" }
-        ],
+        "vocabulary_items": [],
         "ai_placeholder": "vocabulary_items"
       },
       {
