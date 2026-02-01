@@ -56,10 +56,6 @@ export default function FeedbackPage() {
   const [description, setDescription] = useState('');
   const [impact, setImpact] = useState('medium');
 
-  useEffect(() => {
-    loadFeedback();
-  }, [user]);
-
   const loadFeedback = async () => {
     try {
       const { data: feedbackData, error } = await supabase
@@ -93,6 +89,10 @@ export default function FeedbackPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadFeedback();
+  }, [loadFeedback, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,8 +218,17 @@ export default function FeedbackPage() {
             <Lightbulb className="w-8 h-8 text-yellow-500" />
             <h1 className="text-3xl font-bold">Feedback & Ideas</h1>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-3">
             Help us improve LinguaFlow by sharing your ideas and voting on features you'd like to see
+          </p>
+          <p className="text-sm text-muted-foreground">
+            💌 Prefer email? Send your feedback to{' '}
+            <a 
+              href="mailto:feedback@linguaflow.online" 
+              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+            >
+              feedback@linguaflow.online
+            </a>
           </p>
         </div>
 

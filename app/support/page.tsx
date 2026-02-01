@@ -257,16 +257,24 @@ export default function SupportPage() {
         {/* Support Info */}
         <Card className="mb-6 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
           <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-              <div>
-                <p className="font-medium text-blue-900 dark:text-blue-100">Email Support</p>
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  You can also reach us directly at:{' '}
-                  <a href="mailto:linguaflowservices@gmail.com" className="underline">
-                    linguaflowservices@gmail.com
-                  </a>
-                </p>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                <div>
+                  <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">Email Support</p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                    You can also reach us directly at:{' '}
+                    <a 
+                      href="mailto:support@linguaflow.online" 
+                      className="underline font-semibold hover:text-blue-900 dark:hover:text-blue-100"
+                    >
+                      support@linguaflow.online
+                    </a>
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    💡 Tip: You can reply to our confirmation emails and we&apos;ll receive your messages!
+                  </p>
+                </div>
               </div>
             </div>
           </CardContent>
