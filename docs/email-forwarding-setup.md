@@ -31,7 +31,7 @@ Webhook processes email
 **Visual indicator:**
 - 🎫 Red header with "New Support Ticket"
 - Clear label: "Received at: support@linguaflow.online"
-- Link to admin portal: https://linguaflow.online/support
+- Link to admin portal: https://linguaflow.online/admin-portal/support-tickets
 
 ### Feedback Emails
 **Received at:** `feedback@linguaflow.online`
@@ -43,7 +43,7 @@ Webhook processes email
 **Visual indicator:**
 - 💬 Green header with "New Feedback"
 - Clear label: "Received at: feedback@linguaflow.online"
-- Link to admin portal: https://linguaflow.online/feedback
+- Link to admin portal: https://linguaflow.online/admin-portal/feedback-messages
 
 ## Email Format
 
@@ -99,8 +99,12 @@ To test the email forwarding:
 ## Admin Portal Access
 
 View all emails in the admin portal:
-- Support tickets: https://linguaflow.online/support
-- Feedback: https://linguaflow.online/feedback
+- Support tickets: https://linguaflow.online/admin-portal/support-tickets
+- Feedback: https://linguaflow.online/admin-portal/feedback-messages
+
+Note: These are admin-only pages. Regular users can submit tickets/feedback at:
+- Submit support ticket: https://linguaflow.online/support
+- Submit feedback: https://linguaflow.online/feedback
 
 ## Database Storage
 

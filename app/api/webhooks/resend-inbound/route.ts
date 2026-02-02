@@ -127,7 +127,7 @@ async function handleSupportEmail(data: {
             </div>
             <div style="background-color: #f3f4f6; padding: 15px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 5px 5px; text-align: center; font-size: 12px; color: #6b7280;">
               <p style="margin: 0;">This email was sent to <strong>support@linguaflow.online</strong></p>
-              <p style="margin: 5px 0 0 0;">View in admin portal: <a href="https://linguaflow.online/support">Support Dashboard</a></p>
+              <p style="margin: 5px 0 0 0;">View in admin portal: <a href="https://linguaflow.online/admin-portal/support-tickets">Support Dashboard</a></p>
             </div>
           </div>
         `,
@@ -199,7 +199,7 @@ async function handleFeedbackEmail(data: {
             </div>
             <div style="background-color: #f3f4f6; padding: 15px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 5px 5px; text-align: center; font-size: 12px; color: #6b7280;">
               <p style="margin: 0;">This email was sent to <strong>feedback@linguaflow.online</strong></p>
-              <p style="margin: 5px 0 0 0;">View in admin portal: <a href="https://linguaflow.online/feedback">Feedback Dashboard</a></p>
+              <p style="margin: 5px 0 0 0;">View in admin portal: <a href="https://linguaflow.online/admin-portal/feedback-messages">Feedback Dashboard</a></p>
             </div>
           </div>
         `,
