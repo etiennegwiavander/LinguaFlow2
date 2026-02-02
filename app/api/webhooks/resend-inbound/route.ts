@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 
 // Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+// Initialize Resend client for forwarding
+const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function POST(req: NextRequest) {
   try {
@@ -98,8 +102,43 @@ async function handleSupportEmail(data: {
 
     console.log('✅ Support ticket created successfully');
 
+    // Forward email notification to admin
+    try {
+      await resend.emails.send({
+        from: 'LinguaFlow Support <support@linguaflow.online>',
+        to: 'linguaflowservices@gmail.com',
+        subject: `[SUPPORT TICKET] ${data.subject}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #dc2626; color: white; padding: 15px; border-radius: 5px 5px 0 0;">
+              <h2 style="margin: 0;">🎫 New Support Ticket</h2>
+            </div>
+            <div style="background-color: #f3f4f6; padding: 20px; border: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 10px 0;"><strong>From:</strong> ${data.from}</p>
+              <p style="margin: 0 0 10px 0;"><strong>Subject:</strong> ${data.subject}</p>
+              <p style="margin: 0 0 10px 0;"><strong>Received at:</strong> support@linguaflow.online</p>
+              <p style="margin: 0 0 10px 0;"><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+            <div style="background-color: white; padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
+              <h3 style="margin-top: 0;">Message:</h3>
+              <div style="white-space: pre-wrap; background-color: #f9fafb; padding: 15px; border-radius: 5px; border-left: 4px solid #dc2626;">
+                ${data.text || data.html || 'No message content'}
+              </div>
+            </div>
+            <div style="background-color: #f3f4f6; padding: 15px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 5px 5px; text-align: center; font-size: 12px; color: #6b7280;">
+              <p style="margin: 0;">This email was sent to <strong>support@linguaflow.online</strong></p>
+              <p style="margin: 5px 0 0 0;">View in admin portal: <a href="https://linguaflow.online/support">Support Dashboard</a></p>
+            </div>
+          </div>
+        `,
+      });
+      console.log('✅ Support notification forwarded to linguaflowservices@gmail.com');
+    } catch (forwardError) {
+      console.error('❌ Failed to forward support notification:', forwardError);
+      // Don't fail the main request if forwarding fails
+    }
+
     // TODO: Send confirmation email to user
-    // TODO: Notify admin/support team
 
   } catch (error) {
     console.error('Error handling support email:', error);
@@ -134,6 +173,42 @@ async function handleFeedbackEmail(data: {
     }
 
     console.log('✅ Feedback stored successfully');
+
+    // Forward email notification to admin
+    try {
+      await resend.emails.send({
+        from: 'LinguaFlow Feedback <feedback@linguaflow.online>',
+        to: 'linguaflowservices@gmail.com',
+        subject: `[FEEDBACK] ${data.subject}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #059669; color: white; padding: 15px; border-radius: 5px 5px 0 0;">
+              <h2 style="margin: 0;">💬 New Feedback</h2>
+            </div>
+            <div style="background-color: #f3f4f6; padding: 20px; border: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 10px 0;"><strong>From:</strong> ${data.from}</p>
+              <p style="margin: 0 0 10px 0;"><strong>Subject:</strong> ${data.subject}</p>
+              <p style="margin: 0 0 10px 0;"><strong>Received at:</strong> feedback@linguaflow.online</p>
+              <p style="margin: 0 0 10px 0;"><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+            <div style="background-color: white; padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
+              <h3 style="margin-top: 0;">Message:</h3>
+              <div style="white-space: pre-wrap; background-color: #f9fafb; padding: 15px; border-radius: 5px; border-left: 4px solid #059669;">
+                ${data.text || data.html || 'No message content'}
+              </div>
+            </div>
+            <div style="background-color: #f3f4f6; padding: 15px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 5px 5px; text-align: center; font-size: 12px; color: #6b7280;">
+              <p style="margin: 0;">This email was sent to <strong>feedback@linguaflow.online</strong></p>
+              <p style="margin: 5px 0 0 0;">View in admin portal: <a href="https://linguaflow.online/feedback">Feedback Dashboard</a></p>
+            </div>
+          </div>
+        `,
+      });
+      console.log('✅ Feedback notification forwarded to linguaflowservices@gmail.com');
+    } catch (forwardError) {
+      console.error('❌ Failed to forward feedback notification:', forwardError);
+      // Don't fail the main request if forwarding fails
+    }
 
     // TODO: Send thank you email to user
 
